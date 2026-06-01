@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  font-family: 'IBM Plex Sans Thai', sans-serif;
+
+  background: #ffffff;
+
+  color: #111111;
+
+  font-weight: 400;
+
+  letter-spacing: -0.2px;
+}
+
+/* ========================= */
+/* PRINT */
+/* ========================= */
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+
+  * {
+    color: black !important;
+  }
+
+  body {
+    background: white !important;
+
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .print-area {
+
+    width: 190mm !important;
+
+    min-height: 277mm !important;
+
+    margin: auto !important;
+
+    padding: 10mm !important;
+
+    box-shadow: none !important;
+
+    zoom: 0.82;
+
+    transform-origin: top center;
+  }
+}
