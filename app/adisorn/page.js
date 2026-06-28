@@ -3425,7 +3425,7 @@ const downloadJPG = async () => {
 
             </div>
 
-            <div className="ml-auto flex w-[220px] flex-col items-end">
+            <div className="ml-auto flex w-[220px] -translate-y-4 flex-col items-end">
               <div className="flex w-full justify-end overflow-hidden">
                 <Barcode
                   value={bookingNumber}
@@ -3666,7 +3666,7 @@ const downloadJPG = async () => {
               </div>
             </div>
 
-            <div className="ml-auto flex w-[220px] flex-col items-end">
+            <div className="ml-auto flex w-[220px] -translate-y-4 flex-col items-end">
               <div className="flex w-full justify-end overflow-hidden">
                 <Barcode
                   value={bookingNumber}
@@ -3857,7 +3857,7 @@ const downloadJPG = async () => {
               </div>
             </div>
 
-            <div className="ml-auto flex w-[220px] flex-col items-end">
+            <div className="ml-auto flex w-[220px] -translate-y-4 flex-col items-end">
               <div className="flex w-full justify-end overflow-hidden">
                 <Barcode
                   value={bookingNumber}
