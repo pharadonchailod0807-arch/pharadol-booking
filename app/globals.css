@@ -58,18 +58,24 @@ body {
 
   .print-area {
 
-    width: 190mm !important;
+    width: 210mm !important;
 
-    min-height: 277mm !important;
+    height: 297mm !important;
+
+    min-height: 297mm !important;
 
     margin: auto !important;
 
     padding: 10mm !important;
 
+    box-sizing: border-box !important;
+
     box-shadow: none !important;
 
-    zoom: 0.82;
+    overflow: hidden !important;
 
-    transform-origin: top center;
+    zoom: 1 !important;
+
+    transform: none !important;
   }
 }
