@@ -3399,7 +3399,7 @@ const downloadJPG = async () => {
 
          <div className={`flex justify-between items-start ${isDenseDocument ? "pb-3" : "pb-6"}`}>
 
-            <div className="flex items-center gap-4">
+            <div className="flex -translate-y-4 items-center gap-4">
 
               <img
                 src="/logo.png"
@@ -3646,7 +3646,7 @@ const downloadJPG = async () => {
           className="print-area payment-page bg-white w-[210mm] h-[297mm] mx-auto shadow-2xl p-8 flex flex-col overflow-hidden mt-10"
         >
           <div className="flex justify-between items-start pb-6 shrink-0">
-            <div className="flex items-center gap-4">
+            <div className="flex -translate-y-4 items-center gap-4">
               <img
                 src="/logo.png"
                 alt="logo"
@@ -3837,7 +3837,7 @@ const downloadJPG = async () => {
           className="print-area package-page bg-white w-[210mm] h-[297mm] mx-auto shadow-2xl p-8 flex flex-col overflow-hidden mt-10"
         >
           <div className="flex justify-between items-start pb-6 shrink-0">
-            <div className="flex items-center gap-4">
+            <div className="flex -translate-y-4 items-center gap-4">
               <img
                 src="/logo.png"
                 alt="logo"
