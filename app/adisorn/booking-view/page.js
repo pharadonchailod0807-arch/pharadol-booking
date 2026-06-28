@@ -1,16 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-
-export default function BookingViewPage() {
-  useEffect(() => {
-    window.location.replace("/adisorn?view=customer");
-  }, []);
-
-  return null;
-}
-"use client";
-
 import { useEffect, useState } from "react";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;

@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const CUSTOMERS_KEY = "adisorn_customers";
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
 export default function ReportsPage() {
   const router = useRouter();
-  const CUSTOMERS_KEY = "adisorn_customers";
-  const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
   const [customers, setCustomers] = useState([]);
   const [filterStatus, setFilterStatus] = useState("ทั้งหมด");

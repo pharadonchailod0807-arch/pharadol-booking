@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function NotificationsPage() {
+const NOTIFICATIONS_KEY = "pharadol_notifications";
+const ARCHIVE_KEY = "pharadol_notifications_archive";
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
+export default function ReportsPage() {
   const router = useRouter();
-  const NOTIFICATIONS_KEY = "pharadol_notifications";
-  const ARCHIVE_KEY = "pharadol_notifications_archive";
-  const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
   const [notifications, setNotifications] = useState([]);
   const [archive, setArchive] = useState([]);
