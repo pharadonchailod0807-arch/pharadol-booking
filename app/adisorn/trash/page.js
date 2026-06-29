@@ -167,11 +167,47 @@ export default function TrashPage() {
     if (!window.confirm("ยืนยันการลบถาวร ?")) return;
 
     const customer = trash[originalIndex];
-    if (customer?.supabaseId) {
+    if (customer?.supabaseId || customer?.bookingNumber) {
+      let deletedRows = [];
+      let deleteError = null;
+
+      if (customer.supabaseId) {
+        const { data, error } = await supabase
+          .from("bookings")
+          .delete()
+          .eq("id", customer.supabaseId)
+          .select("id");
+
+        deletedRows = Array.isArray(data) ? data : [];
+        deleteError = error;
+      }
+
+      if (
+        !deleteError &&
+        deletedRows.length === 0 &&
+        customer.bookingNumber
+      ) {
+        const { data, error } = await supabase
+          .from("bookings")
+          .delete()
+          .eq("booking_number", customer.bookingNumber)
+          .eq("deleted", true)
+          .select("id");
+
+        deletedRows = Array.isArray(data) ? data : [];
+        deleteError = error;
+      }
+
+      if (deleteError || deletedRows.length === 0) {
+        console.error("Cannot delete booking forever", deleteError);
+        alert("ลบถาวรไม่สำเร็จ กรุณาตรวจสอบ DELETE policy ใน Supabase");
+        return;
+      }
+    } else {
       const { error } = await supabase
         .from("bookings")
         .delete()
-        .eq("id", customer.supabaseId);
+        .eq("deleted", true);
 
       if (error) {
         console.error("Cannot delete booking forever", error);
@@ -196,12 +232,16 @@ export default function TrashPage() {
   const clearTrash = async () => {
     if (!window.confirm("ยืนยันการลบข้อมูลทั้งหมดในถังขยะ ?")) return;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("bookings")
       .delete()
-      .eq("deleted", true);
+      .eq("deleted", true)
+      .select("id");
 
-    if (error) {
+    if (
+      error ||
+      (trash.length > 0 && (!Array.isArray(data) || data.length === 0))
+    ) {
       console.error("Cannot clear trash", error);
       alert("ล้างถังขยะไม่สำเร็จ กรุณาตรวจสอบ DELETE policy ใน Supabase");
       return;
