@@ -79,6 +79,11 @@ const getPaymentProgress = (totalPaid, finalPrice) => {
   return "ชำระบางส่วน";
 };
 
+const isDuplicateBookingNumberError = (error) =>
+  error?.code === "23505" ||
+  String(error?.message || "").includes("bookings_booking_number_key") ||
+  String(error?.message || "").toLowerCase().includes("duplicate key");
+
 export default function BookingSystem() {
   const router = useRouter();
 
@@ -2190,6 +2195,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     const existingIndex = oldData.findIndex((item) =>
       originalBookingNumbers.includes(item.bookingNumber)
     );
+    const existingCustomer =
+      existingIndex !== -1 ? oldData[existingIndex] : null;
 
     const duplicateBookingIndex = oldData.findIndex(
       (item, index) =>
@@ -2286,23 +2293,87 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     }
 
     try {
-      const { error } = await supabase
-        .from("bookings")
-        .insert({
-          booking_number: customer.bookingNumber,
-          customer_name: customer.customerName,
-          phone: customer.phone,
-          email: customer.email,
-          service: customer.service,
-          location: customer.location,
-          event_date: customer.eventDate || null,
-          job_status: customer.jobStatus || "รอยืนยัน",
-          booking_data: customer,
-          archived: false,
-          deleted: false,
-        })
-        .select()
-        .single();
+      const customerIndex = existingIndex !== -1 ? existingIndex : oldData.length - 1;
+      const getBookingPayload = (booking) => ({
+        booking_number: booking.bookingNumber,
+        customer_name: booking.customerName,
+        phone: booking.phone,
+        email: booking.email,
+        service: booking.service,
+        location: booking.location,
+        event_date: booking.eventDate || null,
+        job_status: booking.jobStatus || "รอยืนยัน",
+        booking_data: booking,
+        archived: false,
+        deleted: false,
+      });
+      const saveBookingToSupabase = async (booking) => {
+        if (existingIndex !== -1 || forceUpdate) {
+          const updateQuery = supabase
+            .from("bookings")
+            .update(getBookingPayload(booking));
+
+          if (existingCustomer?.supabaseId) {
+            return updateQuery.eq("id", existingCustomer.supabaseId);
+          }
+
+          return updateQuery.eq(
+            "booking_number",
+            existingCustomer?.bookingNumber ||
+              savedBookingNumberFromStorage ||
+              loadedBookingNumber ||
+              booking.bookingNumber
+          );
+        }
+
+        return supabase
+          .from("bookings")
+          .insert(getBookingPayload(booking))
+          .select()
+          .single();
+      };
+      const getAvailableBookingNumber = async (baseBookingNumber) => {
+        const { data: bookingRows, error: bookingRowsError } = await supabase
+          .from("bookings")
+          .select("booking_number");
+
+        if (bookingRowsError) {
+          throw bookingRowsError;
+        }
+
+        const latestBookings = [
+          ...oldData.filter((_, index) => index !== customerIndex),
+          ...(Array.isArray(bookingRows) ? bookingRows : []).map((row) => ({
+            bookingNumber: row.booking_number,
+          })),
+        ];
+
+        return getUniqueBookingNumber(baseBookingNumber, latestBookings);
+      };
+
+      let { error } = await saveBookingToSupabase(customer);
+      let duplicateRetryCount = 0;
+
+      while (
+        isDuplicateBookingNumberError(error) &&
+        existingIndex === -1 &&
+        !forceUpdate &&
+        duplicateRetryCount < 10
+      ) {
+        duplicateRetryCount += 1;
+        const uniqueBookingNumber = await getAvailableBookingNumber(
+          customer.bookingNumber
+        );
+
+        customer = {
+          ...customer,
+          bookingNumber: uniqueBookingNumber,
+        };
+        oldData[customerIndex] = customer;
+        setCustomBookingNumber(uniqueBookingNumber);
+
+        ({ error } = await saveBookingToSupabase(customer));
+      }
 
       if (error) {
         console.error(error);

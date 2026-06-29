@@ -4,6 +4,7 @@ drop policy if exists "bookings public select" on public.bookings;
 drop policy if exists "bookings public insert" on public.bookings;
 drop policy if exists "bookings public update" on public.bookings;
 drop policy if exists "bookings public delete" on public.bookings;
+drop policy if exists "Allow delete bookings" on public.bookings;
 
 create policy "bookings public select"
 on public.bookings
@@ -28,4 +29,9 @@ create policy "bookings public delete"
 on public.bookings
 for delete
 to anon
+using (true);
+
+create policy "Allow delete bookings"
+on public.bookings
+for delete
 using (true);

@@ -196,18 +196,14 @@ export default function TrashPage() {
   const clearTrash = async () => {
     if (!window.confirm("ยืนยันการลบข้อมูลทั้งหมดในถังขยะ ?")) return;
 
-    const deleteResults = await Promise.all(
-      trash
-        .filter((item) => item.supabaseId)
-        .map((item) =>
-          supabase.from("bookings").delete().eq("id", item.supabaseId)
-        )
-    );
-    const deleteError = deleteResults.find((result) => result.error)?.error;
+    const { error } = await supabase
+      .from("bookings")
+      .delete()
+      .eq("deleted", true);
 
-    if (deleteError) {
-      console.error("Cannot clear trash", deleteError);
-      alert("ล้างถังขยะไม่สำเร็จ");
+    if (error) {
+      console.error("Cannot clear trash", error);
+      alert("ล้างถังขยะไม่สำเร็จ กรุณาตรวจสอบ DELETE policy ใน Supabase");
       return;
     }
 
