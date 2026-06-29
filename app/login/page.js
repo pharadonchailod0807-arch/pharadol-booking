@@ -60,20 +60,26 @@ const rowToUser = (row) => ({
   active: row.active !== false,
 });
 
-const normalizeAccounts = (value) => {
-  const savedAccounts = Array.isArray(value) ? value : [];
-  const savedOverrides = (() => {
-    try {
-      const overrides = JSON.parse(
-        localStorage.getItem(ADMIN_USER_OVERRIDES_KEY) || "{}"
-      );
+const clearUserOverrides = () => {
+  localStorage.removeItem(ADMIN_USER_OVERRIDES_KEY);
+};
 
-      return overrides && typeof overrides === "object" ? overrides : {};
-    } catch (error) {
-      console.error("Cannot read admin user overrides", error);
-      return {};
-    }
-  })();
+const normalizeAccounts = (value, { applyOverrides = true } = {}) => {
+  const savedAccounts = Array.isArray(value) ? value : [];
+  const savedOverrides = applyOverrides
+    ? (() => {
+        try {
+          const overrides = JSON.parse(
+            localStorage.getItem(ADMIN_USER_OVERRIDES_KEY) || "{}"
+          );
+
+          return overrides && typeof overrides === "object" ? overrides : {};
+        } catch (error) {
+          console.error("Cannot read admin user overrides", error);
+          return {};
+        }
+      })()
+    : {};
   const source = [...savedAccounts];
 
   DEFAULT_ACCOUNTS.forEach((defaultAccount) => {
@@ -200,7 +206,10 @@ const loadUsers = async () => {
     const remoteUsers = Array.isArray(data) ? data.map(rowToUser) : [];
 
     if (remoteUsers.length > 0) {
-      const normalizedRemoteUsers = normalizeAccounts(remoteUsers);
+      const normalizedRemoteUsers = normalizeAccounts(remoteUsers, {
+        applyOverrides: false,
+      });
+      clearUserOverrides();
       saveUsersLocally(normalizedRemoteUsers);
       return normalizedRemoteUsers;
     }

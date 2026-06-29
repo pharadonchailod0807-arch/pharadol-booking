@@ -105,9 +105,13 @@ const deleteUserFromSupabase = async (id) => {
   }
 };
 
-const normalizeUsers = (value) => {
+const clearUserOverrides = () => {
+  localStorage.removeItem(ADMIN_USER_OVERRIDES_KEY);
+};
+
+const normalizeUsers = (value, { applyOverrides = true } = {}) => {
   const source = Array.isArray(value) && value.length ? value : defaultUsers;
-  const overrides = readUserOverrides();
+  const overrides = applyOverrides ? readUserOverrides() : {};
   const hasAdmin = source.some(
     (user) =>
       user.id === "admin-1" ||
@@ -223,12 +227,16 @@ export default function AdminPage() {
           return savedUsers;
         }
 
-        const normalizedRemoteUsers = normalizeUsers(remoteUsers);
+        const normalizedRemoteUsers = normalizeUsers(remoteUsers, {
+          applyOverrides: false,
+        });
+        clearUserOverrides();
         localStorage.setItem(
           ADMIN_USERS_KEY,
           JSON.stringify(normalizedRemoteUsers)
         );
         setUsers(normalizedRemoteUsers);
+        syncUsersToSupabase(normalizedRemoteUsers);
         return normalizedRemoteUsers;
       } catch (error) {
         console.error("Cannot load admin users from Supabase", error);
