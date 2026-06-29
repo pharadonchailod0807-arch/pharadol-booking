@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 
 const ADMIN_USERS_KEY = "central_admin_users";
+const ADMIN_USER_OVERRIDES_KEY = "central_admin_user_overrides";
 const ADMIN_SETTINGS_KEY = "central_admin_settings";
 const ADMIN_LOG_KEY = "central_admin_activityLog";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -20,8 +21,40 @@ const defaultUsers = [
   },
 ];
 
+const readUserOverrides = () => {
+  try {
+    const overrides = JSON.parse(
+      localStorage.getItem(ADMIN_USER_OVERRIDES_KEY) || "{}"
+    );
+
+    return overrides && typeof overrides === "object" ? overrides : {};
+  } catch (error) {
+    console.error("Cannot read admin user overrides", error);
+    return {};
+  }
+};
+
+const saveUserOverride = (id, updates) => {
+  const overrides = readUserOverrides();
+  const nextOverrides = {
+    ...overrides,
+    [id]: {
+      ...(overrides[id] || {}),
+      ...updates,
+    },
+  };
+
+  localStorage.setItem(
+    ADMIN_USER_OVERRIDES_KEY,
+    JSON.stringify(nextOverrides)
+  );
+
+  return nextOverrides;
+};
+
 const normalizeUsers = (value) => {
   const source = Array.isArray(value) && value.length ? value : defaultUsers;
+  const overrides = readUserOverrides();
   const hasAdmin = source.some(
     (user) =>
       user.id === "admin-1" ||
@@ -31,34 +64,42 @@ const normalizeUsers = (value) => {
   const users = hasAdmin ? source : [...source, ...defaultUsers];
 
   return users.map((user) => {
-    const role = user.role === "super_admin" ? "ADMIN" : user.role;
+    const override = overrides[user.id] || {};
+    const userWithOverride = {
+      ...user,
+      ...override,
+    };
+    const role =
+      userWithOverride.role === "super_admin" ? "ADMIN" : userWithOverride.role;
     const isAdmin =
-      user.id === "admin-1" ||
+      userWithOverride.id === "admin-1" ||
       role === "ADMIN" ||
-      String(user.username || "").trim().toLowerCase() === "super admin" ||
-      String(user.username || "").trim().toLowerCase() === "admin";
+      String(userWithOverride.username || "").trim().toLowerCase() ===
+        "super admin" ||
+      String(userWithOverride.username || "").trim().toLowerCase() === "admin";
 
     return {
-      ...user,
+      ...userWithOverride,
       username:
         isAdmin &&
-        String(user.username || "").trim().toLowerCase() === "super admin"
+        String(userWithOverride.username || "").trim().toLowerCase() ===
+          "super admin"
           ? "Admin"
-          : user.username,
+          : userWithOverride.username,
       role,
       active:
-        typeof user.active === "boolean"
-          ? user.active
-          : typeof user.isActive === "boolean"
-            ? user.isActive
+        typeof userWithOverride.active === "boolean"
+          ? userWithOverride.active
+          : typeof userWithOverride.isActive === "boolean"
+            ? userWithOverride.isActive
             : true,
       brands:
         isAdmin
           ? ["adisorn", "pharadol"]
-          : Array.isArray(user.brands)
-            ? user.brands
-            : user.brandId
-              ? [user.brandId]
+          : Array.isArray(userWithOverride.brands)
+            ? userWithOverride.brands
+            : userWithOverride.brandId
+              ? [userWithOverride.brandId]
               : [],
     };
   });
@@ -341,6 +382,7 @@ export default function AdminPage() {
     const nextUsers = users.map((user) =>
       user.id === id ? { ...user, active: !user.active } : user
     );
+    saveUserOverride(id, { active: !target.active });
     saveUsers(nextUsers);
     addActivity(`${target?.active ? "ระงับ" : "เปิดใช้งาน"}ผู้ใช้ ${target?.name}`);
   };
@@ -381,6 +423,7 @@ export default function AdminPage() {
           }
         : user
     );
+    saveUserOverride(id, { username: normalizedUsername });
     const savedUsers = saveUsers(nextUsers);
     const savedUser = savedUsers.find((user) => user.id === id);
 
@@ -432,6 +475,7 @@ export default function AdminPage() {
           }
         : user
     );
+    saveUserOverride(id, { password: normalizedPassword });
     const savedUsers = saveUsers(nextUsers);
     const savedUser = savedUsers.find((user) => user.id === id);
 

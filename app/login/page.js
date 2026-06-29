@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 const ADMIN_USERS_KEY = "central_admin_users";
+const ADMIN_USER_OVERRIDES_KEY = "central_admin_user_overrides";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
 const ADMIN_USERNAME_ALIASES = ["admin", "super admin"];
 
@@ -38,6 +39,18 @@ const DEFAULT_ACCOUNTS = [
 
 const normalizeAccounts = (value) => {
   const savedAccounts = Array.isArray(value) ? value : [];
+  const savedOverrides = (() => {
+    try {
+      const overrides = JSON.parse(
+        localStorage.getItem(ADMIN_USER_OVERRIDES_KEY) || "{}"
+      );
+
+      return overrides && typeof overrides === "object" ? overrides : {};
+    } catch (error) {
+      console.error("Cannot read admin user overrides", error);
+      return {};
+    }
+  })();
   const source = [...savedAccounts];
 
   DEFAULT_ACCOUNTS.forEach((defaultAccount) => {
@@ -54,24 +67,60 @@ const normalizeAccounts = (value) => {
     }
 
     const existingAccount = source[existingIndex];
+    const override = savedOverrides[defaultAccount.id] || {};
 
     source[existingIndex] = {
       ...defaultAccount,
       ...existingAccount,
+      ...override,
       id: defaultAccount.id,
       username:
-        defaultAccount.id === "admin-1" &&
+        override.username ||
+        (defaultAccount.id === "admin-1" &&
         String(existingAccount.username || "").trim().toLowerCase() ===
           "super admin"
           ? "Admin"
-          : existingAccount.username || defaultAccount.username,
+          : existingAccount.username || defaultAccount.username),
       role: defaultAccount.role,
       brands: defaultAccount.brands,
       active:
-        typeof existingAccount.active === "boolean"
-          ? existingAccount.active
-          : true,
+        typeof override.active === "boolean"
+          ? override.active
+          : typeof existingAccount.active === "boolean"
+            ? existingAccount.active
+            : true,
     };
+  });
+
+  Object.entries(savedOverrides).forEach(([id, override]) => {
+    if (!override || typeof override !== "object") return;
+
+    const existingIndex = source.findIndex((user) => user.id === id);
+
+    if (existingIndex !== -1) {
+      source[existingIndex] = {
+        ...source[existingIndex],
+        ...override,
+        id,
+        active:
+          typeof override.active === "boolean"
+            ? override.active
+            : source[existingIndex].active,
+      };
+      return;
+    }
+
+    if (id === "admin-1") {
+      source.push({
+        ...DEFAULT_ACCOUNTS[0],
+        ...override,
+        id,
+        role: "ADMIN",
+        brands: ["adisorn", "pharadol"],
+        active:
+          typeof override.active === "boolean" ? override.active : true,
+      });
+    }
   });
 
   return source.map((user) => ({
