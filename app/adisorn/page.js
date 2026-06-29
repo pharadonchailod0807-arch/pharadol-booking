@@ -82,7 +82,7 @@ const getPaymentProgress = (totalPaid, finalPrice) => {
 const getPaymentDisplayStatus = (paymentType, paidAmount) => {
   if (Number(paidAmount || 0) <= 0) return "ยังไม่ชำระ";
   if (paymentType === "เต็มจำนวน") return "ชำระแล้ว";
-  if (paymentType === "มัดจำ") return "จ่ายแล้ว(มัดจำ)";
+  if (paymentType === "มัดจำ") return "ชำระแล้ว(มัดจำ)";
   return "ชำระแล้ว";
 };
 
@@ -91,7 +91,7 @@ const getPaymentDisplayStatusClass = (status) => {
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
   }
 
-  if (status === "จ่ายแล้ว(มัดจำ)") {
+  if (status === "ชำระแล้ว(มัดจำ)") {
     return "border-amber-200 bg-amber-50 text-amber-700";
   }
 
