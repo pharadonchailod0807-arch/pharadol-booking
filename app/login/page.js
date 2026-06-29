@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 const ADMIN_USERS_KEY = "central_admin_users";
 const ADMIN_USER_OVERRIDES_KEY = "central_admin_user_overrides";
+const ADMIN_USERS_TABLE = "admin_users";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
 const ADMIN_USERNAME_ALIASES = ["admin", "super admin"];
 
@@ -36,6 +38,27 @@ const DEFAULT_ACCOUNTS = [
     active: true,
   },
 ];
+
+const userToRow = (user) => ({
+  id: user.id,
+  name: user.name,
+  username: user.username,
+  password: user.password,
+  role: user.role,
+  brands: Array.isArray(user.brands) ? user.brands : [],
+  active: user.active !== false,
+  updated_at: new Date().toISOString(),
+});
+
+const rowToUser = (row) => ({
+  id: row.id,
+  name: row.name,
+  username: row.username,
+  password: row.password,
+  role: row.role,
+  brands: Array.isArray(row.brands) ? row.brands : [],
+  active: row.active !== false,
+});
 
 const normalizeAccounts = (value) => {
   const savedAccounts = Array.isArray(value) ? value : [];
@@ -147,6 +170,49 @@ const normalizeAccounts = (value) => {
   }));
 };
 
+const saveUsersLocally = (users) => {
+  localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(users));
+};
+
+const syncUsersToSupabase = async (users) => {
+  const { error } = await supabase
+    .from(ADMIN_USERS_TABLE)
+    .upsert(users.map(userToRow), { onConflict: "id" });
+
+  if (error) {
+    console.error("Cannot sync admin users to Supabase", error);
+  }
+};
+
+const loadUsers = async () => {
+  const savedUsers = JSON.parse(localStorage.getItem(ADMIN_USERS_KEY) || "null");
+  const localUsers = normalizeAccounts(savedUsers);
+  saveUsersLocally(localUsers);
+
+  try {
+    const { data, error } = await supabase
+      .from(ADMIN_USERS_TABLE)
+      .select("*")
+      .order("username", { ascending: true });
+
+    if (error) throw error;
+
+    const remoteUsers = Array.isArray(data) ? data.map(rowToUser) : [];
+
+    if (remoteUsers.length > 0) {
+      const normalizedRemoteUsers = normalizeAccounts(remoteUsers);
+      saveUsersLocally(normalizedRemoteUsers);
+      return normalizedRemoteUsers;
+    }
+
+    await syncUsersToSupabase(localUsers);
+  } catch (error) {
+    console.error("Cannot load admin users from Supabase", error);
+  }
+
+  return localUsers;
+};
+
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -181,14 +247,7 @@ export default function LoginPage() {
     }, 0);
 
     try {
-      const savedUsers = JSON.parse(
-        localStorage.getItem(ADMIN_USERS_KEY) || "null"
-      );
-      const normalizedUsers = normalizeAccounts(savedUsers);
-      localStorage.setItem(
-        ADMIN_USERS_KEY,
-        JSON.stringify(normalizedUsers)
-      );
+      loadUsers();
     } catch (error) {
       console.error("Cannot initialize login users", error);
       localStorage.setItem(
@@ -200,7 +259,7 @@ export default function LoginPage() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const handleLogin = (event) => {
+  const handleLogin = async (event) => {
     event.preventDefault();
     setError("");
     setIsSubmitting(true);
@@ -215,11 +274,7 @@ export default function LoginPage() {
     }
 
     try {
-      const savedUsers = JSON.parse(
-        localStorage.getItem(ADMIN_USERS_KEY) || "null"
-      );
-      const users = normalizeAccounts(savedUsers);
-      localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(users));
+      const users = await loadUsers();
 
       const account = users.find(
         (user) =>

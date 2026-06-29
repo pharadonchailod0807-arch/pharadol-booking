@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { supabase } from "@/lib/supabase";
 
 const ADMIN_USERS_KEY = "central_admin_users";
 const ADMIN_USER_OVERRIDES_KEY = "central_admin_user_overrides";
+const ADMIN_USERS_TABLE = "admin_users";
 const ADMIN_SETTINGS_KEY = "central_admin_settings";
 const ADMIN_LOG_KEY = "central_admin_activityLog";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -20,6 +22,37 @@ const defaultUsers = [
     active: true,
   },
 ];
+
+const userToRow = (user) => ({
+  id: user.id,
+  name: user.name,
+  username: user.username,
+  password: user.password,
+  role: user.role,
+  brands: Array.isArray(user.brands) ? user.brands : [],
+  active: user.active !== false,
+  updated_at: new Date().toISOString(),
+});
+
+const rowToUser = (row) => ({
+  id: row.id,
+  name: row.name,
+  username: row.username,
+  password: row.password,
+  role: row.role,
+  brands: Array.isArray(row.brands) ? row.brands : [],
+  active: row.active !== false,
+});
+
+const syncUsersToSupabase = async (nextUsers) => {
+  const { error } = await supabase
+    .from(ADMIN_USERS_TABLE)
+    .upsert(nextUsers.map(userToRow), { onConflict: "id" });
+
+  if (error) {
+    console.error("Cannot sync admin users to Supabase", error);
+  }
+};
 
 const readUserOverrides = () => {
   try {
@@ -50,6 +83,26 @@ const saveUserOverride = (id, updates) => {
   );
 
   return nextOverrides;
+};
+
+const removeUserOverride = (id) => {
+  const overrides = readUserOverrides();
+  const { [id]: removedUser, ...nextOverrides } = overrides;
+
+  localStorage.setItem(
+    ADMIN_USER_OVERRIDES_KEY,
+    JSON.stringify(nextOverrides)
+  );
+
+  return removedUser;
+};
+
+const deleteUserFromSupabase = async (id) => {
+  const { error } = await supabase.from(ADMIN_USERS_TABLE).delete().eq("id", id);
+
+  if (error) {
+    console.error("Cannot delete admin user from Supabase", error);
+  }
 };
 
 const normalizeUsers = (value) => {
@@ -150,6 +203,39 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
+    const loadUsersFromSupabase = async () => {
+      try {
+        const { data, error } = await supabase
+          .from(ADMIN_USERS_TABLE)
+          .select("*")
+          .order("username", { ascending: true });
+
+        if (error) throw error;
+
+        const remoteUsers = Array.isArray(data) ? data.map(rowToUser) : [];
+
+        if (remoteUsers.length === 0) {
+          const savedUsers = normalizeUsers(
+            JSON.parse(localStorage.getItem(ADMIN_USERS_KEY) || "null")
+          );
+          localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(savedUsers));
+          await syncUsersToSupabase(savedUsers);
+          return savedUsers;
+        }
+
+        const normalizedRemoteUsers = normalizeUsers(remoteUsers);
+        localStorage.setItem(
+          ADMIN_USERS_KEY,
+          JSON.stringify(normalizedRemoteUsers)
+        );
+        setUsers(normalizedRemoteUsers);
+        return normalizedRemoteUsers;
+      } catch (error) {
+        console.error("Cannot load admin users from Supabase", error);
+        return null;
+      }
+    };
+
     const loadAdminData = () => {
       const savedUsers = JSON.parse(
         localStorage.getItem(ADMIN_USERS_KEY) || "null"
@@ -171,6 +257,7 @@ export default function AdminPage() {
       );
       setSettings(normalizedSettings);
       setActivityLog(Array.isArray(savedLog) ? savedLog : []);
+      loadUsersFromSupabase();
     };
 
     const verifyAccess = () => {
@@ -278,6 +365,7 @@ export default function AdminPage() {
 
     setUsers(normalizedUsers);
     localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(normalizedUsers));
+    syncUsersToSupabase(normalizedUsers);
     return normalizedUsers;
   };
 
@@ -507,7 +595,9 @@ export default function AdminPage() {
     }
 
     if (!window.confirm(`ต้องการลบผู้ใช้ ${target?.name} ใช่หรือไม่?`)) return;
+    removeUserOverride(id);
     saveUsers(users.filter((user) => user.id !== id));
+    deleteUserFromSupabase(id);
     addActivity(`ลบผู้ใช้ ${target?.name}`);
   };
 
