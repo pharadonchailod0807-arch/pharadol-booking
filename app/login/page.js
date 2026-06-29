@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 
 const ADMIN_USERS_KEY = "central_admin_users";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
+const ADMIN_USERNAME_ALIASES = ["admin", "super admin"];
 
 const DEFAULT_ACCOUNTS = [
   {
     id: "admin-1",
     name: "ผู้ดูแลระบบ",
-    username: "Super Admin",
+    username: "Admin",
     password: "1234",
     role: "ADMIN",
     brands: ["adisorn", "pharadol"],
@@ -58,11 +59,18 @@ const normalizeAccounts = (value) => {
       ...defaultAccount,
       ...existingAccount,
       id: defaultAccount.id,
-      name: defaultAccount.name,
-      username: defaultAccount.username,
+      username:
+        defaultAccount.id === "admin-1" &&
+        String(existingAccount.username || "").trim().toLowerCase() ===
+          "super admin"
+          ? "Admin"
+          : existingAccount.username || defaultAccount.username,
       role: defaultAccount.role,
       brands: defaultAccount.brands,
-      active: true,
+      active:
+        typeof existingAccount.active === "boolean"
+          ? existingAccount.active
+          : true,
     };
   });
 
@@ -109,7 +117,7 @@ export default function LoginPage() {
             )
           : [];
 
-        const defaultUsernames = ["pharadol", "adisorn"];
+        const defaultUsernames = ["Admin", "Super Admin", "pharadol", "adisorn"];
         const nextHistory = Array.from(
           new Set([
             ...safeHistory.map((item) => String(item).toLowerCase()),
@@ -166,8 +174,10 @@ export default function LoginPage() {
 
       const account = users.find(
         (user) =>
-          String(user.username || "").trim().toLowerCase() ===
-            normalizedUsername &&
+          (String(user.username || "").trim().toLowerCase() ===
+            normalizedUsername ||
+            (user.id === "admin-1" &&
+              ADMIN_USERNAME_ALIASES.includes(normalizedUsername))) &&
           String(user.password || "") === normalizedPassword &&
           user.active === true
       );

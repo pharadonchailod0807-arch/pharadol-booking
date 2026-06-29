@@ -12,7 +12,7 @@ const defaultUsers = [
   {
     id: "admin-1",
     name: "ผู้ดูแลระบบ",
-    username: "Super Admin",
+    username: "Admin",
     password: "1234",
     role: "ADMIN",
     brands: ["adisorn", "pharadol"],
@@ -22,25 +22,46 @@ const defaultUsers = [
 
 const normalizeUsers = (value) => {
   const source = Array.isArray(value) && value.length ? value : defaultUsers;
+  const hasAdmin = source.some(
+    (user) =>
+      user.id === "admin-1" ||
+      String(user.username || "").trim().toLowerCase() === "super admin" ||
+      String(user.username || "").trim().toLowerCase() === "admin"
+  );
+  const users = hasAdmin ? source : [...source, ...defaultUsers];
 
-  return source.map((user) => ({
-    ...user,
-    role: user.role === "super_admin" ? "ADMIN" : user.role,
-    active:
-      typeof user.active === "boolean"
-        ? user.active
-        : typeof user.isActive === "boolean"
-          ? user.isActive
-          : true,
-    brands:
-      user.role === "ADMIN" || user.role === "super_admin"
-        ? ["adisorn", "pharadol"]
-        : Array.isArray(user.brands)
-          ? user.brands
-          : user.brandId
-            ? [user.brandId]
-            : [],
-  }));
+  return users.map((user) => {
+    const role = user.role === "super_admin" ? "ADMIN" : user.role;
+    const isAdmin =
+      user.id === "admin-1" ||
+      role === "ADMIN" ||
+      String(user.username || "").trim().toLowerCase() === "super admin" ||
+      String(user.username || "").trim().toLowerCase() === "admin";
+
+    return {
+      ...user,
+      username:
+        isAdmin &&
+        String(user.username || "").trim().toLowerCase() === "super admin"
+          ? "Admin"
+          : user.username,
+      role,
+      active:
+        typeof user.active === "boolean"
+          ? user.active
+          : typeof user.isActive === "boolean"
+            ? user.isActive
+            : true,
+      brands:
+        isAdmin
+          ? ["adisorn", "pharadol"]
+          : Array.isArray(user.brands)
+            ? user.brands
+            : user.brandId
+              ? [user.brandId]
+              : [],
+    };
+  });
 };
 
 const defaultSettings = {
@@ -212,8 +233,11 @@ export default function AdminPage() {
   }, []);
 
   const saveUsers = (nextUsers) => {
-    setUsers(nextUsers);
-    localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(nextUsers));
+    const normalizedUsers = normalizeUsers(nextUsers);
+
+    setUsers(normalizedUsers);
+    localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(normalizedUsers));
+    return normalizedUsers;
   };
 
   const saveSettings = (nextSettings) => {
@@ -357,14 +381,16 @@ export default function AdminPage() {
           }
         : user
     );
+    const savedUsers = saveUsers(nextUsers);
+    const savedUser = savedUsers.find((user) => user.id === id);
 
-    saveUsers(nextUsers);
     addActivity(`แก้ไข Username ของ ${target.name}`);
 
     if (currentUser?.id === id) {
       const nextCurrentUser = {
         ...currentUser,
-        username: normalizedUsername,
+        ...(savedUser || {}),
+        username: savedUser?.username || normalizedUsername,
       };
       setCurrentUser(nextCurrentUser);
       sessionStorage.setItem("currentUser", JSON.stringify(nextCurrentUser));
@@ -406,9 +432,20 @@ export default function AdminPage() {
           }
         : user
     );
+    const savedUsers = saveUsers(nextUsers);
+    const savedUser = savedUsers.find((user) => user.id === id);
 
-    saveUsers(nextUsers);
     addActivity(`เปลี่ยน Password ของ ${target.name}`);
+
+    if (currentUser?.id === id && savedUser) {
+      const nextCurrentUser = {
+        ...currentUser,
+        ...savedUser,
+      };
+      setCurrentUser(nextCurrentUser);
+      sessionStorage.setItem("currentUser", JSON.stringify(nextCurrentUser));
+    }
+
     window.alert("เปลี่ยน Password เรียบร้อยแล้ว");
   };
 
@@ -564,7 +601,7 @@ export default function AdminPage() {
           <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="mb-3 text-sm font-semibold uppercase tracking-[0.24em] text-zinc-400">
-                Super Admin
+                {currentUser?.username || "Admin"}
               </p>
               <h1 className="text-3xl font-black sm:text-5xl">{settings.systemName}</h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300 sm:text-base">
