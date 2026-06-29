@@ -3855,7 +3855,7 @@ const downloadJPG = async () => {
               <div className="mb-1.5">
                 <p className="text-xs text-zinc-500">สถานะ</p>
                 <p
-                  className={`mt-1 inline-flex rounded-full border px-2 py-1 text-xs font-bold leading-none ${paymentDisplayStatusClass}`}
+                  className={`mt-1 inline-flex whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] font-bold leading-none ${paymentDisplayStatusClass}`}
                 >
                   {paymentDisplayStatus}
                 </p>
