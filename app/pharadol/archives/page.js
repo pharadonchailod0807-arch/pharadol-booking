@@ -744,7 +744,7 @@ export default function ArchivesPage() {
               <p class="muted">FILM &amp; STILL</p>
               <h2>PHARADOL PRODUCTION</h2>
               <p class="muted">988, 1 ถ.มิตรภาพ ต.ในเมือง อ.เมืองนครราชสีมา จ.นครราชสีมา 30000</p>
-              <p class="muted">Pharadonchailod0807@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380</p>
+              <p class="muted">pharadol.production@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380</p>
             </div>
             <div style="text-align:right">
               <h3>ใบรับชำระเงินรายงวด</h3>

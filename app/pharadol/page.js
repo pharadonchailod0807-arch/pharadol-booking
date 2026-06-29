@@ -1648,7 +1648,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
                   <p>FILM &amp; STILL</p>
                   <h1>PHARADOL PRODUCTION</h1>
                   <p>988, 1 ถ.มิตรภาพ ต.ในเมือง อ.เมืองนครราชสีมา จ.นครราชสีมา 30000</p>
-                  <p>Pharadonchailod0807@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380</p>
+                  <p>pharadol.production@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380</p>
                 </div>
               </div>
               <div class="document-number">
@@ -3533,7 +3533,7 @@ const downloadJPG = async () => {
                 </p>
 
                 <p className="mt-0.5 text-zinc-600 text-[8px] leading-tight whitespace-nowrap">
-                  Pharadonchailod0807@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380
+                  pharadol.production@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380
                 </p>
 
               </div>
@@ -3779,7 +3779,7 @@ const downloadJPG = async () => {
                   988, 1 ถ.มิตรภาพ ต.ในเมือง อ.เมืองนครราชสีมา จ.นครราชสีมา 30000
                 </p>
                 <p className="mt-0.5 text-zinc-600 text-[8px] leading-tight whitespace-nowrap">
-                  Pharadonchailod0807@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380
+                  pharadol.production@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380
                 </p>
               </div>
             </div>
@@ -3975,7 +3975,7 @@ const downloadJPG = async () => {
                   988, 1 ถ.มิตรภาพ ต.ในเมือง อ.เมืองนครราชสีมา จ.นครราชสีมา 30000
                 </p>
                 <p className="mt-0.5 text-zinc-600 text-[8px] leading-tight whitespace-nowrap">
-                  Pharadonchailod0807@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380
+                  pharadol.production@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380
                 </p>
               </div>
             </div>
