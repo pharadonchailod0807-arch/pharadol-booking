@@ -79,6 +79,25 @@ const getPaymentProgress = (totalPaid, finalPrice) => {
   return "ชำระบางส่วน";
 };
 
+const getPaymentDisplayStatus = (paymentType, paidAmount) => {
+  if (Number(paidAmount || 0) <= 0) return "ยังไม่ชำระ";
+  if (paymentType === "เต็มจำนวน") return "ชำระแล้ว";
+  if (paymentType === "มัดจำ") return "จ่ายแล้ว(มัดจำ)";
+  return "ชำระแล้ว";
+};
+
+const getPaymentDisplayStatusClass = (status) => {
+  if (status === "ชำระแล้ว") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "จ่ายแล้ว(มัดจำ)") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  return "border-zinc-200 bg-zinc-50 text-zinc-600";
+};
+
 const isDuplicateBookingNumberError = (error) =>
   error?.code === "23505" ||
   String(error?.message || "").includes("bookings_booking_number_key") ||
@@ -938,7 +957,28 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     0
   );
 
+  const currentPaymentAmount = Number(paymentAmount || 0);
+  const currentPaymentAlreadyRecorded =
+    currentPaymentAmount > 0 &&
+    paymentTransactions.some(
+      (transaction) =>
+        Number(transaction.amount || 0) === currentPaymentAmount &&
+        (transaction.date || "") === (paymentDate || "") &&
+        (transaction.time || "") === (paymentTime || "") &&
+        (transaction.status || "") === (paymentStatus || "")
+    );
+  const previewPaymentAmount = currentPaymentAlreadyRecorded
+    ? 0
+    : currentPaymentAmount;
+  const previewTotalPaid = Math.min(finalPrice, totalPaid + previewPaymentAmount);
   const remainingPayment = Math.max(finalPrice - totalPaid, 0);
+  const previewRemainingPayment = Math.max(finalPrice - previewTotalPaid, 0);
+  const paymentDisplayStatus = getPaymentDisplayStatus(
+    paymentStatus,
+    previewTotalPaid
+  );
+  const paymentDisplayStatusClass =
+    getPaymentDisplayStatusClass(paymentDisplayStatus);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1139,7 +1179,12 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       ? `${transaction.time} น.`
       : "ไม่ระบุเวลา";
     const paymentStatusText =
-      receiptRemaining <= 0 ? "ชำระครบแล้ว" : "ชำระบางส่วน";
+      receiptRemaining <= 0
+        ? "ชำระแล้ว"
+        : getPaymentDisplayStatus(
+            transaction.status,
+            Number(transaction.amount || 0)
+          );
     const slipSection = transaction.slipImage
       ? `<div class="slip"><p class="label">หลักฐานการชำระเงิน</p><img src="${transaction.slipImage}" alt="Payment slip" /></div>`
       : "";
@@ -2165,10 +2210,10 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       paymentStatus,
       paymentProgress,
       jobStatus,
-      remainingPayment,
+      remainingPayment: previewRemainingPayment,
       paymentNote,
       paymentTransactions,
-      totalPaid,
+      totalPaid: previewTotalPaid,
       brandId: BRAND_ID,
     };
 
@@ -2918,15 +2963,9 @@ const downloadJPG = async () => {
             <div className="mb-3 w-full rounded-2xl border bg-white px-4 py-3">
               <p className="text-xs text-zinc-500">สถานะการชำระ</p>
               <p
-                className={`mt-1 font-bold ${
-                  paymentProgress === "ชำระครบแล้ว"
-                    ? "text-emerald-700"
-                    : paymentProgress === "ชำระบางส่วน"
-                      ? "text-amber-600"
-                      : "text-zinc-600"
-                }`}
+                className={`mt-2 inline-flex rounded-full border px-3 py-1 text-sm font-bold ${paymentDisplayStatusClass}`}
               >
-                {paymentProgress}
+                {paymentDisplayStatus}
               </p>
             </div>
 
@@ -2994,7 +3033,7 @@ const downloadJPG = async () => {
               <div className="w-full rounded-2xl border bg-white px-4 py-3 mb-3">
                 <p className="text-xs text-zinc-500">ยอดคงเหลือที่ต้องชำระ</p>
                 <p className="text-lg font-bold text-red-600">
-                  ฿ {remainingPayment.toLocaleString()}
+                  ฿ {previewRemainingPayment.toLocaleString()}
                 </p>
               </div>
             )}
@@ -3822,9 +3861,11 @@ const downloadJPG = async () => {
               </div>
 
               <div className="mb-1.5">
-                <p className="text-xs text-zinc-500">การชำระ</p>
-                <p className="mt-0.5 text-sm font-semibold leading-none">
-                  {paymentStatus}
+                <p className="text-xs text-zinc-500">สถานะ</p>
+                <p
+                  className={`mt-1 inline-flex rounded-full border px-2 py-1 text-xs font-bold leading-none ${paymentDisplayStatusClass}`}
+                >
+                  {paymentDisplayStatus}
                 </p>
               </div>
 
@@ -3832,12 +3873,12 @@ const downloadJPG = async () => {
                 <p className="text-xs text-zinc-500">ยอดคงเหลือ</p>
                 <p
                   className={`mt-0.5 text-sm font-bold leading-none ${
-                    paymentStatus === "เต็มจำนวน"
+                    previewRemainingPayment <= 0
                       ? "text-green-700"
                       : "text-red-600"
                   }`}
                 >
-                  ฿ {remainingPayment.toLocaleString()}
+                  ฿ {previewRemainingPayment.toLocaleString()}
                 </p>
               </div>
 
