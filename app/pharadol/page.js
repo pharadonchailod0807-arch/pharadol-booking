@@ -4,6 +4,16 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Barcode from "react-barcode";
 import { supabase } from "@/lib/supabase";
+import {
+  fetchGooglePlaceSuggestions,
+  getAutocompleteOptionsFromBookings,
+  getAutocompleteSuggestions,
+  getDefaultAutocompleteOptions,
+  isMissingAutocompleteTableError,
+  loadAutocompleteOptions,
+  mergeAutocompleteOptions,
+  saveAutocompleteHistory,
+} from "@/lib/booking-autocomplete";
 
 const BRAND_ID = "pharadol";
 const BRAND_BASE_PATH = "/pharadol";
@@ -124,6 +134,14 @@ const [email, setEmail] = useState("");
 const [service, setService] = useState("");
 const [location, setLocation] = useState("");
 const [locationSuggestions, setLocationSuggestions] = useState([]);
+const [isLocationSuggestionsOpen, setIsLocationSuggestionsOpen] =
+  useState(false);
+const [googlePlaceSuggestions, setGooglePlaceSuggestions] = useState([]);
+const [isLoadingGooglePlaces, setIsLoadingGooglePlaces] = useState(false);
+const [googlePlacesMessage, setGooglePlacesMessage] = useState("");
+const [autocompleteOptions, setAutocompleteOptions] = useState(
+  getDefaultAutocompleteOptions
+);
 const [eventDate, setEventDate] = useState("");
 const [startTime, setStartTime] = useState("");
 const [endTime, setEndTime] = useState("");
@@ -143,18 +161,30 @@ const packageServiceOptions = [
   "แพ็กเกจภาพนิ่ง 1",
   "แพ็กเกจภาพนิ่ง 2",
   "แพ็กเกจภาพนิ่ง 3",
+  "แพ็กเกจภาพนิ่ง 1 Plus",
+  "แพ็กเกจภาพนิ่ง 2 Plus",
+  "แพ็กเกจภาพนิ่ง 3 Plus",
   "แพ็กเกจวิดีโอ 1",
   "แพ็กเกจวิดีโอ 2",
   "แพ็กเกจวิดีโอ 3",
+  "แพ็กเกจวิดีโอ 1 Plus",
+  "แพ็กเกจวิดีโอ 2 Plus",
+  "แพ็กเกจวิดีโอ 3 Plus",
 ];
 
 const packageDescriptions = {
   "แพ็กเกจภาพนิ่ง 1": "ช่างภาพ 1 คน",
-  "แพ็กเกจภาพนิ่ง 2": "ช่างภาพ 2 คน + ผู้ช่วย 1 คน",
-  "แพ็กเกจภาพนิ่ง 3": "ช่างภาพ 3 คน + ผู้ช่วย 1 คน",
+  "แพ็กเกจภาพนิ่ง 2": "ช่างภาพ 2 คน",
+  "แพ็กเกจภาพนิ่ง 3": "ช่างภาพ 3 คน",
+  "แพ็กเกจภาพนิ่ง 1 Plus": "ช่างภาพ 1 คน + ผู้ช่วย 1 คน",
+  "แพ็กเกจภาพนิ่ง 2 Plus": "ช่างภาพ 2 คน + ผู้ช่วย 1 คน",
+  "แพ็กเกจภาพนิ่ง 3 Plus": "ช่างภาพ 3 คน + ผู้ช่วย 1 คน",
   "แพ็กเกจวิดีโอ 1": "ช่างวิดีโอ 1 คน",
   "แพ็กเกจวิดีโอ 2": "ช่างวิดีโอ 2 คน",
-  "แพ็กเกจวิดีโอ 3": "ช่างวิดีโอ 2 คน + ผู้ช่วย 1 คน",
+  "แพ็กเกจวิดีโอ 3": "ช่างวิดีโอ 3 คน",
+  "แพ็กเกจวิดีโอ 1 Plus": "ช่างวิดีโอ 1 คน + ผู้ช่วย 1 คน",
+  "แพ็กเกจวิดีโอ 2 Plus": "ช่างวิดีโอ 2 คน + ผู้ช่วย 1 คน",
+  "แพ็กเกจวิดีโอ 3 Plus": "ช่างวิดีโอ 3 คน + ผู้ช่วย 1 คน",
 };
 
 const personnelServices = [
@@ -198,6 +228,9 @@ const [customerCount, setCustomerCount] = useState(0);
 const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+const [emailPreview, setEmailPreview] = useState(null);
+const [emailSendMessage, setEmailSendMessage] = useState("");
+const [isSendingEmail, setIsSendingEmail] = useState(false);
 const [isViewMode, setIsViewMode] = useState(false);
 const [isCustomerView, setIsCustomerView] = useState(false);
 const [loadedBookingNumber, setLoadedBookingNumber] = useState("");
@@ -236,6 +269,42 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
       ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100"
       : "border-zinc-200 bg-white"
   } ${extraClasses || "px-5 py-4"}`;
+};
+
+const customerNameSuggestions = getAutocompleteSuggestions(
+  autocompleteOptions,
+  "customerName",
+  customerName
+);
+const phoneSuggestions = getAutocompleteSuggestions(
+  autocompleteOptions,
+  "phone",
+  phone
+);
+const serviceSuggestions = getAutocompleteSuggestions(
+  autocompleteOptions,
+  "service",
+  service
+);
+const locationInputSuggestions = getAutocompleteSuggestions(
+  { location: locationSuggestions },
+  "location",
+  location,
+  8
+);
+
+const normalizedLocationInput = location.trim();
+const googlePlaceNames = new Set(
+  googlePlaceSuggestions.map((suggestion) => suggestion.value)
+);
+const visibleLocalLocationSuggestions = locationInputSuggestions.filter(
+  (place) => !googlePlaceNames.has(place)
+);
+const showLocationSuggestionPanel =
+  isLocationSuggestionsOpen && normalizedLocationInput !== "";
+const chooseLocationSuggestion = (suggestion) => {
+  updateEditableField("location", setLocation, suggestion);
+  setIsLocationSuggestionsOpen(false);
 };
 
   useEffect(() => {
@@ -351,6 +420,41 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
       return () => window.clearTimeout(timer);
     }
   }, [isAuthorized]);
+
+  useEffect(() => {
+    if (!isAuthorized || normalizedLocationInput.length < 2) {
+      return;
+    }
+
+    let isActive = true;
+
+    const timer = window.setTimeout(() => {
+      fetchGooglePlaceSuggestions(normalizedLocationInput)
+        .then((suggestions) => {
+          if (!isActive) return;
+          setGooglePlaceSuggestions(suggestions);
+          setGooglePlacesMessage("");
+        })
+        .catch((error) => {
+          if (!isActive) return;
+          if (error.code === "GOOGLE_PLACES_API_KEY_MISSING") {
+            setGooglePlacesMessage("ยังไม่ได้ตั้งค่า Google Places API key");
+          } else {
+            console.error("Cannot load Google Places suggestions", error);
+            setGooglePlacesMessage("ดึงข้อมูลจาก Google ไม่สำเร็จ");
+          }
+          setGooglePlaceSuggestions([]);
+        })
+        .finally(() => {
+          if (isActive) setIsLoadingGooglePlaces(false);
+        });
+    }, 250);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timer);
+    };
+  }, [isAuthorized, normalizedLocationInput]);
 
   useEffect(() => {
     const savedPin = localStorage.getItem(SECURITY_PIN_KEY);
@@ -749,27 +853,28 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
           : getNextBookingSequence(customers)
       );
 
-      const savedLocations = customers
-        .map((customer) => customer.location)
-        .filter(Boolean);
-
-      const defaultLocations = [
-        "โรงแรมแคนทารี โคราช",
-        "โรงแรมเซ็นทารา โคราช",
-        "โรงแรมสีมาธานี",
-        "โรงแรมฟอร์จูน โคราช",
-        "เดอะมอลล์ โคราช",
-        "Terminal 21 Korat",
-        "เขาใหญ่",
-        "ปากช่อง",
-        "นครราชสีมา",
-      ];
-
-      setLocationSuggestions(
-        [...new Set([...savedLocations, ...defaultLocations])].sort((a, b) =>
-          a.localeCompare(b, "th")
-        )
+      const localAutocompleteOptions = mergeAutocompleteOptions(
+        getDefaultAutocompleteOptions(),
+        getAutocompleteOptionsFromBookings(customers)
       );
+
+      setAutocompleteOptions(localAutocompleteOptions);
+      setLocationSuggestions(localAutocompleteOptions.location);
+
+      loadAutocompleteOptions(BRAND_ID)
+        .then((databaseAutocompleteOptions) => {
+          const mergedOptions = mergeAutocompleteOptions(
+            localAutocompleteOptions,
+            databaseAutocompleteOptions
+          );
+
+          setAutocompleteOptions(mergedOptions);
+          setLocationSuggestions(mergedOptions.location);
+        })
+        .catch((error) => {
+          if (isMissingAutocompleteTableError(error)) return;
+          console.error("Cannot load autocomplete history", error);
+        });
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -2426,6 +2531,21 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         return;
       }
 
+      try {
+        await saveAutocompleteHistory(BRAND_ID, customer);
+        const updatedAutocompleteOptions = mergeAutocompleteOptions(
+          autocompleteOptions,
+          getAutocompleteOptionsFromBookings([customer])
+        );
+
+        setAutocompleteOptions(updatedAutocompleteOptions);
+        setLocationSuggestions(updatedAutocompleteOptions.location);
+      } catch (historyError) {
+        if (!isMissingAutocompleteTableError(historyError)) {
+          console.error("Cannot save autocomplete history", historyError);
+        }
+      }
+
       localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
       setCustomerCount(oldData.length);
 
@@ -2603,6 +2723,87 @@ const downloadJPG = async () => {
   }
 };
 
+const sendBookingEmail = () => {
+  const customerEmail = email.trim();
+  const senderEmail = "pharadol.production@gmail.com";
+
+  if (!customerEmail) {
+    window.alert("กรุณากรอกอีเมลลูกค้าก่อนส่งใบจอง");
+    return;
+  }
+
+  if (!customerEmail.includes("@")) {
+    window.alert("รูปแบบอีเมลลูกค้าไม่ถูกต้อง");
+    return;
+  }
+
+  const subject = `ใบจอง ${bookingNumber} - ${customerName || "ลูกค้า"}`;
+  const body = [
+    `เรียน คุณ${customerName || "-"}`,
+    "",
+    "ทาง Pharadol Production ขอขอบพระคุณที่ไว้วางใจใช้บริการของเรา",
+    "",
+    "ทางทีมงานได้แนบเอกสารยืนยันการจองงานและรายละเอียดการชำระเงินมาในอีเมลฉบับนี้ เพื่อใช้เป็นหลักฐานในการยืนยันการจอง",
+    "",
+    "รายละเอียดงานโดยสรุป",
+    `• เลขที่ใบจอง : ${bookingNumber}`,
+    `• วันที่จัดงาน : ${formattedEventDate || "-"}`,
+    `• ประเภทงาน : ${service || "-"}`,
+    "",
+    "หากมีการเปลี่ยนแปลงรายละเอียดงาน หรือต้องการสอบถามข้อมูลเพิ่มเติม สามารถติดต่อทีมงานได้ตลอดเวลา",
+    "",
+    "ขอขอบพระคุณอีกครั้งที่ให้เราเป็นส่วนหนึ่งในวันสำคัญของท่าน",
+    "",
+    "ขอแสดงความนับถือ",
+    "",
+    "Pharadol Production",
+    "โทร. 091-064-9380",
+    "E-mail: pharadol.production@gmail.com",
+  ].join("\n");
+
+  setEmailPreview({
+    from: `Pharadol Production <${senderEmail}>`,
+    to: customerEmail,
+    subject,
+    body,
+  });
+  setEmailSendMessage("");
+};
+
+const confirmSendBookingEmail = async () => {
+  if (!emailPreview) return;
+
+  setIsSendingEmail(true);
+  setEmailSendMessage("");
+
+  try {
+    const response = await fetch("/api/send-booking-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        brandId: BRAND_ID,
+        to: emailPreview.to,
+        subject: emailPreview.subject,
+        body: emailPreview.body,
+      }),
+    });
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result?.error || "ส่งอีเมลไม่สำเร็จ");
+    }
+
+    window.alert("ส่งอีเมลให้ลูกค้าเรียบร้อยแล้ว");
+    setEmailPreview(null);
+  } catch (error) {
+    setEmailSendMessage(error.message || "ส่งอีเมลไม่สำเร็จ");
+  } finally {
+    setIsSendingEmail(false);
+  }
+};
+
   if (!isAuthorized) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-100 text-zinc-500">
@@ -2665,23 +2866,37 @@ const downloadJPG = async () => {
 
           <input
             type="text"
+            list={`${BRAND_ID}-customer-name-suggestions`}
             placeholder="ชื่อลูกค้า"
             value={customerName}
             onChange={(e) =>
               updateEditableField("customerName", setCustomerName, e.target.value)
             }
+            autoComplete="off"
             className={editableInputClass("customerName", customerName)}
           />
+          <datalist id={`${BRAND_ID}-customer-name-suggestions`}>
+            {customerNameSuggestions.map((suggestion) => (
+              <option key={suggestion} value={suggestion} />
+            ))}
+          </datalist>
 
           <input
             type="text"
+            list={`${BRAND_ID}-phone-suggestions`}
             placeholder="เบอร์โทรศัพท์"
             value={phone}
             onChange={(e) =>
               updateEditableField("phone", setPhone, e.target.value)
             }
+            autoComplete="off"
             className={editableInputClass("phone", phone)}
           />
+          <datalist id={`${BRAND_ID}-phone-suggestions`}>
+            {phoneSuggestions.map((suggestion) => (
+              <option key={suggestion} value={suggestion} />
+            ))}
+          </datalist>
 
           <input
             type="email"
@@ -2696,32 +2911,151 @@ const downloadJPG = async () => {
 
           <input
             type="text"
+            list={`${BRAND_ID}-service-suggestions`}
             placeholder="ประเภทงาน"
             value={service}
             onChange={(e) =>
               updateEditableField("service", setService, e.target.value)
             }
+            autoComplete="off"
             className={editableInputClass("service", service)}
           />
+          <datalist id={`${BRAND_ID}-service-suggestions`}>
+            {serviceSuggestions.map((suggestion) => (
+              <option key={suggestion} value={suggestion} />
+            ))}
+          </datalist>
 
-          <div>
+          <div className="relative">
             <input
               type="text"
-              list="location-suggestions"
               placeholder="สถานที่"
               value={location}
-              onChange={(e) =>
-                updateEditableField("location", setLocation, e.target.value)
+              onChange={(e) => {
+                const nextLocation = e.target.value;
+                updateEditableField("location", setLocation, nextLocation);
+                setIsLocationSuggestionsOpen(true);
+                if (nextLocation.trim().length < 2) {
+                  setGooglePlaceSuggestions([]);
+                  setIsLoadingGooglePlaces(false);
+                  setGooglePlacesMessage("");
+                } else {
+                  setIsLoadingGooglePlaces(true);
+                }
+              }}
+              onFocus={() => setIsLocationSuggestionsOpen(true)}
+              onBlur={() =>
+                window.setTimeout(() => setIsLocationSuggestionsOpen(false), 120)
               }
               autoComplete="off"
               className={editableInputClass("location", location)}
             />
 
-            <datalist id="location-suggestions">
-              {locationSuggestions.map((place) => (
-                <option key={place} value={place} />
-              ))}
-            </datalist>
+            {showLocationSuggestionPanel && (
+              <div className="absolute left-0 right-0 top-full z-30 mt-3 overflow-hidden rounded-3xl border border-zinc-100 bg-white shadow-2xl">
+                <button
+                  type="button"
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    chooseLocationSuggestion(normalizedLocationInput);
+                  }}
+                  className="flex w-full items-center gap-4 px-5 py-4 text-left transition hover:bg-zinc-50"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center text-3xl leading-none text-zinc-900">
+                    +
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-lg font-bold text-zinc-900">
+                    {normalizedLocationInput}
+                  </span>
+                </button>
+
+                <div className="max-h-80 overflow-y-auto py-2">
+                  {isLoadingGooglePlaces && (
+                    <div className="flex w-full items-center gap-4 px-5 py-3 text-left">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center text-2xl text-zinc-500">
+                        ⌕
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-lg font-semibold text-zinc-500">
+                        กำลังดึงสถานที่จาก Google...
+                      </span>
+                    </div>
+                  )}
+
+                  {!isLoadingGooglePlaces && googlePlacesMessage && (
+                    <div className="flex w-full items-center gap-4 px-5 py-3 text-left">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center text-xl text-amber-600">
+                        !
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-base font-semibold text-amber-700">
+                          {googlePlacesMessage}
+                        </span>
+                        <span className="block truncate text-sm text-zinc-500">
+                          ใส่ GOOGLE_PLACES_API_KEY ใน .env.local แล้ว restart server
+                        </span>
+                      </span>
+                    </div>
+                  )}
+
+                  {googlePlaceSuggestions.map((place) => (
+                    <button
+                      key={place.id}
+                      type="button"
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        chooseLocationSuggestion(place.value);
+                      }}
+                      className="flex w-full items-center gap-4 px-5 py-3 text-left transition hover:bg-zinc-50"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center text-2xl text-zinc-600">
+                        ⌕
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-lg font-bold text-zinc-900">
+                          {place.title}
+                        </span>
+                        {place.subtitle && (
+                          <span className="block truncate text-sm text-zinc-500">
+                            {place.subtitle}
+                          </span>
+                        )}
+                        {!place.subtitle && (
+                          <span className="block truncate text-sm text-zinc-500">
+                            {place.source === "query"
+                              ? "คำค้นแนะนำจาก Google"
+                              : "สถานที่จาก Google"}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+                  ))}
+
+                  {visibleLocalLocationSuggestions.map((place) => (
+                    <button
+                      key={place}
+                      type="button"
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        chooseLocationSuggestion(place);
+                      }}
+                      className="flex w-full items-center gap-4 px-5 py-3 text-left transition hover:bg-zinc-50"
+                    >
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center text-2xl text-zinc-600">
+                        ⌕
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-lg font-bold text-zinc-900">
+                          {place}
+                        </span>
+                        <span className="block truncate text-sm text-zinc-500">
+                          จากประวัติและรายการสถานที่ของ {BRAND_ID}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <input
@@ -3177,8 +3511,8 @@ const downloadJPG = async () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-5 gap-3">
-            <div className="relative">
+          <div className="flex flex-wrap gap-3">
+            <div className="relative min-w-[170px] flex-1">
               <button
                 type="button"
                 onClick={() => setIsDownloadMenuOpen((current) => !current)}
@@ -3229,7 +3563,7 @@ const downloadJPG = async () => {
                 (isBookingSaved && !isEditingBooking) ||
                 (isBookingSaved && isEditingBooking && !hasEditedFields)
               }
-              className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="text-lg">✓</span>
               <span>
@@ -3248,10 +3582,19 @@ const downloadJPG = async () => {
             <button
               type="button"
               onClick={createNewBooking}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-semibold text-white transition hover:bg-blue-800"
+              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-semibold text-white transition hover:bg-blue-800"
             >
               <span className="text-lg">＋</span>
               <span>สร้างใบจองใหม่</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={sendBookingEmail}
+              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700"
+            >
+              <span className="text-lg">@</span>
+              <span>ส่งเมลลูกค้า</span>
             </button>
 
             <button
@@ -3266,7 +3609,7 @@ const downloadJPG = async () => {
                 setIsEditingBooking(true);
               }}
               disabled={isSaving || isEditingBooking}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <span className="text-lg">✎</span>
               <span>{isEditingBooking ? "กำลังแก้ไข" : "แก้ไขใบจอง"}</span>
@@ -3274,7 +3617,7 @@ const downloadJPG = async () => {
 
             <button
               onClick={() => goTo(ROUTES.dashboard)}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-3 font-semibold text-white transition hover:bg-purple-700"
+              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-3 font-semibold text-white transition hover:bg-purple-700"
             >
               <span className="text-lg">⌂</span>
               <span>เมนูหลัก</span>
@@ -3397,7 +3740,16 @@ const downloadJPG = async () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={sendBookingEmail}
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
+                >
+                  <span>@</span>
+                  <span>ส่งเมลลูกค้า</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => goTo(ROUTES.dashboard)}
@@ -4356,6 +4708,66 @@ const downloadJPG = async () => {
                 className="bg-black text-white rounded-2xl py-4 font-semibold"
               >
                 ตกลง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {emailPreview && (
+        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+            <div className="border-b border-zinc-200 px-6 py-4">
+              <h2 className="text-xl font-bold text-zinc-900">
+                พรีวิวอีเมลใบจอง
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                ตรวจสอบข้อความก่อนส่งถึงลูกค้า
+              </p>
+            </div>
+
+            <div className="space-y-4 px-6 py-5">
+              <div className="grid gap-3 rounded-xl bg-zinc-50 p-4 text-sm">
+                <div>
+                  <span className="font-semibold text-zinc-500">จาก: </span>
+                  <span className="text-zinc-900">{emailPreview.from}</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-zinc-500">ถึง: </span>
+                  <span className="text-zinc-900">{emailPreview.to}</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-zinc-500">หัวข้อ: </span>
+                  <span className="text-zinc-900">{emailPreview.subject}</span>
+                </div>
+              </div>
+
+              <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-xl border border-zinc-200 bg-white p-4 font-sans text-sm leading-7 text-zinc-800">
+                {emailPreview.body}
+              </pre>
+
+              {emailSendMessage && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                  {emailSendMessage}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-zinc-200 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setEmailPreview(null)}
+                disabled={isSendingEmail}
+                className="rounded-xl border border-zinc-300 bg-white px-5 py-3 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+              >
+                ยกเลิกการส่ง
+              </button>
+              <button
+                type="button"
+                onClick={confirmSendBookingEmail}
+                disabled={isSendingEmail}
+                className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSendingEmail ? "กำลังส่ง..." : "ส่ง"}
               </button>
             </div>
           </div>
