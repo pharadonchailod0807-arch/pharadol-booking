@@ -30,6 +30,34 @@ const textToHtml = (text) =>
     text
   ).replace(/\n/g, "<br />")}</div>`;
 
+const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
+
+const getEmailFromValue = (value) => {
+  const emailMatch = String(value || "").match(/[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+/);
+  return emailMatch?.[0] || "";
+};
+
+const formatSenderFrom = (rawFrom, senderName) => {
+  const trimmedFrom = String(rawFrom || "").trim();
+
+  if (!trimmedFrom) return "";
+
+  if (/^[^<>]+<[^<>@]+@[^<>@]+\.[^<>@]+>$/.test(trimmedFrom)) {
+    return trimmedFrom;
+  }
+
+  if (EMAIL_PATTERN.test(trimmedFrom)) {
+    return `${senderName} <${trimmedFrom}>`;
+  }
+
+  const extractedEmail = getEmailFromValue(trimmedFrom);
+  if (extractedEmail) {
+    return `${senderName} <${extractedEmail}>`;
+  }
+
+  return "";
+};
+
 export async function POST(request) {
   const apiKey = process.env.RESEND_API_KEY;
 
@@ -79,6 +107,17 @@ export async function POST(request) {
     );
   }
 
+  const from = formatSenderFrom(sender.from, sender.name);
+  if (!from) {
+    return Response.json(
+      {
+        error:
+          "รูปแบบอีเมลผู้ส่งไม่ถูกต้อง ให้ตั้งค่าเป็น email@example.com หรือ Name <email@example.com>",
+      },
+      { status: 500 }
+    );
+  }
+
   const resendResponse = await fetch(RESEND_EMAIL_URL, {
     method: "POST",
     headers: {
@@ -86,7 +125,7 @@ export async function POST(request) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: `${sender.name} <${sender.from}>`,
+      from,
       to: [to],
       subject,
       text: body,
