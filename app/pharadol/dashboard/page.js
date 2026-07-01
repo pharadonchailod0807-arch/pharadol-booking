@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const CLOSED_STATUSES = new Set(["completed", "finished", "closed", "done"]);
+const DASHBOARD_THEME_KEY = "pharadol_dashboard_theme";
 
 const isClosedJob = (item) => {
   const status = String(item?.status || item?.jobStatus || item?.bookingStatus || "")
@@ -138,6 +140,7 @@ export default function Dashboard() {
   const [upcomingJobs, setUpcomingJobs] = useState(0);
   const [alerts, setAlerts] = useState([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [dashboardTheme, setDashboardTheme] = useState("clean");
   const [showWelcome, setShowWelcome] = useState(null);
 
   useEffect(() => {
@@ -292,6 +295,22 @@ export default function Dashboard() {
       );
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("focus", handleFocus);
+    };
+  }, []);
+
+  useEffect(() => {
+    const loadDashboardTheme = () => {
+      const savedTheme = localStorage.getItem(DASHBOARD_THEME_KEY);
+      setDashboardTheme(savedTheme === "neon" ? "neon" : "clean");
+    };
+
+    loadDashboardTheme();
+    window.addEventListener("focus", loadDashboardTheme);
+    window.addEventListener("storage", loadDashboardTheme);
+
+    return () => {
+      window.removeEventListener("focus", loadDashboardTheme);
+      window.removeEventListener("storage", loadDashboardTheme);
     };
   }, []);
 
@@ -508,78 +527,104 @@ export default function Dashboard() {
     ["/pharadol/mail", "mail", "ระบบส่งอีเมล", "ระบบส่งอีเมล"],
   ];
 
+  const actionCardImages = {
+    document: "/dashboard-icons/document-card.png",
+    customers: "/dashboard-icons/customers-card.png",
+    archive: "/dashboard-icons/archive-card.png",
+    calendar: "/dashboard-icons/calendar-card.png",
+    trash: "/dashboard-icons/trash-card.png",
+    income: "/dashboard-icons/income-card.png",
+    reports: "/dashboard-icons/reports-card.png",
+    bell: "/dashboard-icons/bell-card.png",
+    settings: "/dashboard-icons/settings-card.png",
+    mail: "/dashboard-icons/mail-card.png",
+  };
+
+  const isNeonTheme = dashboardTheme === "neon";
+
   return (
     <main
-      className="min-h-screen text-zinc-950"
+      className={`min-h-screen ${isNeonTheme ? "text-white" : "text-zinc-950"}`}
       style={{
-        background:
-          "radial-gradient(circle at 12% 0%, rgba(255,255,255,0.92), transparent 30%), radial-gradient(circle at 86% 8%, rgba(226,232,240,0.88), transparent 28%), linear-gradient(180deg, #f8fafc 0%, #eef2f7 48%, #f7f7f5 100%)",
+        background: isNeonTheme
+          ? "radial-gradient(circle at 18% 0%, rgba(22,167,255,0.16), transparent 34%), radial-gradient(circle at 82% 12%, rgba(179,92,255,0.14), transparent 32%), linear-gradient(180deg, #081018 0%, #04070c 42%, #020408 100%)"
+          : "radial-gradient(circle at 12% 0%, rgba(255,255,255,0.92), transparent 30%), radial-gradient(circle at 86% 8%, rgba(226,232,240,0.88), transparent 28%), linear-gradient(180deg, #f8fafc 0%, #eef2f7 48%, #f7f7f5 100%)",
       }}
     >
-      <section className="mx-auto max-w-[1680px] px-6 pb-6 pt-8 text-center md:px-8">
+      <section className={`mx-auto px-6 pb-6 pt-8 text-center md:px-8 ${isNeonTheme ? "max-w-[1840px]" : "max-w-[1680px]"}`}>
         <div className="mb-6 flex items-center justify-between gap-4 text-left">
-          <div className="rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-semibold text-zinc-500 shadow-sm backdrop-blur-xl">
+          <div
+            className={
+              isNeonTheme
+                ? "text-sm font-semibold text-white/55"
+                : "rounded-full border border-white/70 bg-white/70 px-4 py-2 text-sm font-semibold text-zinc-500 shadow-sm backdrop-blur-xl"
+            }
+          >
             {currentUser?.name || currentUser?.username}
           </div>
           <button
             onClick={logout}
-            className="rounded-full border border-zinc-200 bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition hover:bg-zinc-800"
+            className={
+              isNeonTheme
+                ? "rounded-full border border-white/10 bg-white px-5 py-2.5 text-sm font-semibold text-[#111317] transition hover:bg-white/90"
+                : "rounded-full border border-zinc-200 bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition hover:bg-zinc-800"
+            }
           >
             ออกจากระบบ
           </button>
         </div>
-        <p className="text-xs font-bold uppercase tracking-[0.32em] text-zinc-400">
+        <p className={isNeonTheme ? "text-sm font-semibold text-white/45" : "text-xs font-bold uppercase tracking-[0.32em] text-zinc-400"}>
           Dashboard
         </p>
-        <h1 className="mx-auto mt-3 max-w-5xl text-4xl font-semibold leading-tight text-zinc-950 md:text-6xl">
+        <h1 className={isNeonTheme ? "mt-2 text-5xl font-semibold md:text-6xl" : "mx-auto mt-3 max-w-5xl text-4xl font-semibold leading-tight text-zinc-950 md:text-6xl"}>
           {currentUser.brandName || "PHARADOL PRODUCTION"}
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-base font-medium leading-8 text-zinc-500 md:text-lg">
+        <p className={isNeonTheme ? "mx-auto mt-4 max-w-2xl text-lg font-medium leading-8 text-white/50" : "mx-auto mt-4 max-w-2xl text-base font-medium leading-8 text-zinc-500 md:text-lg"}>
           ระบบจัดการงาน ลูกค้า ใบจอง ปฏิทิน รายได้ และการแจ้งเตือนสำคัญของสตูดิโอ
         </p>
       </section>
 
-      <section className="mx-auto max-w-[1680px] px-6 pb-10 md:px-8">
+      <section className={`mx-auto px-6 pb-10 md:px-8 ${isNeonTheme ? "max-w-[1840px]" : "max-w-[1680px]"}`}>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           {statCards.map(([label, value, unit, icon]) => (
             <article
               key={label}
-              className="rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl"
+              className={isNeonTheme ? "rounded-[22px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)]" : "rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl"}
             >
-              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm">
+              <div className={isNeonTheme ? "mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white" : "mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm"}>
                 <Icon name={icon} className="h-5 w-5" />
               </div>
-              <p className="text-center text-sm font-semibold text-zinc-500">{label}</p>
-              <h2 className="mt-2 text-center text-4xl font-semibold text-zinc-950">{value}</h2>
-              <p className="mt-1 text-center text-sm font-medium text-zinc-400">{unit}</p>
+              <p className={isNeonTheme ? "text-center text-sm font-semibold text-white/48" : "text-center text-sm font-semibold text-zinc-500"}>{label}</p>
+              <h2 className={isNeonTheme ? "mt-2 text-center text-4xl font-semibold" : "mt-2 text-center text-4xl font-semibold text-zinc-950"}>{value}</h2>
+              <p className={isNeonTheme ? "mt-1 text-center text-sm font-medium text-white/42" : "mt-1 text-center text-sm font-medium text-zinc-400"}>{unit}</p>
             </article>
           ))}
         </div>
 
-        <section className="mt-4 rounded-[30px] border border-white/80 bg-white/72 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl md:p-6">
+        <section className={isNeonTheme ? "mt-4 rounded-[28px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.28)] md:p-6" : "mt-4 rounded-[30px] border border-white/80 bg-white/72 p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl md:p-6"}>
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm">
+            <div className={isNeonTheme ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 text-white" : "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm"}>
               <Icon name="alert" className="h-6 w-6" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-2xl font-semibold text-zinc-950">งานใกล้ถึงวัน</h2>
-                <span className="text-sm font-semibold text-zinc-400">{upcomingJobs} งานใน 7 วัน</span>
+                <h2 className={isNeonTheme ? "text-2xl font-semibold" : "text-2xl font-semibold text-zinc-950"}>งานใกล้ถึงวัน</h2>
+                <span className={isNeonTheme ? "text-sm font-semibold text-white/48" : "text-sm font-semibold text-zinc-400"}>{upcomingJobs} งานใน 7 วัน</span>
               </div>
               {alerts.length === 0 ? (
-                <p className="mt-4 text-zinc-500">ไม่มีงานใน 7 วันข้างหน้า</p>
+                <p className={isNeonTheme ? "mt-4 text-white/48" : "mt-4 text-zinc-500"}>ไม่มีงานใน 7 วันข้างหน้า</p>
               ) : (
                 <div className="mt-5 grid gap-3">
                   {alerts.map((job, index) => (
                     <div
                       key={`${job.customerName}-${index}`}
-                      className="flex items-center justify-between rounded-2xl border border-zinc-100 bg-white px-4 py-3 shadow-sm"
+                      className={isNeonTheme ? "flex items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-3" : "flex items-center justify-between rounded-2xl border border-zinc-100 bg-white px-4 py-3 shadow-sm"}
                     >
                       <div>
-                        <p className="font-semibold text-zinc-950">{job.customerName}</p>
-                        <p className="text-sm text-zinc-500">{job.service}</p>
+                        <p className={isNeonTheme ? "font-semibold" : "font-semibold text-zinc-950"}>{job.customerName}</p>
+                        <p className={isNeonTheme ? "text-sm text-white/45" : "text-sm text-zinc-500"}>{job.service}</p>
                       </div>
-                      <div className="rounded-full bg-zinc-950 px-3 py-1 text-sm font-semibold text-white">
+                      <div className={isNeonTheme ? "rounded-full bg-white px-3 py-1 text-sm font-semibold text-[#111317]" : "rounded-full bg-zinc-950 px-3 py-1 text-sm font-semibold text-white"}>
                         อีก {job.diffDays} วัน
                       </div>
                     </div>
@@ -590,30 +635,55 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <div className="mx-auto mt-6 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {actionCards.map(([href, icon, title, description]) => (
-            <button
-              key={href}
-              type="button"
-              onClick={() => (window.location.href = href)}
-              className="group flex min-h-[210px] flex-col justify-between rounded-[28px] border border-white/85 bg-white/74 p-5 text-left shadow-[0_22px_60px_rgba(15,23,42,0.09)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white"
-            >
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 transition group-hover:border-zinc-300 group-hover:bg-zinc-950 group-hover:text-white">
-                <Icon name={icon} className="h-7 w-7" />
-              </span>
-              <span>
-                <span className="block text-xl font-semibold text-zinc-950">
-                  {title}
+        <div className={isNeonTheme ? "mx-auto mt-6 grid max-w-[1640px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5" : "mx-auto mt-6 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"}>
+          {actionCards.map(([href, icon, title, description]) => {
+            if (isNeonTheme) {
+              const cardImage = actionCardImages[icon];
+              return (
+                <button
+                  key={href}
+                  type="button"
+                  onClick={() => (window.location.href = href)}
+                  className="group relative block aspect-[431/475] w-full appearance-none overflow-hidden rounded-[20px] p-0 text-left shadow-[0_28px_80px_rgba(0,0,0,0.55)] transition duration-300 hover:-translate-y-1"
+                >
+                  <Image
+                    src={cardImage}
+                    alt=""
+                    fill
+                    sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                    className="rounded-[20px] object-fill transition duration-300 group-hover:scale-[1.015]"
+                  />
+                  <span className="sr-only">
+                    {title} {description}
+                  </span>
+                </button>
+              );
+            }
+
+            return (
+              <button
+                key={href}
+                type="button"
+                onClick={() => (window.location.href = href)}
+                className="group flex min-h-[210px] flex-col justify-between rounded-[28px] border border-white/85 bg-white/74 p-5 text-left shadow-[0_22px_60px_rgba(15,23,42,0.09)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white"
+              >
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 transition group-hover:border-zinc-300 group-hover:bg-zinc-950 group-hover:text-white">
+                  <Icon name={icon} className="h-7 w-7" />
                 </span>
-                <span className="mt-2 block text-sm leading-6 text-zinc-500">
-                  {description}
+                <span>
+                  <span className="block text-xl font-semibold text-zinc-950">
+                    {title}
+                  </span>
+                  <span className="mt-2 block text-sm leading-6 text-zinc-500">
+                    {description}
+                  </span>
                 </span>
-              </span>
-              <span className="text-sm font-semibold text-zinc-400 transition group-hover:text-zinc-950">
-                เปิดใช้งาน →
-              </span>
-            </button>
-          ))}
+                <span className="text-sm font-semibold text-zinc-400 transition group-hover:text-zinc-950">
+                  เปิดใช้งาน →
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
     </main>

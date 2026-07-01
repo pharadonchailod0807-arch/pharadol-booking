@@ -13,18 +13,21 @@ const NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY =
 const RESET_BOOKING_SEQUENCE_ACTIVE_KEY =
   "adisorn_resetBookingSequenceActive";
 const TEAM_MEMBERS_KEY = "adisorn_team_members";
+const DASHBOARD_THEME_KEY = "adisorn_dashboard_theme";
 
 function SettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isBarcodePage = searchParams.get("section") === "barcode";
   const isTeamPage = searchParams.get("section") === "team";
+  const isThemePage = searchParams.get("section") === "theme";
 
   const [customBookingNumber, setCustomBookingNumber] = useState("");
   const [savedBookingNumber, setSavedBookingNumber] = useState("");
   const [bookingNumberMode, setBookingNumberMode] = useState("auto");
   const [bookingNumberHistory, setBookingNumberHistory] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [dashboardTheme, setDashboardTheme] = useState("clean");
   const [newTeamMember, setNewTeamMember] = useState({
     name: "",
     role: "",
@@ -60,6 +63,29 @@ function SettingsContent() {
 
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const loadDashboardTheme = () => {
+      const savedTheme = localStorage.getItem(DASHBOARD_THEME_KEY);
+      setDashboardTheme(savedTheme === "neon" ? "neon" : "clean");
+    };
+
+    loadDashboardTheme();
+    window.addEventListener("focus", loadDashboardTheme);
+    window.addEventListener("storage", loadDashboardTheme);
+
+    return () => {
+      window.removeEventListener("focus", loadDashboardTheme);
+      window.removeEventListener("storage", loadDashboardTheme);
+    };
+  }, []);
+
+  const saveDashboardTheme = (theme) => {
+    const nextTheme = theme === "neon" ? "neon" : "clean";
+    localStorage.setItem(DASHBOARD_THEME_KEY, nextTheme);
+    setDashboardTheme(nextTheme);
+    alert("บันทึกธีม Dashboard เรียบร้อยแล้ว");
+  };
 
   useEffect(() => {
     const loadTeamMembers = () => {
@@ -423,6 +449,8 @@ function SettingsContent() {
                 ? "จัดการบาร์โค้ด"
                 : isTeamPage
                   ? "จัดการทีมงาน"
+                  : isThemePage
+                    ? "ธีม Dashboard"
                   : "ตั้งค่าระบบ"}
             </h1>
             <p className="mt-1 text-zinc-500">
@@ -430,12 +458,14 @@ function SettingsContent() {
                 ? "กำหนดเลขที่การจองและบาร์โค้ดสำหรับใบจองถัดไป"
                 : isTeamPage
                   ? "บันทึกทีมงานที่ใช้ประจำในระบบ"
+                  : isThemePage
+                    ? "เลือกหน้าตา dashboard ที่ต้องการใช้งาน"
                 : "เลือกหัวข้อที่ต้องการจัดการ"}
             </p>
           </div>
 
           <div className="flex gap-3">
-            {isBarcodePage || isTeamPage ? (
+            {isBarcodePage || isTeamPage || isThemePage ? (
               <button
                 type="button"
                 onClick={() => router.push("/adisorn/settings")}
@@ -463,7 +493,7 @@ function SettingsContent() {
           </div>
         </div>
 
-        {!isBarcodePage && !isTeamPage ? (
+        {!isBarcodePage && !isTeamPage && !isThemePage ? (
           <div className="grid gap-4 md:grid-cols-2">
             <button
               type="button"
@@ -517,7 +547,83 @@ function SettingsContent() {
                 </span>
               </div>
             </button>
+            <button
+              type="button"
+              onClick={() => router.push("/adisorn/settings?section=theme")}
+              className="group rounded-3xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md"
+            >
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-xl text-white">
+                ◐
+              </div>
+
+              <h2 className="text-xl font-bold text-zinc-900">
+                ธีม Dashboard
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-500">
+                เลือกใช้ธีมคลีนเรียบหรู หรือธีมเดิมแบบ neon ได้ตลอดเวลา
+              </p>
+
+              <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4">
+                <span className="text-sm font-semibold text-zinc-700">
+                  {dashboardTheme === "neon" ? "ธีมเดิม Neon" : "ธีมคลีน Luxury"}
+                </span>
+                <span className="text-xl text-zinc-400 transition group-hover:translate-x-1">
+                  →
+                </span>
+              </div>
+            </button>
           </div>
+        ) : isThemePage ? (
+          <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm md:p-8">
+            <div className="mb-6">
+              <p className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                Dashboard Theme
+              </p>
+              <h2 className="mt-1 text-2xl font-bold text-zinc-900">
+                เลือกธีม Dashboard
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+                เลือกสไตล์หน้าเมนูหลักของระบบ สามารถเปลี่ยนกลับไปมาได้โดยข้อมูลไม่หาย
+              </p>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                ["clean", "คลีน ใส เรียบหรู", "พื้นหลังสว่าง การ์ดกระจก เงานุ่ม เหมาะกับงานพรีเมียม"],
+                ["neon", "ธีมเดิม Neon", "พื้นหลังเข้ม การ์ดภาพไอคอนเรืองแสงแบบเดิม"],
+              ].map(([theme, title, description]) => (
+                <button
+                  key={theme}
+                  type="button"
+                  onClick={() => saveDashboardTheme(theme)}
+                  className={`rounded-3xl border p-6 text-left transition ${
+                    dashboardTheme === theme
+                      ? "border-black bg-black text-white"
+                      : "border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300"
+                  }`}
+                >
+                  <div
+                    className={`mb-5 h-28 rounded-2xl border ${
+                      theme === "clean"
+                        ? "border-zinc-200 bg-gradient-to-br from-white via-zinc-50 to-zinc-200"
+                        : "border-sky-500/30 bg-[radial-gradient(circle_at_20%_10%,rgba(14,165,233,0.45),transparent_35%),linear-gradient(135deg,#07111d,#020408)]"
+                    }`}
+                  />
+                  <h3 className="text-xl font-bold">{title}</h3>
+                  <p
+                    className={`mt-2 text-sm leading-6 ${
+                      dashboardTheme === theme ? "text-zinc-300" : "text-zinc-500"
+                    }`}
+                  >
+                    {description}
+                  </p>
+                  <p className="mt-5 text-sm font-bold">
+                    {dashboardTheme === theme ? "กำลังใช้งาน" : "เลือกธีมนี้"}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </section>
         ) : isTeamPage ? (
           <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm md:p-8">
             <div className="mb-6">
