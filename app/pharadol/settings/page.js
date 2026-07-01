@@ -12,17 +12,26 @@ const NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY =
   "pharadol_nextBookingSequenceOverride";
 const RESET_BOOKING_SEQUENCE_ACTIVE_KEY =
   "pharadol_resetBookingSequenceActive";
+const TEAM_MEMBERS_KEY = "pharadol_team_members";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 function SettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isBarcodePage = searchParams.get("section") === "barcode";
+  const isTeamPage = searchParams.get("section") === "team";
 
   const [customBookingNumber, setCustomBookingNumber] = useState("");
   const [savedBookingNumber, setSavedBookingNumber] = useState("");
   const [bookingNumberMode, setBookingNumberMode] = useState("auto");
   const [bookingNumberHistory, setBookingNumberHistory] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [newTeamMember, setNewTeamMember] = useState({
+    name: "",
+    role: "",
+    phone: "",
+    email: "",
+  });
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
@@ -140,6 +149,79 @@ function SettingsContent() {
       window.removeEventListener("storage", handleBookingSettingsStorage);
     };
   }, [isAuthorized]);
+
+  useEffect(() => {
+    if (!isAuthorized) return;
+
+    const loadTeamMembers = () => {
+      try {
+        const savedTeamMembers = JSON.parse(
+          localStorage.getItem(TEAM_MEMBERS_KEY) || "[]"
+        );
+        setTeamMembers(
+          Array.isArray(savedTeamMembers) ? savedTeamMembers : []
+        );
+      } catch (error) {
+        console.error("Cannot load team members", error);
+        setTeamMembers([]);
+      }
+    };
+
+    loadTeamMembers();
+    window.addEventListener("focus", loadTeamMembers);
+    window.addEventListener("storage", loadTeamMembers);
+
+    return () => {
+      window.removeEventListener("focus", loadTeamMembers);
+      window.removeEventListener("storage", loadTeamMembers);
+    };
+  }, [isAuthorized]);
+
+  const saveTeamMembers = (nextTeamMembers) => {
+    localStorage.setItem(TEAM_MEMBERS_KEY, JSON.stringify(nextTeamMembers));
+    setTeamMembers(nextTeamMembers);
+  };
+
+  const addTeamMember = () => {
+    const name = newTeamMember.name.trim();
+    const role = newTeamMember.role.trim();
+
+    if (!name || !role) {
+      alert("กรุณากรอกชื่อทีมงานและตำแหน่งให้ครบ");
+      return;
+    }
+
+    const teamMember = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      role,
+      phone: newTeamMember.phone.trim(),
+      email: newTeamMember.email.trim(),
+      active: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    saveTeamMembers([teamMember, ...teamMembers]);
+    setNewTeamMember({
+      name: "",
+      role: "",
+      phone: "",
+      email: "",
+    });
+  };
+
+  const toggleTeamMember = (id) => {
+    saveTeamMembers(
+      teamMembers.map((member) =>
+        member.id === id ? { ...member, active: member.active === false } : member
+      )
+    );
+  };
+
+  const deleteTeamMember = (id) => {
+    if (!confirm("ต้องการลบทีมงานคนนี้หรือไม่?")) return;
+    saveTeamMembers(teamMembers.filter((member) => member.id !== id));
+  };
 
   const notifyBookingNumberUpdated = (
     mode,
@@ -433,17 +515,23 @@ function SettingsContent() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-zinc-900">
-              {isBarcodePage ? "จัดการบาร์โค้ด" : "ตั้งค่าระบบ"}
+              {isBarcodePage
+                ? "จัดการบาร์โค้ด"
+                : isTeamPage
+                  ? "จัดการทีมงาน"
+                  : "ตั้งค่าระบบ"}
             </h1>
             <p className="mt-1 text-zinc-500">
               {isBarcodePage
                 ? "กำหนดเลขที่การจองและบาร์โค้ดสำหรับใบจองถัดไป"
+                : isTeamPage
+                  ? "บันทึกทีมงานที่ใช้ประจำในระบบ"
                 : "เลือกหัวข้อที่ต้องการจัดการ"}
             </p>
           </div>
 
           <div className="flex gap-3">
-            {isBarcodePage ? (
+            {isBarcodePage || isTeamPage ? (
               <button
                 type="button"
                 onClick={() => router.push("/pharadol/settings")}
@@ -471,7 +559,7 @@ function SettingsContent() {
           </div>
         </div>
 
-        {!isBarcodePage ? (
+        {!isBarcodePage && !isTeamPage ? (
           <div className="grid gap-4 md:grid-cols-2">
             <button
               type="button"
@@ -500,7 +588,146 @@ function SettingsContent() {
                 </span>
               </div>
             </button>
+            <button
+              type="button"
+              onClick={() => router.push("/pharadol/settings?section=team")}
+              className="group rounded-3xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md"
+            >
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-xl text-white">
+                ◉
+              </div>
+
+              <h2 className="text-xl font-bold text-zinc-900">
+                จัดการทีมงาน
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-zinc-500">
+                บันทึกชื่อ ตำแหน่ง เบอร์โทร และอีเมลของทีมที่ใช้งานประจำ
+              </p>
+
+              <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4">
+                <span className="text-sm font-semibold text-zinc-700">
+                  {teamMembers.length} คนในทีม
+                </span>
+                <span className="text-xl text-zinc-400 transition group-hover:translate-x-1">
+                  →
+                </span>
+              </div>
+            </button>
           </div>
+        ) : isTeamPage ? (
+          <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm md:p-8">
+            <div className="mb-6">
+              <p className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                Team Members
+              </p>
+              <h2 className="mt-1 text-2xl font-bold text-zinc-900">
+                รายชื่อทีมงาน
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+                เก็บรายชื่อทีมงานที่ใช้งานประจำ เพื่อเลือกใช้ต่อในใบจอง ปฏิทิน หรือรายงานภายหลัง
+              </p>
+            </div>
+
+            <div className="grid gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-5 md:grid-cols-2">
+              <input
+                value={newTeamMember.name}
+                onChange={(event) =>
+                  setNewTeamMember({ ...newTeamMember, name: event.target.value })
+                }
+                placeholder="ชื่อทีมงาน"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-black"
+              />
+              <input
+                value={newTeamMember.role}
+                onChange={(event) =>
+                  setNewTeamMember({ ...newTeamMember, role: event.target.value })
+                }
+                placeholder="ตำแหน่ง เช่น ช่างภาพหลัก"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-black"
+              />
+              <input
+                value={newTeamMember.phone}
+                onChange={(event) =>
+                  setNewTeamMember({ ...newTeamMember, phone: event.target.value })
+                }
+                placeholder="เบอร์โทร"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-black"
+              />
+              <input
+                type="email"
+                value={newTeamMember.email}
+                onChange={(event) =>
+                  setNewTeamMember({ ...newTeamMember, email: event.target.value })
+                }
+                placeholder="อีเมล"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-black"
+              />
+              <button
+                type="button"
+                onClick={addTeamMember}
+                className="rounded-xl bg-black px-5 py-3 font-semibold text-white transition hover:bg-zinc-800 md:col-span-2"
+              >
+                บันทึกทีมงาน
+              </button>
+            </div>
+
+            <div className="mt-5 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+              {teamMembers.length > 0 ? (
+                <div className="divide-y divide-zinc-100">
+                  {teamMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-bold text-zinc-900">
+                            {member.name}
+                          </h3>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              member.active === false
+                                ? "bg-zinc-100 text-zinc-500"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {member.active === false ? "พักใช้งาน" : "พร้อมใช้งาน"}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm font-semibold text-zinc-600">
+                          {member.role}
+                        </p>
+                        <p className="mt-1 text-sm text-zinc-500">
+                          {[member.phone, member.email].filter(Boolean).join(" • ") || "-"}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleTeamMember(member.id)}
+                          className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                        >
+                          {member.active === false ? "เปิดใช้งาน" : "พักใช้งาน"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteTeamMember(member.id)}
+                          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                        >
+                          ลบ
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-5 py-10 text-center text-zinc-500">
+                  ยังไม่มีทีมงานที่บันทึกไว้
+                </div>
+              )}
+            </div>
+          </section>
         ) : (
           <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm md:p-8">
             <div className="mb-6">
