@@ -4,6 +4,24 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+const getGoogleOAuthConfig = () => {
+  const baseUrl = String(process.env.NEXT_PUBLIC_APP_URL || "").replace(
+    /\/$/,
+    ""
+  );
+  const redirectUri =
+    baseUrl && `${baseUrl}/api/google/callback`;
+
+  return {
+    clientId:
+      process.env.PHARADOL_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
+    clientSecret:
+      process.env.PHARADOL_GOOGLE_CLIENT_SECRET ||
+      process.env.GOOGLE_CLIENT_SECRET,
+    redirectUri: redirectUri || process.env.GOOGLE_REDIRECT_URI,
+  };
+};
+
 const escapeHtml = (value) =>
   String(value || "")
     .replace(/&/g, "&amp;")
@@ -72,9 +90,7 @@ const renderHtml = ({ title, message, token }) => {
 };
 
 export async function GET(request) {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  const { clientId, clientSecret, redirectUri } = getGoogleOAuthConfig();
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const error = requestUrl.searchParams.get("error");
@@ -93,7 +109,7 @@ export async function GET(request) {
     return NextResponse.json(
       {
         error:
-          "ตั้งค่า GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET หรือ GOOGLE_REDIRECT_URI ไม่ครบ",
+          "ตั้งค่า PHARADOL_GOOGLE_CLIENT_ID, PHARADOL_GOOGLE_CLIENT_SECRET หรือ NEXT_PUBLIC_APP_URL ไม่ครบ",
       },
       { status: 500 }
     );
@@ -119,7 +135,7 @@ export async function GET(request) {
         title: "เชื่อมต่อ Google สำเร็จ",
         message:
           tokens.refresh_token
-            ? "คัดลอกค่า refresh token ด้านล่างไปใส่ใน GOOGLE_REFRESH_TOKEN ที่ .env.local"
+            ? "คัดลอกค่า refresh token ด้านล่างไปใส่ใน PHARADOL_GOOGLE_REFRESH_TOKEN หรือ GOOGLE_REFRESH_TOKEN"
             : "Google ไม่ส่ง refresh token กลับมา ถ้าเคยอนุญาตแล้ว ให้ revoke access แล้วลองเข้า /api/google/auth ใหม่",
         token: tokens.refresh_token || "",
       }),

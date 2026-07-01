@@ -41,6 +41,7 @@ Required for the main app:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_APP_URL`
 
 Required for Google Places:
 
@@ -63,5 +64,6 @@ Required for Google Drive upload:
 Use the deployed callback URL for Google OAuth, for example:
 
 ```bash
+NEXT_PUBLIC_APP_URL=https://your-vercel-domain.vercel.app
 GOOGLE_REDIRECT_URI=https://your-vercel-domain.vercel.app/api/google/callback
 ```
