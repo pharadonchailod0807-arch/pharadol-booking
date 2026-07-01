@@ -382,36 +382,36 @@ export default function LoginPage() {
   const visibleUsernameHistory = [];
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0d12] px-4 py-8 text-white">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070b12] px-4 py-8 text-white">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_16%,rgba(56,189,248,0.18),transparent_34%),radial-gradient(circle_at_78%_12%,rgba(148,163,184,0.16),transparent_31%),linear-gradient(135deg,#0a0d12_0%,#111827_48%,#030712_100%)]" />
-        <div className="absolute inset-0 opacity-[0.055] [background-image:linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:44px_44px]" />
-        <div className="absolute inset-x-0 bottom-0 h-72 bg-[linear-gradient(180deg,transparent,rgba(3,7,18,0.86))]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(14,165,233,0.2),transparent_32%),radial-gradient(circle_at_82%_16%,rgba(99,102,241,0.16),transparent_30%),linear-gradient(135deg,#07111d_0%,#111827_48%,#020617_100%)]" />
+        <div className="absolute inset-0 opacity-[0.045] [background-image:linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:52px_52px]" />
+        <div className="absolute inset-x-0 bottom-0 h-64 bg-[linear-gradient(180deg,transparent,rgba(2,6,23,0.9))]" />
       </div>
 
       <form
         onSubmit={handleLogin}
-        className="login-card relative z-10 w-full max-w-[620px] overflow-visible rounded-[32px] border border-white/14 bg-white/[0.08] px-6 py-9 text-center shadow-[0_34px_110px_rgba(0,0,0,0.62)] backdrop-blur-2xl sm:px-12 sm:py-12"
+        className="login-card relative z-10 w-full max-w-[480px] overflow-visible rounded-[28px] border border-white/12 bg-white/[0.075] px-6 py-8 text-center shadow-[0_28px_80px_rgba(0,0,0,0.52)] backdrop-blur-2xl sm:px-9 sm:py-9"
       >
-        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.7),transparent)]" />
-        <div className="pointer-events-none absolute inset-0 rounded-[32px] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent_48%,rgba(255,255,255,0.04))]" />
+        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.62),transparent)]" />
+        <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent_48%,rgba(255,255,255,0.035))]" />
 
         <div className="relative">
-          <p className="text-[12px] font-bold uppercase tracking-[0.32em] text-white/45">
+          <p className="text-[10px] font-bold uppercase tracking-[0.34em] text-white/45">
             Secure Workspace
           </p>
-          <h1 className="mt-3 text-[42px] font-black leading-none tracking-[-0.035em] text-white sm:text-[62px]">
+          <h1 className="mt-3 text-[38px] font-black leading-none tracking-[-0.035em] text-white sm:text-[50px]">
             Sign in
           </h1>
         </div>
 
-        <p className="relative mx-auto mt-4 max-w-[420px] text-sm font-medium leading-6 text-white/58">
+        <p className="relative mx-auto mt-3 max-w-[340px] text-sm font-medium leading-6 text-white/58">
           เข้าสู่พื้นที่ทำงานที่ได้รับอนุญาต
         </p>
 
-        <div className="relative mx-auto mt-10 max-w-[460px] space-y-5">
+        <div className="relative mx-auto mt-8 max-w-[380px] space-y-4">
           <div className="relative">
-            <label className="mb-2 block text-left text-xs font-semibold text-white/48">
+            <label className="mb-2 block text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-white/48">
               Username
             </label>
             <input
@@ -429,11 +429,11 @@ export default function LoginPage() {
               placeholder="Username"
               autoComplete="off"
               autoFocus
-              className="h-16 w-full rounded-[18px] border border-white/14 bg-white/[0.09] px-5 text-lg font-medium text-white outline-none transition placeholder:text-white/34 focus:border-white/70 focus:bg-white/[0.13] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.11)]"
+              className="h-[52px] w-full rounded-2xl border border-white/14 bg-white/[0.09] px-4 text-base font-semibold text-white outline-none transition placeholder:text-white/34 focus:border-white/70 focus:bg-white/[0.13] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.1)]"
             />
 
             {isUsernameHistoryOpen && visibleUsernameHistory.length > 0 && (
-              <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-[18px] border border-white/14 bg-[#141a14]/88 p-1.5 text-left shadow-[0_18px_45px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+              <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-white/14 bg-[#111827]/90 p-1.5 text-left shadow-[0_18px_45px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
                 {visibleUsernameHistory.map((item) => (
                   <button
                     key={item}
@@ -454,7 +454,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-left text-xs font-semibold text-white/48">
+            <label className="mb-2 block text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-white/48">
               Password
             </label>
             <input
@@ -466,12 +466,12 @@ export default function LoginPage() {
               }}
               placeholder="Password"
               autoComplete="current-password"
-              className="h-16 w-full rounded-[18px] border border-white/14 bg-white/[0.09] px-5 text-lg font-medium text-white outline-none transition placeholder:text-white/34 focus:border-white/70 focus:bg-white/[0.13] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.11)]"
+              className="h-[52px] w-full rounded-2xl border border-white/14 bg-white/[0.09] px-4 text-base font-semibold text-white outline-none transition placeholder:text-white/34 focus:border-white/70 focus:bg-white/[0.13] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.1)]"
             />
           </div>
 
           {error && (
-            <p className="rounded-[18px] border border-[#ff453a]/25 bg-[#ff453a]/10 px-4 py-3 text-center text-sm font-semibold text-[#ffb4ae]">
+            <p className="rounded-2xl border border-[#ff453a]/25 bg-[#ff453a]/10 px-4 py-3 text-center text-sm font-semibold text-[#ffb4ae]">
               {error}
             </p>
           )}
@@ -479,7 +479,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="group relative inline-flex h-16 w-full items-center justify-center overflow-hidden rounded-[18px] bg-white px-6 text-lg font-black text-[#111827] shadow-[0_18px_45px_rgba(0,0,0,0.32)] transition duration-300 hover:-translate-y-0.5 hover:bg-zinc-100 hover:shadow-[0_22px_55px_rgba(0,0,0,0.42)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+            className="group relative inline-flex h-[52px] w-full items-center justify-center overflow-hidden rounded-2xl bg-white px-5 text-base font-black text-[#111827] shadow-[0_16px_38px_rgba(0,0,0,0.3)] transition duration-300 hover:-translate-y-0.5 hover:bg-zinc-100 hover:shadow-[0_20px_46px_rgba(0,0,0,0.4)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span className="absolute inset-x-4 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.65),transparent)]" />
             {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
