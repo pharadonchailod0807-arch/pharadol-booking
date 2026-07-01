@@ -261,6 +261,7 @@ export default function BrandMailPage({ brandId }) {
       emailCustomers.find((item) => item.bookingNumber === bookingNumber) ||
       null;
 
+    setSelectedEmailId("");
     setSelectedBookingNumber(bookingNumber);
     setRecipient(customer?.email || "");
     setSubject(`${brand.subject} ${customer?.bookingNumber || ""}`.trim());
@@ -567,34 +568,197 @@ export default function BrandMailPage({ brandId }) {
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[380px_minmax(680px,1fr)_520px]">
-          <section className="rounded-2xl bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-bold">ลูกค้าที่มีอีเมล</h2>
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold">
-                {emailCustomers.length}
-              </span>
-            </div>
-            <div className="max-h-[760px] space-y-2 overflow-auto">
-              {emailCustomers.map((customer) => (
+        <div className="grid gap-5 lg:grid-cols-[440px_minmax(0,1fr)]">
+          <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
+            <div className="border-b border-zinc-200 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-bold">กล่องเมล</h2>
+                  <p className="mt-1 text-sm text-zinc-500">
+                    เลือกเมลทางซ้ายเพื่อดูเต็มหน้ากลาง
+                  </p>
+                </div>
+                {activeFolder === "sent" && (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={deleteSelected}
+                      className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold hover:bg-zinc-100"
+                    >
+                      ลบ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearAll}
+                      className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      ล้างทั้งหมด
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
                 <button
-                  key={customer.bookingNumber || customer.email}
                   type="button"
-                  onClick={() => selectCustomer(customer.bookingNumber)}
-                  className={`w-full rounded-xl border p-3 text-left transition ${
-                    selectedBookingNumber === customer.bookingNumber
-                      ? "border-black bg-zinc-950 text-white"
-                      : "border-zinc-200 hover:border-zinc-400"
+                  onClick={() => {
+                    setActiveFolder("sent");
+                    setIsComposerOpen(false);
+                  }}
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold ${
+                    activeFolder === "sent"
+                      ? "bg-zinc-950 text-white"
+                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                   }`}
                 >
-                  <p className="font-bold">
-                    {customer.customerName || "ไม่ระบุชื่อลูกค้า"}
-                  </p>
-                  <p className="mt-1 truncate text-sm opacity-70">
-                    {customer.bookingNumber || "-"} • {customer.email}
-                  </p>
+                  ส่งแล้ว {emailHistory.length}
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveFolder("trash");
+                    setSelectedEmailId("");
+                    setIsComposerOpen(false);
+                  }}
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold ${
+                    activeFolder === "trash"
+                      ? "bg-zinc-950 text-white"
+                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                  }`}
+                >
+                  ขยะเมล {mailTrash.length}
+                </button>
+              </div>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="ค้นหาอีเมล"
+                className="mt-3 w-full rounded-xl border border-zinc-300 px-4 py-2.5 outline-none focus:border-black"
+              />
+            </div>
+
+            <div className="max-h-[430px] divide-y divide-zinc-100 overflow-auto">
+              {activeFolder === "sent" &&
+                filteredHistory.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`p-3 ${
+                      selectedEmailId === item.id && !isComposerOpen
+                        ? "bg-blue-50"
+                        : "bg-white"
+                    }`}
+                  >
+                    <div className="flex gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => toggleSelected(item.id)}
+                        className="mt-1 h-4 w-4"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedEmailId(item.id);
+                          setSelectedBookingNumber(item.bookingNumber || "");
+                          setRecipient(item.recipient || item.email || "");
+                          setSubject(item.subject || brand.subject);
+                          setMessage(item.body || "");
+                          setIsComposerOpen(false);
+                          setStatusMessage("");
+                        }}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <p className="truncate text-sm font-bold">
+                          {item.customerName || item.recipient}
+                        </p>
+                        <p className="truncate text-sm text-zinc-600">
+                          {item.subject}
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-400">
+                          {new Date(item.sentAt).toLocaleString("th-TH")} • ส่งแล้ว
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+              {activeFolder === "trash" &&
+                filteredMailTrash.map((item) => (
+                  <div
+                    key={item.id || `${item.bookingNumber}-${item.email}`}
+                    className="p-3"
+                  >
+                    <p className="truncate text-sm font-bold">
+                      {item.customerName || item.recipient || item.email}
+                    </p>
+                    <p className="truncate text-sm text-zinc-600">
+                      {item.subject || item.bookingNumber || "-"}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-400">
+                      {item.deletedDate || formatSentDateTime(item.deletedAt)}
+                    </p>
+                    {item.id && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => restoreEmailFromTrash(item)}
+                          className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
+                        >
+                          กู้คืน
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteMailForever(item)}
+                          className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                        >
+                          ลบถาวร
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+              {activeFolder === "sent" && filteredHistory.length === 0 && (
+                <div className="p-8 text-center text-zinc-500">
+                  ยังไม่มีเมลที่ส่งแล้ว
+                </div>
+              )}
+              {activeFolder === "trash" && filteredMailTrash.length === 0 && (
+                <div className="p-8 text-center text-zinc-500">
+                  ยังไม่มีขยะเมล
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-zinc-200 p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="font-bold">ลูกค้าที่มีอีเมล</h3>
+                <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold">
+                  {emailCustomers.length}
+                </span>
+              </div>
+              <div className="max-h-[260px] space-y-2 overflow-auto">
+                {emailCustomers.map((customer) => (
+                  <button
+                    key={customer.bookingNumber || customer.email}
+                    type="button"
+                    onClick={() => selectCustomer(customer.bookingNumber)}
+                    className={`w-full rounded-xl border p-3 text-left transition ${
+                      selectedBookingNumber === customer.bookingNumber &&
+                      isComposerOpen
+                        ? "border-black bg-zinc-950 text-white"
+                        : "border-zinc-200 hover:border-zinc-400"
+                    }`}
+                  >
+                    <p className="font-bold">
+                      {customer.customerName || "ไม่ระบุชื่อลูกค้า"}
+                    </p>
+                    <p className="mt-1 truncate text-sm opacity-70">
+                      {customer.bookingNumber || "-"} • {customer.email}
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
 
@@ -682,11 +846,72 @@ export default function BrandMailPage({ brandId }) {
                   </div>
                 </div>
               </>
+            ) : selectedEmail ? (
+              <div className="min-h-[720px]">
+                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-zinc-500">
+                      เมลที่ส่งแล้ว
+                    </p>
+                    <h2 className="mt-2 break-words text-2xl font-black">
+                      {selectedEmail.subject}
+                    </h2>
+                    <p className="mt-2 text-zinc-500">
+                      ถึง{" "}
+                      <span className="font-semibold text-zinc-800">
+                        {selectedEmail.recipient}
+                      </span>
+                    </p>
+                    <p className="mt-1 text-sm text-zinc-400">
+                      ส่งเมื่อ {formatSentDateTime(selectedEmail.sentAt)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => editEmail(selectedEmail)}
+                      className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold hover:bg-zinc-100"
+                    >
+                      แก้ไข
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => sendEmailAgain(selectedEmail)}
+                      disabled={isSending}
+                      className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                    >
+                      ส่งอีกครั้ง
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteEmailRecord(selectedEmail)}
+                      className="rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      ลบ
+                    </button>
+                  </div>
+                </div>
+
+                {selectedEmail.pdfDriveLink && (
+                  <a
+                    href={selectedEmail.pdfDriveLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-5 inline-flex rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
+                  >
+                    เปิด PDF ใน Google Drive
+                  </a>
+                )}
+
+                <article className="mt-5 min-h-[520px] whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-zinc-50 p-6 text-base leading-8 text-zinc-800">
+                  {selectedEmail.body}
+                </article>
+              </div>
             ) : (
               <div className="flex min-h-[560px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 p-8 text-center">
-                <p className="text-2xl font-bold">เมลที่ส่งแล้ว</p>
+                <p className="text-2xl font-bold">เลือกเมลเพื่อดูรายละเอียด</p>
                 <p className="mt-2 max-w-sm text-zinc-500">
-                  เลือกเมลจากโฟลเดอร์ด้านขวาเพื่อดูรายละเอียด หรือกด + เพื่อสร้างเมลใหม่
+                  เลือกเมลที่ส่งแล้วจากกล่องเมลด้านซ้าย หรือกด + เพื่อสร้างเมลใหม่
                 </p>
                 <button
                   type="button"
@@ -697,204 +922,6 @@ export default function BrandMailPage({ brandId }) {
                 </button>
               </div>
             )}
-          </section>
-
-          <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            <div className="border-b border-zinc-200 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="font-bold">โฟลเดอร์เมล</h2>
-                {activeFolder === "sent" && (
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={deleteSelected}
-                      className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold hover:bg-zinc-100"
-                    >
-                      ลบ
-                    </button>
-                    <button
-                      type="button"
-                      onClick={clearAll}
-                      className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
-                    >
-                      ล้างทั้งหมด
-                    </button>
-                  </div>
-                )}
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveFolder("sent");
-                    setSelectedEmailId("");
-                  }}
-                  className={`rounded-xl px-3 py-2 text-sm font-semibold ${
-                    activeFolder === "sent"
-                      ? "bg-zinc-950 text-white"
-                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                  }`}
-                >
-                  ส่งแล้ว {emailHistory.length}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveFolder("trash");
-                    setSelectedEmailId("");
-                  }}
-                  className={`rounded-xl px-3 py-2 text-sm font-semibold ${
-                    activeFolder === "trash"
-                      ? "bg-zinc-950 text-white"
-                      : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-                  }`}
-                >
-                  ขยะเมล {mailTrash.length}
-                </button>
-              </div>
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="ค้นหาอีเมล"
-                className="mt-3 w-full rounded-xl border border-zinc-300 px-4 py-2.5 outline-none focus:border-black"
-              />
-            </div>
-
-            <div className="max-h-[640px] divide-y divide-zinc-100 overflow-auto">
-              {activeFolder === "sent" &&
-                filteredHistory.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`p-3 ${
-                      selectedEmailId === item.id ? "bg-blue-50" : "bg-white"
-                    }`}
-                  >
-                    <div className="flex gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(item.id)}
-                        onChange={() => toggleSelected(item.id)}
-                        className="mt-1 h-4 w-4"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setSelectedEmailId(item.id)}
-                        className="min-w-0 flex-1 text-left"
-                      >
-                        <p className="truncate text-sm font-bold">
-                          {item.customerName || item.recipient}
-                        </p>
-                        <p className="truncate text-sm text-zinc-600">
-                          {item.subject}
-                        </p>
-                        <p className="mt-1 text-xs text-zinc-400">
-                          {new Date(item.sentAt).toLocaleString("th-TH")} • ส่งแล้ว
-                        </p>
-                      </button>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2 pl-7">
-                      <button
-                        type="button"
-                        onClick={() => editEmail(item)}
-                        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-semibold hover:bg-zinc-100"
-                      >
-                        แก้ไข
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => sendEmailAgain(item)}
-                        disabled={isSending}
-                        className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
-                      >
-                        ส่งอีกครั้ง
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteEmailRecord(item)}
-                        className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
-                      >
-                        ลบ
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-              {activeFolder === "trash" &&
-                filteredMailTrash.map((item) => (
-                  <div
-                    key={item.id || `${item.bookingNumber}-${item.email}`}
-                    className="p-3"
-                  >
-                    <p className="truncate text-sm font-bold">
-                      {item.customerName || item.recipient || item.email}
-                    </p>
-                    <p className="truncate text-sm text-zinc-600">
-                      {item.subject || item.bookingNumber || "-"}
-                    </p>
-                    <p className="mt-1 text-xs text-zinc-400">
-                      {item.deletedDate || formatSentDateTime(item.deletedAt)}
-                    </p>
-                    {item.id && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => restoreEmailFromTrash(item)}
-                          className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
-                        >
-                          กู้คืน
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => deleteMailForever(item)}
-                          className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
-                        >
-                          ลบถาวร
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-              {activeFolder === "sent" && filteredHistory.length === 0 && (
-                <div className="p-8 text-center text-zinc-500">
-                  ยังไม่มีเมลที่ส่งแล้ว
-                </div>
-              )}
-              {activeFolder === "trash" && filteredMailTrash.length === 0 && (
-                <div className="p-8 text-center text-zinc-500">
-                  ยังไม่มีขยะเมล
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-zinc-200 p-4">
-              {selectedEmail ? (
-                <div>
-                  <p className="font-bold">{selectedEmail.subject}</p>
-                  <p className="mt-1 text-sm text-zinc-500">
-                    ถึง {selectedEmail.recipient}
-                  </p>
-                  {selectedEmail.pdfDriveLink && (
-                    <a
-                      href={selectedEmail.pdfDriveLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 block truncate text-sm font-semibold text-blue-600"
-                    >
-                      เปิด PDF ใน Google Drive
-                    </a>
-                  )}
-                  <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap rounded-xl bg-zinc-50 p-3 text-sm leading-6">
-                    {selectedEmail.body}
-                  </pre>
-                </div>
-              ) : (
-                <p className="text-sm text-zinc-500">
-                  เลือกอีเมลเพื่อดูรายละเอียด
-                </p>
-              )}
-            </div>
           </section>
         </div>
       </div>
