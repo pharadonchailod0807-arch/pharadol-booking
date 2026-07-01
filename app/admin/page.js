@@ -737,30 +737,41 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 px-4 py-8 text-zinc-950 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <section className="overflow-hidden rounded-[32px] bg-zinc-950 px-6 py-8 text-white shadow-2xl sm:px-10 sm:py-10">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+    <main className="relative min-h-screen overflow-hidden bg-[#070b12] px-4 py-6 text-white sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(14,165,233,0.18),transparent_34%),radial-gradient(circle_at_86%_10%,rgba(168,85,247,0.14),transparent_32%),linear-gradient(135deg,#07111d_0%,#111827_48%,#020617_100%)]" />
+        <div className="absolute inset-0 opacity-[0.04] [background-image:linear-gradient(rgba(255,255,255,0.18)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.18)_1px,transparent_1px)] [background-size:52px_52px]" />
+        <div className="absolute inset-x-0 bottom-0 h-72 bg-[linear-gradient(180deg,transparent,rgba(2,6,23,0.92))]" />
+      </div>
+      <div className="relative z-10 mx-auto max-w-[1180px]">
+        <section className="overflow-hidden rounded-[28px] border border-white/12 bg-white/[0.075] px-6 py-7 text-white shadow-[0_28px_90px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:px-8 sm:py-8">
+          <div className="flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="mb-3 text-sm font-semibold uppercase tracking-[0.24em] text-zinc-400">
-                {currentUser?.username || "Admin"}
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.34em] text-white/45">
+                Admin Console
               </p>
-              <h1 className="text-3xl font-black sm:text-5xl">{settings.systemName}</h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300 sm:text-base">
-                ศูนย์ควบคุมผู้ใช้งาน รหัสผ่าน ข้อมูลแบรนด์ การสำรองข้อมูล และการตั้งค่าระบบทั้งหมด
+              <h1 className="max-w-3xl text-[34px] font-black uppercase leading-[0.98] text-white sm:text-[54px]">
+                Studio Booking
+                <span className="block">Management</span>
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">
+                {settings.systemName} สำหรับควบคุมผู้ใช้งาน แบรนด์ การสำรองข้อมูล และประวัติระบบทั้งหมด
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:items-end">
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-sm text-zinc-300">
-                <p className="font-semibold text-white">ผู้ดูแลระบบสูงสุด</p>
-                <p className="mt-1">
+              <div className="min-w-[210px] rounded-2xl border border-white/12 bg-white/[0.08] px-5 py-4 text-sm text-white/62">
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/42">
+                  Signed in
+                </p>
+                <p className="mt-2 font-bold text-white">
                   {currentUser?.name || settings.ownerName || "ผู้ดูแลระบบ"}
                 </p>
+                <p className="mt-1">@{currentUser?.username || "Admin"}</p>
               </div>
               <button
                 type="button"
                 onClick={logout}
-                className="rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/20"
+                className="rounded-2xl border border-white/14 bg-white/[0.1] px-5 py-3 text-sm font-bold text-white transition hover:bg-white/[0.16]"
               >
                 ออกจากระบบ
               </button>
@@ -768,7 +779,7 @@ export default function AdminPage() {
           </div>
         </section>
 
-        <nav className="mt-6 flex flex-wrap gap-2 rounded-3xl border border-zinc-200 bg-white p-3 shadow-sm">
+        <nav className="mt-5 flex flex-wrap gap-2 rounded-[22px] border border-white/10 bg-white/[0.07] p-2 shadow-[0_18px_55px_rgba(0,0,0,0.22)] backdrop-blur-2xl">
           {tabs.map(([value, label]) => (
             <button
               key={value}
@@ -776,8 +787,8 @@ export default function AdminPage() {
               onClick={() => setActiveTab(value)}
               className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
                 activeTab === value
-                  ? "bg-zinc-950 text-white"
-                  : "text-zinc-600 hover:bg-zinc-100"
+                  ? "bg-white text-zinc-950 shadow-[0_12px_30px_rgba(255,255,255,0.12)]"
+                  : "text-white/62 hover:bg-white/10 hover:text-white"
               }`}
             >
               {label}
@@ -791,44 +802,46 @@ export default function AdminPage() {
               {systems.map((system) => (
                 <article
                   key={system.id}
-                  className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm"
+                  className="group overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.075] p-5 shadow-[0_24px_75px_rgba(0,0,0,0.34)] backdrop-blur-2xl transition hover:border-white/20 hover:bg-white/[0.095]"
                 >
                   <div className="flex items-start justify-between gap-4">
                     {system.logo ? (
-                      <div className="relative h-20 w-44 overflow-hidden rounded-2xl border border-zinc-200 bg-[#552b0d] shadow-sm sm:h-24 sm:w-56">
+                      <div className="relative h-24 w-full max-w-[300px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(135deg,#1c140f,#5b2d0d_54%,#111827)] shadow-[0_16px_35px_rgba(0,0,0,0.28)]">
                         <Image
                           src={system.logo}
                           alt={`${system.name} logo`}
                           fill
                           priority={system.id === "adisorn"}
-                          className="object-contain p-3"
-                          sizes="(max-width: 640px) 176px, 224px"
+                          className="object-contain p-4"
+                          sizes="300px"
                         />
                       </div>
                     ) : (
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-950 text-xl font-black text-white">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-xl font-black text-zinc-950">
                         {system.name.charAt(0)}
                       </div>
                     )}
                     <span
                       className={`rounded-full px-3 py-1 text-xs font-bold ${
                         system.enabled
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-zinc-200 text-zinc-600"
+                          ? "bg-emerald-300/20 text-emerald-200"
+                          : "bg-white/10 text-white/50"
                       }`}
                     >
                       {system.enabled ? "พร้อมใช้งาน" : "ปิดใช้งาน"}
                     </span>
                   </div>
-                  <h2 className="mt-6 text-2xl font-black">{system.name}</h2>
-                  <p className="mt-2 text-sm leading-6 text-zinc-500">
+                  <h2 className="mt-6 text-2xl font-black text-white">
+                    {system.name}
+                  </h2>
+                  <p className="mt-2 min-h-[48px] text-sm leading-6 text-white/55">
                     {system.description}
                   </p>
                   {system.enabled ? (
                     <button
                       type="button"
                       onClick={() => enterSystem(system)}
-                      className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-zinc-950 px-5 py-3.5 font-bold text-white"
+                      className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-white px-5 py-3.5 font-bold text-zinc-950 transition hover:bg-white/90"
                     >
                       เข้าสู่ระบบ
                     </button>
@@ -836,7 +849,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       disabled
-                      className="mt-6 w-full rounded-2xl bg-zinc-200 px-5 py-3.5 font-bold text-zinc-500"
+                      className="mt-6 w-full rounded-2xl bg-white/10 px-5 py-3.5 font-bold text-white/40"
                     >
                       ยังไม่เปิดใช้งาน
                     </button>
@@ -845,7 +858,7 @@ export default function AdminPage() {
               ))}
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-4">
+            <div className="mt-5 grid gap-4 sm:grid-cols-4">
               {[
                 [users.length, "จำนวนผู้ใช้"],
                 [users.filter((user) => user.active).length, "ผู้ใช้ที่เปิดใช้งาน"],
@@ -854,10 +867,10 @@ export default function AdminPage() {
               ].map(([value, label]) => (
                 <div
                   key={label}
-                  className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm"
+                  className="rounded-[22px] border border-white/10 bg-white/[0.075] p-5 shadow-[0_16px_45px_rgba(0,0,0,0.24)] backdrop-blur-2xl"
                 >
-                  <p className="text-3xl font-black">{value}</p>
-                  <p className="mt-1 text-sm text-zinc-500">{label}</p>
+                  <p className="text-3xl font-black text-white">{value}</p>
+                  <p className="mt-1 text-sm text-white/50">{label}</p>
                 </div>
               ))}
             </div>
