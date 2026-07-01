@@ -4,11 +4,15 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const getGoogleOAuthConfig = () => {
-  const baseUrl = String(process.env.NEXT_PUBLIC_APP_URL || "").replace(
+const getGoogleOAuthConfig = (requestUrl) => {
+  const envBaseUrl = String(process.env.NEXT_PUBLIC_APP_URL || "").replace(
     /\/$/,
     ""
   );
+  const requestBaseUrl = requestUrl
+    ? `${requestUrl.protocol}//${requestUrl.host}`
+    : "";
+  const baseUrl = envBaseUrl || requestBaseUrl;
   const redirectUri =
     baseUrl && `${baseUrl}/api/google/callback`;
 
@@ -90,8 +94,9 @@ const renderHtml = ({ title, message, token }) => {
 };
 
 export async function GET(request) {
-  const { clientId, clientSecret, redirectUri } = getGoogleOAuthConfig();
   const requestUrl = new URL(request.url);
+  const { clientId, clientSecret, redirectUri } =
+    getGoogleOAuthConfig(requestUrl);
   const code = requestUrl.searchParams.get("code");
   const error = requestUrl.searchParams.get("error");
 
