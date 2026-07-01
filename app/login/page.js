@@ -400,8 +400,9 @@ export default function LoginPage() {
           <p className="text-[10px] font-bold uppercase tracking-[0.34em] text-white/45">
             Secure Workspace
           </p>
-          <h1 className="mt-3 text-[38px] font-black leading-none tracking-[-0.035em] text-white sm:text-[50px]">
-            Sign in
+          <h1 className="mt-4 text-[30px] font-black uppercase leading-[0.98] text-white sm:text-[42px]">
+            STUDIO BOOKING
+            <span className="block">MANAGEMENT</span>
           </h1>
         </div>
 
