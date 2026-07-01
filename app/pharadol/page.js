@@ -3132,12 +3132,7 @@ const confirmSendBookingEmail = async () => {
 
   try {
     const driveFile = await uploadBookingPdfToDrive(emailPreview.pdfAttachment);
-    const finalBody = [
-      emailPreview.body,
-      "",
-      "ลิงก์เอกสาร PDF สำหรับลูกค้า",
-      driveFile.webViewLink,
-    ].join("\n");
+    const finalBody = emailPreview.body;
     const response = await fetch("/api/send-booking-email", {
       method: "POST",
       headers: {
