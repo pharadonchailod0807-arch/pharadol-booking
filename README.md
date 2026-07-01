@@ -31,6 +31,37 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is configured for Vercel with `vercel.json`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Before deploying, add the environment variables from `.env.example` to:
+
+Vercel Project Settings -> Environment Variables
+
+Required for the main app:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+Required for Google Places:
+
+- `GOOGLE_PLACES_API_KEY`
+
+Required for sending email:
+
+- `RESEND_API_KEY`
+- `PHARADOL_EMAIL_FROM`
+- `ADISORN_EMAIL_FROM`
+
+Required for Google Drive upload:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_REDIRECT_URI`
+- `GOOGLE_REFRESH_TOKEN`
+- `GOOGLE_DRIVE_FOLDER_ID`
+
+Use the deployed callback URL for Google OAuth, for example:
+
+```bash
+GOOGLE_REDIRECT_URI=https://your-vercel-domain.vercel.app/api/google/callback
+```

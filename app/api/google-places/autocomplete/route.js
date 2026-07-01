@@ -3,6 +3,9 @@ const GOOGLE_PLACES_AUTOCOMPLETE_URL =
 const GOOGLE_PLACES_TEXT_SEARCH_URL =
   "https://places.googleapis.com/v1/places:searchText";
 
+export const runtime = "nodejs";
+export const maxDuration = 15;
+
 const buildPlaceSuggestion = (suggestion) => {
   const placePrediction = suggestion?.placePrediction;
   if (!placePrediction) return null;

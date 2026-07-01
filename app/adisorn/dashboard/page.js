@@ -1,8 +1,128 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const CLOSED_STATUSES = new Set(["completed", "finished", "closed", "done"]);
+
+const isClosedJob = (item) => {
+  const status = String(item?.status || item?.jobStatus || item?.bookingStatus || "")
+    .trim()
+    .toLowerCase();
+
+  return CLOSED_STATUSES.has(status);
+};
+
+const Icon = ({ name, className = "h-6 w-6" }) => {
+  const paths = {
+    customers: (
+      <>
+        <path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z" />
+        <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+      </>
+    ),
+    archive: (
+      <>
+        <path d="M4 7h16" />
+        <path d="M6 7v12h12V7" />
+        <path d="M8 4h8l2 3H6l2-3Z" />
+        <path d="M10 12h4" />
+      </>
+    ),
+    trash: (
+      <>
+        <path d="M4 7h16" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
+        <path d="M6 7l1 14h10l1-14" />
+        <path d="M9 7V4h6v3" />
+      </>
+    ),
+    today: (
+      <>
+        <path d="M7 3v4" />
+        <path d="M17 3v4" />
+        <path d="M4 8h16" />
+        <path d="M5 5h14v16H5z" />
+        <path d="M9 13h6" />
+        <path d="M9 17h3" />
+      </>
+    ),
+    upcoming: (
+      <>
+        <path d="M12 6v6l4 2" />
+        <path d="M21 12a9 9 0 1 1-3-6.7" />
+        <path d="M21 4v6h-6" />
+      </>
+    ),
+    document: (
+      <>
+        <path d="M7 3h7l5 5v13H7z" />
+        <path d="M14 3v6h5" />
+        <path d="M10 13h6" />
+        <path d="M10 17h6" />
+      </>
+    ),
+    calendar: (
+      <>
+        <path d="M7 3v4" />
+        <path d="M17 3v4" />
+        <path d="M4 8h16" />
+        <path d="M5 5h14v16H5z" />
+        <path d="M8 12h3v3H8z" />
+      </>
+    ),
+    income: (
+      <>
+        <path d="M12 2v20" />
+        <path d="M17 6.5c-1.1-1-2.7-1.5-4.6-1.5-2.7 0-4.4 1.2-4.4 3.1 0 4.1 9 1.9 9 6.7 0 2-1.7 3.2-4.7 3.2-2.1 0-4-.7-5.3-2" />
+      </>
+    ),
+    reports: (
+      <>
+        <path d="M5 19V9" />
+        <path d="M12 19V5" />
+        <path d="M19 19v-7" />
+        <path d="M3 19h18" />
+      </>
+    ),
+    bell: (
+      <>
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+        <path d="M10 21h4" />
+      </>
+    ),
+    settings: (
+      <>
+        <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+        <path d="M19.4 15a1.8 1.8 0 0 0 .36 2l.05.05a2.1 2.1 0 0 1-3 3l-.05-.05a1.8 1.8 0 0 0-2-.36 1.8 1.8 0 0 0-1.1 1.66V21a2.1 2.1 0 0 1-4.2 0v-.08A1.8 1.8 0 0 0 8.4 19.3a1.8 1.8 0 0 0-2 .36l-.05.05a2.1 2.1 0 1 1-3-3l.05-.05a1.8 1.8 0 0 0 .36-2A1.8 1.8 0 0 0 2.1 13H2a2.1 2.1 0 0 1 0-4.2h.08A1.8 1.8 0 0 0 3.7 7.7a1.8 1.8 0 0 0-.36-2l-.05-.05a2.1 2.1 0 1 1 3-3l.05.05a1.8 1.8 0 0 0 2 .36H8.4A1.8 1.8 0 0 0 9.5 1.4V1a2.1 2.1 0 0 1 4.2 0v.08a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 2-.36l.05-.05a2.1 2.1 0 1 1 3 3l-.05.05a1.8 1.8 0 0 0-.36 2v.1A1.8 1.8 0 0 0 21.1 8.8H21a2.1 2.1 0 0 1 0 4.2h-.08A1.8 1.8 0 0 0 19.4 15Z" />
+      </>
+    ),
+    alert: (
+      <>
+        <path d="M12 3 2.8 19h18.4L12 3Z" />
+        <path d="M12 9v4" />
+        <path d="M12 17h.01" />
+      </>
+    ),
+  };
+
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths[name]}
+    </svg>
+  );
+};
 
 export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -40,7 +160,7 @@ export default function Dashboard() {
       const safeTrash = Array.isArray(trash) ? trash : [];
 
       setCustomerCount(safeCustomers.length);
-      setArchiveCount(safeArchives.length);
+      setArchiveCount(safeArchives.length + safeCustomers.filter(isClosedJob).length);
       setTrashCount(safeTrash.length);
 
       const today = new Date();
@@ -226,10 +346,12 @@ export default function Dashboard() {
             <div className="logo-ring absolute inset-[-18px] rounded-full border border-dashed border-white/20" />
             <div className="logo-flash pointer-events-none absolute inset-[-28px] rounded-full bg-[conic-gradient(from_0deg,transparent,rgba(255,255,255,0.75),transparent_22%,transparent)] blur-sm" />
             <div className="logo-core relative h-full w-full overflow-hidden rounded-full border border-white/25 bg-[#552b0d] shadow-[0_0_45px_rgba(139,78,31,0.35)]">
-              <img
+              <Image
                 src="/adisorn-logo.png"
                 alt="Adisorn Wedding Studio"
-                className="h-full w-full object-contain transition duration-700 hover:scale-105"
+                fill
+                sizes="128px"
+                className="object-contain transition duration-700 hover:scale-105"
               />
             </div>
           </div>
@@ -358,87 +480,148 @@ export default function Dashboard() {
   }
 
 
+  const statCards = [
+    ["ลูกค้าปัจจุบัน", customerCount, "รายการ", "customers"],
+    ["งานที่ปิดแล้ว", archiveCount, "รายการ", "archive"],
+    ["รายการในถังขยะ", trashCount, "รายการ", "trash"],
+    ["งานวันนี้", todayJobs, "งาน", "today"],
+    ["งานใน 7 วัน", upcomingJobs, "งาน", "upcoming"],
+  ];
+
+  const actionCards = [
+    ["/adisorn/booking", "document", "ระบบสร้างใบจอง", "สร้างใบจองใหม่"],
+    ["/adisorn/customers", "customers", "ข้อมูลลูกค้า", "รายชื่อลูกค้าทั้งหมด"],
+    ["/adisorn/archives", "archive", "คลังข้อมูล", "ข้อมูลที่จัดเก็บแล้ว"],
+    ["/adisorn/calendar", "calendar", "ปฏิทินงาน", "ตารางงานทั้งหมด"],
+    ["/adisorn/trash", "trash", "ถังขยะ", "รายการที่ถูกลบ"],
+    ["/adisorn/income", "income", "รายได้", "รายได้ทั้งหมด"],
+    ["/adisorn/reports", "reports", "รายงาน", "สถิติและรายงานธุรกิจ"],
+    ["/adisorn/notifications", "bell", "แจ้งเตือน", "งานใกล้ถึงกำหนด"],
+    ["/adisorn/settings", "settings", "ตั้งค่าระบบ", "จัดการข้อมูลระบบ"],
+    ["/adisorn/mail", "mail", "ระบบส่งอีเมล", "ระบบส่งอีเมล"],
+  ];
+
+  const actionCardImages = {
+    document: "/dashboard-icons/document-card.png",
+    customers: "/dashboard-icons/customers-card.png",
+    archive: "/dashboard-icons/archive-card.png",
+    calendar: "/dashboard-icons/calendar-card.png",
+    trash: "/dashboard-icons/trash-card.png",
+    income: "/dashboard-icons/income-card.png",
+    reports: "/dashboard-icons/reports-card.png",
+    bell: "/dashboard-icons/bell-card.png",
+    settings: "/dashboard-icons/settings-card.png",
+    mail: "/dashboard-icons/mail-card.png",
+  };
+
   return (
-    <div className="min-h-screen bg-zinc-100 p-10">
-      <div className="mb-10 flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold">
-            {currentUser.brandName || "ระบบจัดการสตูดิโอ"}
-          </h1>
-          <p className="mt-2 text-zinc-500">ระบบจัดการงานและข้อมูลลูกค้า</p>
+    <main
+      className="min-h-screen text-white"
+      style={{
+        background:
+          "radial-gradient(circle at 18% 0%, rgba(22,167,255,0.16), transparent 34%), radial-gradient(circle at 82% 12%, rgba(179,92,255,0.14), transparent 32%), linear-gradient(180deg, #081018 0%, #04070c 42%, #020408 100%)",
+      }}
+    >
+      <section className="mx-auto max-w-[1840px] px-6 pb-6 pt-8 text-center md:px-8">
+        <div className="mb-6 flex items-center justify-between gap-4 text-left">
+          <div className="text-sm font-semibold text-white/55">
+            {currentUser?.name || currentUser?.username}
+          </div>
+          <button
+            onClick={logout}
+            className="rounded-full border border-white/10 bg-white px-5 py-2.5 text-sm font-semibold text-[#111317] transition hover:bg-white/90"
+          >
+            ออกจากระบบ
+          </button>
+        </div>
+        <p className="text-sm font-semibold text-white/45">
+          Dashboard
+        </p>
+        <h1 className="mt-2 text-5xl font-semibold md:text-6xl">
+          {currentUser.brandName || "Adisorn Wedding Studio"}
+        </h1>
+        <p className="mx-auto mt-4 max-w-2xl text-lg font-medium leading-8 text-white/50">
+          ระบบจัดการงาน ลูกค้า ใบจอง ปฏิทิน รายได้ และการแจ้งเตือนสำคัญของสตูดิโอ
+        </p>
+      </section>
+
+      <section className="mx-auto max-w-[1840px] px-6 pb-10 md:px-8">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+          {statCards.map(([label, value, unit, icon]) => (
+            <article
+              key={label}
+              className="rounded-[22px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)]"
+            >
+              <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white">
+                <Icon name={icon} className="h-5 w-5" />
+              </div>
+              <p className="text-center text-sm font-semibold text-white/48">{label}</p>
+              <h2 className="mt-2 text-center text-4xl font-semibold">{value}</h2>
+              <p className="mt-1 text-center text-sm font-medium text-white/42">{unit}</p>
+            </article>
+          ))}
         </div>
 
-        <button
-          onClick={logout}
-          className="rounded-xl bg-red-500 px-5 py-3 text-white"
-        >
-          ออกจากระบบ
-        </button>
-      </div>
-
-      <div className="mx-auto mb-10 grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-5">
-        {[
-          ["ลูกค้าปัจจุบัน", customerCount, "รายการ"],
-          ["งานที่ปิดแล้ว", archiveCount, "รายการ"],
-          ["รายการในถังขยะ", trashCount, "รายการ"],
-          ["งานวันนี้", todayJobs, "งาน"],
-          ["งานใน 7 วัน", upcomingJobs, "งาน"],
-        ].map(([label, value, unit]) => (
-          <div key={label} className="rounded-3xl bg-white p-6 text-center shadow-xl">
-            <p className="text-zinc-500">{label}</p>
-            <h2 className="mt-2 text-4xl font-bold">{value}</h2>
-            <p className="mt-2 text-zinc-500">{unit}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mx-auto mb-10 max-w-7xl rounded-3xl bg-white p-6 shadow-xl">
-        <h2 className="mb-4 text-2xl font-bold">⚠️ งานใกล้ถึงวัน</h2>
-        {alerts.length === 0 ? (
-          <p className="text-zinc-500">ไม่มีงานใน 7 วันข้างหน้า</p>
-        ) : (
-          <div className="space-y-3">
-            {alerts.map((job, index) => (
-              <div
-                key={`${job.customerName}-${index}`}
-                className="flex items-center justify-between rounded-xl border p-3"
-              >
-                <div>
-                  <p className="font-semibold">{job.customerName}</p>
-                  <p className="text-sm text-zinc-500">{job.service}</p>
-                </div>
-                <div className="font-bold text-orange-500">
-                  อีก {job.diffDays} วัน
-                </div>
+        <section className="mt-4 rounded-[28px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_20px_70px_rgba(0,0,0,0.28)] md:p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
+              <Icon name="alert" className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-2xl font-semibold">งานใกล้ถึงวัน</h2>
+                <span className="text-sm font-semibold text-white/48">{upcomingJobs} งานใน 7 วัน</span>
               </div>
-            ))}
+              {alerts.length === 0 ? (
+                <p className="mt-4 text-white/48">ไม่มีงานใน 7 วันข้างหน้า</p>
+              ) : (
+                <div className="mt-5 grid gap-3">
+                  {alerts.map((job, index) => (
+                    <div
+                      key={`${job.customerName}-${index}`}
+                      className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-3"
+                    >
+                      <div>
+                        <p className="font-semibold">{job.customerName}</p>
+                        <p className="text-sm text-white/45">{job.service}</p>
+                      </div>
+                      <div className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-[#111317]">
+                        อีก {job.diffDays} วัน
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </section>
 
-      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 md:grid-cols-3">
-        {[
-          ["/adisorn/booking", "📄", "ระบบสร้างใบจอง", "สร้างใบจองใหม่"],
-          ["/adisorn/customers", "👥", "ข้อมูลลูกค้า", "รายชื่อลูกค้าทั้งหมด"],
-          ["/adisorn/archives", "📦", "คลังข้อมูล", "ข้อมูลที่จัดเก็บแล้ว"],
-          ["/adisorn/calendar", "📅", "ปฏิทินงาน", "ตารางงานทั้งหมด"],
-          ["/adisorn/trash", "🗑️", "ถังขยะ", "รายการที่ถูกลบ"],
-          ["/adisorn/income", "💰", "รายได้", "รายได้ทั้งหมด"],
-          ["/adisorn/reports", "📊", "รายงาน", "สถิติและรายงานธุรกิจ"],
-          ["/adisorn/notifications", "🔔", "แจ้งเตือน", "งานใกล้ถึงกำหนด"],
-          ["/adisorn/settings", "⚙️", "ตั้งค่าระบบ", "จัดการข้อมูลระบบ"],
-        ].map(([href, icon, title, description]) => (
-          <div
-            key={href}
-            onClick={() => (window.location.href = href)}
-            className="cursor-pointer rounded-3xl bg-white p-10 text-center shadow-xl transition hover:scale-105"
-          >
-            <div className="mb-4 text-7xl">{icon}</div>
-            <h2 className="text-2xl font-bold">{title}</h2>
-            <p className="mt-3 text-zinc-500">{description}</p>
-          </div>
-        ))}
-      </div>
-    </div>
+        <div className="mx-auto mt-6 grid max-w-[1640px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {actionCards.map(([href, icon, title, description]) => {
+            const cardImage = actionCardImages[icon];
+
+            return (
+              <button
+                key={href}
+                type="button"
+                onClick={() => (window.location.href = href)}
+                className="group relative block aspect-[431/475] w-full appearance-none overflow-hidden rounded-[20px] p-0 text-left shadow-[0_28px_80px_rgba(0,0,0,0.55)] transition duration-300 hover:-translate-y-1"
+              >
+                <Image
+                  src={cardImage}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                  className="rounded-[20px] object-fill transition duration-300 group-hover:scale-[1.015]"
+                />
+                <span className="sr-only">
+                  {title} {description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </main>
   );
 }

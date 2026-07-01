@@ -1,0 +1,19 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "functions": {
+    "app/api/google/upload/route.js": {
+      "maxDuration": 60
+    },
+    "app/api/google/callback/route.js": {
+      "maxDuration": 30
+    },
+    "app/api/send-booking-email/route.js": {
+      "maxDuration": 30
+    },
+    "app/api/google-places/autocomplete/route.js": {
+      "maxDuration": 15
+    }
+  }
+}

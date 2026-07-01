@@ -879,8 +879,8 @@ export default function ArchivesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-8">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
+      <div className="mx-auto max-w-[1840px]">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold">คลังข้อมูล</h1>

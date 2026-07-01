@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 const BRAND_ID = "adisorn";
 const TRASH_KEY = "adisorn_trash";
+const MAIL_TRASH_KEY = "adisorn_mail_trash";
 
 const normalizeBookingRow = (row) => {
   const bookingData = row?.booking_data || {};
@@ -35,6 +36,7 @@ export default function TrashPage() {
   const router = useRouter();
 
   const [trash, setTrash] = useState([]);
+  const [mailTrash, setMailTrash] = useState([]);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -96,6 +98,36 @@ export default function TrashPage() {
       window.removeEventListener("storage", handleTrashStorage);
       document.removeEventListener("visibilitychange", handlePageVisible);
       supabase.removeChannel(bookingsChannel);
+    };
+  }, []);
+
+  useEffect(() => {
+    const loadMailTrashData = () => {
+      try {
+        const savedMailTrash = JSON.parse(
+          localStorage.getItem(MAIL_TRASH_KEY) || "[]"
+        );
+        setMailTrash(Array.isArray(savedMailTrash) ? savedMailTrash : []);
+      } catch {
+        setMailTrash([]);
+      }
+    };
+
+    const handleMailTrashStorage = (event) => {
+      if (event.key === MAIL_TRASH_KEY) {
+        loadMailTrashData();
+      }
+    };
+
+    loadMailTrashData();
+    window.addEventListener("focus", loadMailTrashData);
+    window.addEventListener("pageshow", loadMailTrashData);
+    window.addEventListener("storage", handleMailTrashStorage);
+
+    return () => {
+      window.removeEventListener("focus", loadMailTrashData);
+      window.removeEventListener("pageshow", loadMailTrashData);
+      window.removeEventListener("storage", handleMailTrashStorage);
     };
   }, []);
 
@@ -253,6 +285,34 @@ export default function TrashPage() {
     alert("ล้างถังขยะเรียบร้อย");
   };
 
+  const restoreMailTrash = (originalIndex) => {
+    const updatedMailTrash = mailTrash.filter(
+      (_, index) => index !== originalIndex
+    );
+    localStorage.setItem(MAIL_TRASH_KEY, JSON.stringify(updatedMailTrash));
+    setMailTrash(updatedMailTrash);
+    alert("กู้คืนอีเมลกลับหน้าเมลเรียบร้อย");
+  };
+
+  const deleteMailTrashForever = (originalIndex) => {
+    if (!window.confirm("ยืนยันการลบอีเมลนี้ออกจากขยะเมลถาวร ?")) return;
+
+    const updatedMailTrash = mailTrash.filter(
+      (_, index) => index !== originalIndex
+    );
+    localStorage.setItem(MAIL_TRASH_KEY, JSON.stringify(updatedMailTrash));
+    setMailTrash(updatedMailTrash);
+    alert("ลบอีเมลออกจากขยะเมลถาวรเรียบร้อย");
+  };
+
+  const clearMailTrash = () => {
+    if (!window.confirm("ยืนยันการล้างขยะเมลทั้งหมด ?")) return;
+
+    localStorage.setItem(MAIL_TRASH_KEY, "[]");
+    setMailTrash([]);
+    alert("ล้างขยะเมลเรียบร้อย");
+  };
+
   const filteredTrash = trash
     .map((item, originalIndex) => ({ item, originalIndex }))
     .filter(({ item }) => {
@@ -267,6 +327,25 @@ export default function TrashPage() {
           .toLowerCase()
           .includes(keyword) ||
         String(item.phone || "")
+          .toLowerCase()
+          .includes(keyword)
+      );
+    });
+
+  const filteredMailTrash = mailTrash
+    .map((item, originalIndex) => ({ item, originalIndex }))
+    .filter(({ item }) => {
+      const keyword = search.trim().toLowerCase();
+
+      return (
+        !keyword ||
+        String(item.bookingNumber || "")
+          .toLowerCase()
+          .includes(keyword) ||
+        String(item.customerName || "")
+          .toLowerCase()
+          .includes(keyword) ||
+        String(item.email || "")
           .toLowerCase()
           .includes(keyword)
       );
@@ -296,6 +375,15 @@ export default function TrashPage() {
 
             <button
               type="button"
+              onClick={clearMailTrash}
+              disabled={mailTrash.length === 0}
+              className="rounded-xl border border-red-200 bg-white px-5 py-3 font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ล้างขยะเมล
+            </button>
+
+            <button
+              type="button"
               onClick={() => router.push("/adisorn/dashboard")}
               className="rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
             >
@@ -312,10 +400,21 @@ export default function TrashPage() {
           className="mb-6 w-full rounded-xl border border-zinc-300 bg-white p-4"
         />
 
-        <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
-          <p className="text-lg font-semibold">
-            รายการในถังขยะ {trash.length} รายการ
-          </p>
+        <div className="mb-6 grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <p className="text-lg font-semibold">
+              ถังขยะใบจอง {trash.length} รายการ
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <p className="text-lg font-semibold">
+              ขยะเมล {mailTrash.length} รายการ
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <p className="text-lg font-semibold">ถังขยะใบจอง</p>
         </div>
 
         <div className="space-y-4">
@@ -381,6 +480,59 @@ export default function TrashPage() {
           ) : (
             <div className="rounded-2xl bg-white p-10 text-center text-zinc-500 shadow-sm">
               ไม่พบรายการในถังขยะ
+            </div>
+          )}
+        </div>
+
+        <div className="mt-10 mb-4">
+          <p className="text-lg font-semibold">ขยะเมล</p>
+        </div>
+
+        <div className="space-y-4">
+          {filteredMailTrash.length > 0 ? (
+            filteredMailTrash.map(({ item, originalIndex }) => (
+              <div
+                key={`${item.bookingNumber || item.email || "mail-trash"}-${originalIndex}`}
+                className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+              >
+                <div className="grid gap-2 text-zinc-700 md:grid-cols-2">
+                  <p>
+                    <strong>เลขที่จอง:</strong> {item.bookingNumber || "-"}
+                  </p>
+                  <p>
+                    <strong>ชื่อลูกค้า:</strong> {item.customerName || "-"}
+                  </p>
+                  <p>
+                    <strong>อีเมล:</strong> {item.email || "-"}
+                  </p>
+                  <p>
+                    <strong>วันที่ลบ:</strong>{" "}
+                    {item.deletedDate || item.deletedAt || "-"}
+                  </p>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => restoreMailTrash(originalIndex)}
+                    className="rounded-xl bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                  >
+                    กู้คืนเมล
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => deleteMailTrashForever(originalIndex)}
+                    className="rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                  >
+                    ลบถาวร
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-2xl bg-white p-10 text-center text-zinc-500 shadow-sm">
+              ไม่พบรายการในขยะเมล
             </div>
           )}
         </div>

@@ -228,9 +228,11 @@ const [customerCount, setCustomerCount] = useState(0);
 const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
+const [isSendOptionsOpen, setIsSendOptionsOpen] = useState(false);
 const [emailPreview, setEmailPreview] = useState(null);
 const [emailSendMessage, setEmailSendMessage] = useState("");
 const [isSendingEmail, setIsSendingEmail] = useState(false);
+const [isPreparingAttachment, setIsPreparingAttachment] = useState(false);
 const [isViewMode, setIsViewMode] = useState(false);
 const [isCustomerView, setIsCustomerView] = useState(false);
 const [loadedBookingNumber, setLoadedBookingNumber] = useState("");
@@ -2602,16 +2604,358 @@ const formattedEventDate = formatThaiDateInput(eventDate);
   };
 
 
-const downloadPDF = () => {
+const downloadPDF = async () => {
   if (isExporting) return;
   if (!validateBooking()) return;
 
   setIsExporting(true);
 
-  requestAnimationFrame(() => {
-    window.print();
-    window.setTimeout(() => setIsExporting(false), 500);
+  try {
+    const pdfAttachment = await createBookingPdfAttachment();
+    downloadBlob(pdfAttachment.blob, pdfAttachment.filename);
+  } catch (error) {
+    console.error("PDF export error:", error);
+    alert(error.message || "ไม่สามารถสร้างไฟล์ PDF ได้ กรุณาลองใหม่อีกครั้ง");
+  } finally {
+    setIsExporting(false);
+  }
+};
+
+const stringToBytes = (value) =>
+  new TextEncoder().encode(String(value || ""));
+
+const concatBytes = (chunks) => {
+  const totalLength = chunks.reduce((total, chunk) => total + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+
+  chunks.forEach((chunk) => {
+    result.set(chunk, offset);
+    offset += chunk.length;
   });
+
+  return result;
+};
+
+const blobToBase64 = (blob) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () =>
+      resolve(String(reader.result || "").split(",")[1] || "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+
+const createPdfBlobFromJpegs = (images) => {
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const objects = [];
+  const pageObjectNumbers = [];
+  const imageObjectNumbers = [];
+  const contentObjectNumbers = [];
+
+  objects[1] = stringToBytes("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+
+  images.forEach((image, index) => {
+    const pageObjectNumber = 3 + index * 3;
+    const imageObjectNumber = pageObjectNumber + 1;
+    const contentObjectNumber = pageObjectNumber + 2;
+    const content = `q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/Im${index + 1} Do\nQ`;
+
+    pageObjectNumbers.push(pageObjectNumber);
+    imageObjectNumbers.push(imageObjectNumber);
+    contentObjectNumbers.push(contentObjectNumber);
+
+    objects[pageObjectNumber] = stringToBytes(
+      `${pageObjectNumber} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im${
+        index + 1
+      } ${imageObjectNumber} 0 R >> >> /Contents ${contentObjectNumber} 0 R >>\nendobj\n`
+    );
+
+    objects[imageObjectNumber] = concatBytes([
+      stringToBytes(
+        `${imageObjectNumber} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${image.bytes.length} >>\nstream\n`
+      ),
+      image.bytes,
+      stringToBytes("\nendstream\nendobj\n"),
+    ]);
+
+    objects[contentObjectNumber] = stringToBytes(
+      `${contentObjectNumber} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`
+    );
+  });
+
+  objects[2] = stringToBytes(
+    `2 0 obj\n<< /Type /Pages /Kids [${pageObjectNumbers
+      .map((objectNumber) => `${objectNumber} 0 R`)
+      .join(" ")}] /Count ${pageObjectNumbers.length} >>\nendobj\n`
+  );
+
+  const maxObjectNumber = Math.max(
+    2,
+    ...pageObjectNumbers,
+    ...imageObjectNumbers,
+    ...contentObjectNumbers
+  );
+  const chunks = [stringToBytes("%PDF-1.4\n%\xFF\xFF\xFF\xFF\n")];
+  const offsets = [0];
+  let byteOffset = chunks[0].length;
+
+  for (let objectNumber = 1; objectNumber <= maxObjectNumber; objectNumber += 1) {
+    offsets[objectNumber] = byteOffset;
+    chunks.push(objects[objectNumber]);
+    byteOffset += objects[objectNumber].length;
+  }
+
+  const xrefOffset = byteOffset;
+  const xref = [
+    "xref",
+    `0 ${maxObjectNumber + 1}`,
+    "0000000000 65535 f ",
+    ...offsets
+      .slice(1)
+      .map((offset) => `${String(offset).padStart(10, "0")} 00000 n `),
+    "trailer",
+    `<< /Size ${maxObjectNumber + 1} /Root 1 0 R >>`,
+    "startxref",
+    String(xrefOffset),
+    "%%EOF",
+    "",
+  ].join("\n");
+
+  chunks.push(stringToBytes(xref));
+
+  return new Blob(chunks, { type: "application/pdf" });
+};
+
+const waitForCaptureImages = async (root) => {
+  const images = Array.from(root.querySelectorAll("img"));
+
+  await Promise.all(
+    images.map((image) => {
+      if (image.complete && image.naturalWidth > 0) return Promise.resolve();
+
+      return new Promise((resolve) => {
+        const finish = () => resolve();
+
+        image.addEventListener("load", finish, { once: true });
+        image.addEventListener("error", finish, { once: true });
+      });
+    })
+  );
+
+  await Promise.all(
+    images.map((image) =>
+      typeof image.decode === "function"
+        ? image.decode().catch(() => undefined)
+        : Promise.resolve()
+    )
+  );
+};
+
+const isCanvasMostlyBlank = (canvas) => {
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+
+  if (!context) return false;
+
+  const sampleSize = 50;
+  const stepX = Math.max(1, Math.floor(canvas.width / sampleSize));
+  const stepY = Math.max(1, Math.floor(canvas.height / sampleSize));
+  let contentPixels = 0;
+  let totalPixels = 0;
+
+  for (let y = 0; y < canvas.height; y += stepY) {
+    for (let x = 0; x < canvas.width; x += stepX) {
+      const [red, green, blue, alpha] = context.getImageData(x, y, 1, 1).data;
+      const isContent =
+        alpha > 0 && (red < 245 || green < 245 || blue < 245);
+
+      if (isContent) contentPixels += 1;
+      totalPixels += 1;
+    }
+  }
+
+  return totalPixels > 0 && contentPixels / totalPixels < 0.02;
+};
+
+const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
+  const html2canvas = (await import("html2canvas-pro")).default;
+  const pages = Array.from(document.querySelectorAll(".print-area"));
+
+  if (pages.length === 0) {
+    throw new Error("ไม่พบหน้าเอกสารสำหรับสร้างไฟล์");
+  }
+
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  await waitForCaptureImages(document);
+
+  const images = [];
+
+  for (let index = 0; index < pages.length; index += 1) {
+    const page = pages[index];
+    const pageRect = page.getBoundingClientRect();
+    const captureWidth = Math.ceil(pageRect.width || page.offsetWidth || 794);
+    const captureHeight = Math.ceil(pageRect.height || page.offsetHeight || 1123);
+
+    const canvas = await html2canvas(page, {
+      scale: 1.5,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      width: captureWidth,
+      height: captureHeight,
+      windowWidth: Math.max(document.documentElement.scrollWidth, captureWidth),
+      windowHeight: Math.max(document.documentElement.scrollHeight, captureHeight),
+      scrollX: -window.scrollX,
+      scrollY: -window.scrollY,
+      ignoreElements: (element) => element.classList?.contains("no-print"),
+      onclone: (clonedDocument) => {
+        const clonedPages = clonedDocument.querySelectorAll(".print-area");
+        const clonedPage = clonedPages[index];
+
+        if (clonedPage instanceof HTMLElement) {
+          clonedPage.style.boxShadow = "none";
+          clonedPage.style.margin = "0";
+        }
+      },
+    });
+
+    if (isCanvasMostlyBlank(canvas)) {
+      throw new Error(`สร้างไฟล์หน้า ${index + 1} แล้วได้หน้าว่าง กรุณาลองใหม่อีกครั้ง`);
+    }
+
+    const imageBlob = await new Promise((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", jpegQuality)
+    );
+
+    if (!imageBlob) {
+      throw new Error(`ไม่สามารถสร้างไฟล์หน้า ${index + 1} ได้`);
+    }
+
+    images.push({
+      blob: imageBlob,
+      width: canvas.width,
+      height: canvas.height,
+      bytes: new Uint8Array(await imageBlob.arrayBuffer()),
+    });
+  }
+
+  return images;
+};
+
+const createBookingPdfAttachment = async () => {
+  const images = await captureBookingPagesAsJpegs(0.92);
+  const filename = `${bookingNumber || "booking"}-booking.pdf`;
+  const blob = createPdfBlobFromJpegs(images);
+  const base64 = await blobToBase64(blob);
+
+  return { filename, blob, base64 };
+};
+
+const downloadBlob = (blob, filename) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.download = filename;
+  link.href = url;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+const uploadBookingPdfToDrive = async (pdfAttachment) => {
+  const formData = new FormData();
+  const pdfFile =
+    typeof File === "function"
+      ? new File([pdfAttachment.blob], pdfAttachment.filename, {
+          type: "application/pdf",
+        })
+      : pdfAttachment.blob;
+
+  formData.append("file", pdfFile, pdfAttachment.filename);
+  formData.append("brandId", BRAND_ID);
+  formData.append("expectedBrandId", BRAND_ID);
+
+  const response = await fetch("/api/google/upload", {
+    method: "POST",
+    body: formData,
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok || !result?.success || !result?.file?.webViewLink) {
+    throw new Error(result?.error || "อัปโหลด PDF เข้า Google Drive ไม่สำเร็จ");
+  }
+
+  return result.file;
+};
+
+const markBookingEmailSent = async ({ driveFile, messageId }) => {
+  const sentAt = new Date().toISOString();
+  const emailStatus = {
+    emailSent: true,
+    emailSentAt: sentAt,
+    emailMessageId: messageId || "",
+    emailRecipient: email.trim(),
+    pdfDriveFileId: driveFile?.id || "",
+    pdfDriveLink: driveFile?.webViewLink || "",
+  };
+  const applyStatus = (booking) =>
+    booking?.bookingNumber === bookingNumber ? { ...booking, ...emailStatus } : booking;
+  const customers = readArrayFromStorage(CUSTOMERS_KEY);
+  const updatedCustomers = customers.map(applyStatus);
+  const updatedCurrentBooking = applyStatus(
+    JSON.parse(localStorage.getItem(CURRENT_BOOKING_KEY) || "null")
+  );
+  const updatedSelectedBooking = applyStatus(
+    JSON.parse(localStorage.getItem(SELECTED_BOOKING_KEY) || "null")
+  );
+
+  localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(updatedCustomers));
+
+  if (updatedCurrentBooking) {
+    localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(updatedCurrentBooking));
+  }
+
+  if (updatedSelectedBooking) {
+    localStorage.setItem(SELECTED_BOOKING_KEY, JSON.stringify(updatedSelectedBooking));
+  }
+
+  await supabase
+    .from("bookings")
+    .update({
+      email: email.trim(),
+      booking_data: updatedCurrentBooking || {
+        bookingNumber,
+        customerName,
+        email: email.trim(),
+        ...emailStatus,
+      },
+    })
+    .eq("booking_number", bookingNumber);
+};
+
+const saveEmailHistoryRecord = ({ driveFile, messageId, subject, body }) => {
+  const historyKey = `${BRAND_ID}_email_history`;
+  const currentHistory = readArrayFromStorage(historyKey);
+  const record = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    brandId: BRAND_ID,
+    bookingNumber,
+    customerName,
+    recipient: email.trim(),
+    subject,
+    body,
+    sentAt: new Date().toISOString(),
+    status: "sent",
+    messageId: messageId || "",
+    pdfDriveFileId: driveFile?.id || "",
+    pdfDriveLink: driveFile?.webViewLink || "",
+  };
+
+  localStorage.setItem(historyKey, JSON.stringify([record, ...currentHistory]));
 };
 
 
@@ -2622,88 +2966,16 @@ const downloadJPG = async () => {
   setIsExporting(true);
 
   try {
-    const html2canvas = (await import("html2canvas-pro")).default;
     const JSZip = (await import("jszip")).default;
-    const pages = Array.from(document.querySelectorAll(".print-area"));
-
-    if (pages.length === 0) {
-      alert("ไม่พบหน้าเอกสารสำหรับดาวน์โหลด");
-      return;
-    }
-
     const zip = new JSZip();
+    const images = await captureBookingPagesAsJpegs(0.95);
 
-    const sanitizeColors = (root) => {
-      const elements = [root, ...root.querySelectorAll("*")];
-
-      elements.forEach((element) => {
-        if (!(element instanceof HTMLElement)) return;
-
-        const computed = window.getComputedStyle(element);
-
-        element.style.color = computed.color || "#18181b";
-        element.style.backgroundColor =
-          computed.backgroundColor || "transparent";
-        element.style.borderTopColor =
-          computed.borderTopColor || "#e4e4e7";
-        element.style.borderRightColor =
-          computed.borderRightColor || "#e4e4e7";
-        element.style.borderBottomColor =
-          computed.borderBottomColor || "#e4e4e7";
-        element.style.borderLeftColor =
-          computed.borderLeftColor || "#e4e4e7";
-        element.style.boxShadow = "none";
-        element.style.textShadow = "none";
-      });
-    };
-
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    for (let index = 0; index < pages.length; index += 1) {
-      const originalPage = pages[index];
-      const clonedPage = originalPage.cloneNode(true);
-
-      clonedPage.style.position = "fixed";
-      clonedPage.style.left = "-10000px";
-      clonedPage.style.top = "0";
-      clonedPage.style.margin = "0";
-      clonedPage.style.boxShadow = "none";
-      clonedPage.style.backgroundColor = "#ffffff";
-      clonedPage.style.width = `${originalPage.offsetWidth}px`;
-      clonedPage.style.height = `${originalPage.offsetHeight}px`;
-
-      document.body.appendChild(clonedPage);
-
-      let canvas;
-
-      try {
-        sanitizeColors(clonedPage);
-
-        canvas = await html2canvas(clonedPage, {
-          scale: 1.35,
-          useCORS: true,
-          backgroundColor: "#ffffff",
-          logging: false,
-          removeContainer: true,
-        });
-      } finally {
-        clonedPage.remove();
-      }
-
-      const imageBlob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", 0.95)
-      );
-
-      if (!imageBlob) {
-        throw new Error(`ไม่สามารถสร้างภาพหน้า ${index + 1} ได้`);
-      }
-
+    images.forEach((image, index) => {
       zip.file(
         `${bookingNumber}-page-${index + 1}.jpg`,
-        imageBlob
+        image.blob
       );
-
-      await new Promise((resolve) => window.setTimeout(resolve, 30));
-    }
+    });
 
     const zipBlob = await zip.generateAsync({ type: "blob" });
     const zipUrl = URL.createObjectURL(zipBlob);
@@ -2723,7 +2995,11 @@ const downloadJPG = async () => {
   }
 };
 
-const sendBookingEmail = () => {
+const openCustomerSendOptions = () => {
+  setIsSendOptionsOpen(true);
+};
+
+const sendBookingEmail = async () => {
   const customerEmail = email.trim();
   const senderEmail = "adisornweddingstudio@gmail.com";
 
@@ -2737,13 +3013,27 @@ const sendBookingEmail = () => {
     return;
   }
 
+  setIsSendOptionsOpen(false);
+  setIsPreparingAttachment(true);
+
+  let pdfAttachment;
+
+  try {
+    pdfAttachment = await createBookingPdfAttachment();
+  } catch (error) {
+    console.error("Cannot create booking PDF attachment", error);
+    window.alert(error.message || "ไม่สามารถสร้างไฟล์ PDF แนบอีเมลได้");
+    setIsPreparingAttachment(false);
+    return;
+  }
+
   const subject = `ใบจอง ${bookingNumber} - ${customerName || "ลูกค้า"}`;
   const body = [
     `เรียน คุณ${customerName || "-"}`,
     "",
     "ทาง Adisorn Wedding Studio ขอขอบพระคุณที่ไว้วางใจใช้บริการของเรา",
     "",
-    "ทางทีมงานได้แนบเอกสารยืนยันการจองงานและรายละเอียดการชำระเงินมาในอีเมลฉบับนี้ เพื่อใช้เป็นหลักฐานในการยืนยันการจอง",
+    "ทางทีมงานได้จัดเตรียมเอกสารยืนยันการจองงานและรายละเอียดการชำระเงินไว้ให้แล้ว",
     "",
     "รายละเอียดงานโดยสรุป",
     `• เลขที่ใบจอง : ${bookingNumber}`,
@@ -2766,8 +3056,72 @@ const sendBookingEmail = () => {
     to: customerEmail,
     subject,
     body,
+    pdfAttachment,
   });
   setEmailSendMessage("");
+  setIsPreparingAttachment(false);
+};
+
+const sendBookingSms = async () => {
+  const customerPhone = phone.trim().replace(/[^\d+]/g, "");
+
+  if (!customerPhone) {
+    window.alert("กรุณากรอกเบอร์โทรศัพท์ลูกค้าก่อนส่ง SMS");
+    return;
+  }
+
+  const smsBody = [
+    `สวัสดีคุณ${customerName || "-"}`,
+    `แจ้งรายละเอียดใบจอง ${bookingNumber}`,
+    `วันที่จัดงาน: ${formattedEventDate || "-"}`,
+    `ประเภทงาน: ${service || "-"}`,
+    "หากต้องการแก้ไขข้อมูล สามารถติดต่อทีมงานได้เลยครับ",
+    "Adisorn Wedding Studio",
+  ].join("\n");
+  const bodySeparator =
+    /iPad|iPhone|iPod|Macintosh/i.test(window.navigator.userAgent) ? "&" : "?";
+
+  setIsSendOptionsOpen(false);
+
+  try {
+    setIsPreparingAttachment(true);
+    const pdfAttachment = await createBookingPdfAttachment();
+    const pdfFile =
+      typeof File === "function"
+        ? new File([pdfAttachment.blob], pdfAttachment.filename, {
+            type: "application/pdf",
+          })
+        : null;
+
+    if (
+      pdfFile &&
+      navigator.share &&
+      (!navigator.canShare || navigator.canShare({ files: [pdfFile] }))
+    ) {
+      await navigator.share({
+        files: [pdfFile],
+        text: smsBody,
+        title: `ใบจอง ${bookingNumber}`,
+      });
+      return;
+    }
+
+    downloadBlob(pdfAttachment.blob, pdfAttachment.filename);
+    window.alert(
+      "ระบบดาวน์โหลด PDF ให้แล้ว กรุณาแนบไฟล์ PDF นี้ใน SMS ด้วยตนเอง"
+    );
+  } catch (error) {
+    if (error?.name === "AbortError") return;
+
+    console.error("Cannot create booking PDF for SMS", error);
+    window.alert(error.message || "ไม่สามารถสร้างไฟล์ PDF สำหรับ SMS ได้");
+  } finally {
+    setIsPreparingAttachment(false);
+  }
+
+  window.location.href = `sms:${customerPhone}${bodySeparator}body=${encodeURIComponent(
+    smsBody
+  )}`;
 };
 
 const confirmSendBookingEmail = async () => {
@@ -2777,6 +3131,13 @@ const confirmSendBookingEmail = async () => {
   setEmailSendMessage("");
 
   try {
+    const driveFile = await uploadBookingPdfToDrive(emailPreview.pdfAttachment);
+    const finalBody = [
+      emailPreview.body,
+      "",
+      "ลิงก์เอกสาร PDF สำหรับลูกค้า",
+      driveFile.webViewLink,
+    ].join("\n");
     const response = await fetch("/api/send-booking-email", {
       method: "POST",
       headers: {
@@ -2784,9 +3145,16 @@ const confirmSendBookingEmail = async () => {
       },
       body: JSON.stringify({
         brandId: BRAND_ID,
+        expectedBrandId: BRAND_ID,
         to: emailPreview.to,
         subject: emailPreview.subject,
-        body: emailPreview.body,
+        body: finalBody,
+        attachments: [
+          {
+            filename: emailPreview.pdfAttachment.filename,
+            content: emailPreview.pdfAttachment.base64,
+          },
+        ],
       }),
     });
     const result = await response.json();
@@ -2794,6 +3162,17 @@ const confirmSendBookingEmail = async () => {
     if (!response.ok) {
       throw new Error(result?.error || "ส่งอีเมลไม่สำเร็จ");
     }
+
+    await markBookingEmailSent({
+      driveFile,
+      messageId: result?.id || "",
+    });
+    saveEmailHistoryRecord({
+      driveFile,
+      messageId: result?.id || "",
+      subject: emailPreview.subject,
+      body: finalBody,
+    });
 
     window.alert("ส่งอีเมลให้ลูกค้าเรียบร้อยแล้ว");
     setEmailPreview(null);
@@ -3589,11 +3968,11 @@ const confirmSendBookingEmail = async () => {
 
             <button
               type="button"
-              onClick={sendBookingEmail}
+              onClick={openCustomerSendOptions}
               className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700"
             >
               <span className="text-lg">@</span>
-              <span>ส่งเมลลูกค้า</span>
+              <span>ส่งข้อมูลลูกค้า</span>
             </button>
 
             <button
@@ -3742,11 +4121,11 @@ const confirmSendBookingEmail = async () => {
               <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={sendBookingEmail}
+                  onClick={openCustomerSendOptions}
                   className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
                 >
                   <span>@</span>
-                  <span>ส่งเมลลูกค้า</span>
+                  <span>ส่งข้อมูลลูกค้า</span>
                 </button>
 
                 <button
@@ -3812,6 +4191,15 @@ const confirmSendBookingEmail = async () => {
                 className="rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white transition hover:bg-orange-600"
               >
                 ✏️ แก้ไขใบจอง
+              </button>
+
+              <button
+                type="button"
+                onClick={openCustomerSendOptions}
+                disabled={isPreparingAttachment}
+                className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPreparingAttachment ? "กำลังเตรียมไฟล์..." : "ส่งให้ลูกค้า"}
               </button>
 
               <div className="relative">
@@ -4702,6 +5090,54 @@ const confirmSendBookingEmail = async () => {
           </div>
         </div>
       )}
+      {isSendOptionsOpen && (
+        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-zinc-900">
+                ส่งข้อมูลลูกค้า
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                เลือกช่องทางที่ต้องการส่งรายละเอียดใบจอง
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              <button
+                type="button"
+                onClick={sendBookingEmail}
+                disabled={isPreparingAttachment}
+                className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700"
+              >
+                <span className="text-lg">@</span>
+                <span>
+                  {isPreparingAttachment ? "กำลังสร้าง PDF..." : "ส่งทางอีเมล"}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={sendBookingSms}
+                disabled={isPreparingAttachment}
+                className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition hover:bg-emerald-700"
+              >
+                <span className="text-lg">SMS</span>
+                <span>
+                  {isPreparingAttachment ? "กำลังสร้าง PDF..." : "ส่งทาง SMS"}
+                </span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsSendOptionsOpen(false)}
+              className="mt-4 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+            >
+              ยกเลิก
+            </button>
+          </div>
+        </div>
+      )}
       {emailPreview && (
         <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
@@ -4728,6 +5164,16 @@ const confirmSendBookingEmail = async () => {
                   <span className="font-semibold text-zinc-500">หัวข้อ: </span>
                   <span className="text-zinc-900">{emailPreview.subject}</span>
                 </div>
+                {emailPreview.pdfAttachment && (
+                  <div>
+                    <span className="font-semibold text-zinc-500">
+                      PDF:{" "}
+                    </span>
+                    <span className="text-zinc-900">
+                      {emailPreview.pdfAttachment.filename} (แนบอีเมลและบันทึกเข้า Google Drive ตอนกดส่ง)
+                    </span>
+                  </div>
+                )}
               </div>
 
               <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-xl border border-zinc-200 bg-white p-4 font-sans text-sm leading-7 text-zinc-800">
@@ -4756,7 +5202,7 @@ const confirmSendBookingEmail = async () => {
                 disabled={isSendingEmail}
                 className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSendingEmail ? "กำลังส่ง..." : "ส่ง"}
+                {isSendingEmail ? "กำลังอัปโหลดและส่ง..." : "ส่ง"}
               </button>
             </div>
           </div>

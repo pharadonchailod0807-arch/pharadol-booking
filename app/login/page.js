@@ -7,6 +7,8 @@ const ADMIN_USERS_KEY = "central_admin_users";
 const ADMIN_USER_OVERRIDES_KEY = "central_admin_user_overrides";
 const ADMIN_USERS_TABLE = "admin_users";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
+const DEFAULT_LOGIN_USERNAME_OPTIONS = [];
+const MAX_LOGIN_USERNAME_HISTORY = 8;
 const ADMIN_USERNAME_ALIASES = ["admin", "super admin"];
 
 const DEFAULT_ACCOUNTS = [
@@ -180,6 +182,33 @@ const saveUsersLocally = (users) => {
   localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(users));
 };
 
+const normalizeUsernameHistory = (value) => {
+  const items = Array.isArray(value) ? value : [];
+  const normalizedItems = [];
+  const seen = new Set();
+
+  items.forEach((item) => {
+    const username = String(item || "").trim();
+    const key = username.toLowerCase();
+
+    if (!username || seen.has(key)) return;
+
+    seen.add(key);
+    normalizedItems.push(username);
+  });
+
+  DEFAULT_LOGIN_USERNAME_OPTIONS.forEach((username) => {
+    const key = username.toLowerCase();
+
+    if (seen.has(key)) return;
+
+    seen.add(key);
+    normalizedItems.push(username);
+  });
+
+  return normalizedItems.slice(0, MAX_LOGIN_USERNAME_HISTORY);
+};
+
 const syncUsersToSupabase = async (users) => {
   const { error } = await supabase
     .from(ADMIN_USERS_TABLE)
@@ -228,6 +257,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameHistory, setUsernameHistory] = useState([]);
+  const [isUsernameHistoryOpen, setIsUsernameHistoryOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -235,19 +265,7 @@ export default function LoginPage() {
         const savedHistory = JSON.parse(
           localStorage.getItem(LOGIN_USERNAME_HISTORY_KEY) || "[]"
         );
-        const safeHistory = Array.isArray(savedHistory)
-          ? savedHistory.filter((item) =>
-              ["pharadol", "adisorn"].includes(String(item).toLowerCase())
-            )
-          : [];
-
-        const defaultUsernames = ["Admin", "Super Admin", "pharadol", "adisorn"];
-        const nextHistory = Array.from(
-          new Set([
-            ...safeHistory.map((item) => String(item).toLowerCase()),
-            ...defaultUsernames,
-          ])
-        );
+        const nextHistory = normalizeUsernameHistory(savedHistory);
 
         setUsernameHistory(nextHistory);
       } catch (error) {
@@ -318,12 +336,12 @@ export default function LoginPage() {
       };
 
       const savedUsername = String(account.username || "").trim();
-      const nextUsernameHistory = [
+      const nextUsernameHistory = normalizeUsernameHistory([
         savedUsername,
         ...usernameHistory.filter(
           (item) => item.toLowerCase() !== savedUsername.toLowerCase()
         ),
-      ].slice(0, 8);
+      ]);
 
       localStorage.setItem(
         LOGIN_USERNAME_HISTORY_KEY,
@@ -360,60 +378,100 @@ export default function LoginPage() {
     }
   };
 
+  const usernameSearch = username.trim().toLowerCase();
+  const visibleUsernameHistory = [];
+
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080808] px-4 py-8 text-white">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0d12] px-4 py-8 text-white">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(112,58,20,0.22),transparent_42%)]" />
-        <div className="absolute -left-24 -top-24 h-[420px] w-[420px] rounded-full bg-fuchsia-500/15 blur-[125px]" />
-        <div className="absolute -bottom-28 -right-20 h-[460px] w-[460px] rounded-full bg-blue-500/15 blur-[135px]" />
-        <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:42px_42px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_16%,rgba(56,189,248,0.18),transparent_34%),radial-gradient(circle_at_78%_12%,rgba(148,163,184,0.16),transparent_31%),linear-gradient(135deg,#0a0d12_0%,#111827_48%,#030712_100%)]" />
+        <div className="absolute inset-0 opacity-[0.055] [background-image:linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:44px_44px]" />
+        <div className="absolute inset-x-0 bottom-0 h-72 bg-[linear-gradient(180deg,transparent,rgba(3,7,18,0.86))]" />
       </div>
 
       <form
         onSubmit={handleLogin}
-        className="login-card relative z-10 w-full max-w-[470px] overflow-hidden rounded-[30px] border border-white/15 bg-white/[0.075] px-7 py-8 text-center shadow-[0_30px_100px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:px-10 sm:py-10"
+        className="login-card relative z-10 w-full max-w-[620px] overflow-visible rounded-[32px] border border-white/14 bg-white/[0.08] px-6 py-9 text-center shadow-[0_34px_110px_rgba(0,0,0,0.62)] backdrop-blur-2xl sm:px-12 sm:py-12"
       >
-        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-        <div className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-[#6f3512]/25 blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.7),transparent)]" />
+        <div className="pointer-events-none absolute inset-0 rounded-[32px] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent_48%,rgba(255,255,255,0.04))]" />
 
-        <h1 className="mt-2 text-3xl font-black uppercase leading-tight tracking-[-0.03em] text-white sm:text-4xl">
-          STUDIO BOOKING
-          <br />
-          MANAGEMENT
-        </h1>
+        <div className="relative">
+          <p className="text-[12px] font-bold uppercase tracking-[0.32em] text-white/45">
+            Secure Workspace
+          </p>
+          <h1 className="mt-3 text-[42px] font-black leading-none tracking-[-0.035em] text-white sm:text-[62px]">
+            Sign in
+          </h1>
+        </div>
 
-        <p className="mt-3 text-sm text-white/55 sm:text-base">
-          ระบบจัดการงานถ่ายภาพและวิดีโอ
+        <p className="relative mx-auto mt-4 max-w-[420px] text-sm font-medium leading-6 text-white/58">
+          เข้าสู่พื้นที่ทำงานที่ได้รับอนุญาต
         </p>
 
-        <div className="mt-8 space-y-4">
-          <input
-            type="text"
-            value={username}
-            onChange={(event) => {
-              setUsername(event.target.value);
-              setError("");
-            }}
-            placeholder="Username"
-            autoComplete="username"
-            autoFocus
-            className="w-full rounded-2xl border border-white/15 bg-white/[0.08] px-5 py-4 text-base text-white outline-none transition placeholder:text-white/35 focus:border-[#d7a171]/70 focus:bg-white/[0.11] focus:shadow-[0_0_0_4px_rgba(215,161,113,0.08)]"
-          />
+        <div className="relative mx-auto mt-10 max-w-[460px] space-y-5">
+          <div className="relative">
+            <label className="mb-2 block text-left text-xs font-semibold text-white/48">
+              Username
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(event) => {
+                setUsername(event.target.value);
+                setIsUsernameHistoryOpen(true);
+                setError("");
+              }}
+              onFocus={() => setIsUsernameHistoryOpen(true)}
+              onBlur={() => {
+                window.setTimeout(() => setIsUsernameHistoryOpen(false), 120);
+              }}
+              placeholder="Username"
+              autoComplete="off"
+              autoFocus
+              className="h-16 w-full rounded-[18px] border border-white/14 bg-white/[0.09] px-5 text-lg font-medium text-white outline-none transition placeholder:text-white/34 focus:border-white/70 focus:bg-white/[0.13] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.11)]"
+            />
 
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => {
-              setPassword(event.target.value);
-              setError("");
-            }}
-            placeholder="Password"
-            autoComplete="current-password"
-            className="w-full rounded-2xl border border-white/15 bg-white/[0.08] px-5 py-4 text-base text-white outline-none transition placeholder:text-white/35 focus:border-[#d7a171]/70 focus:bg-white/[0.11] focus:shadow-[0_0_0_4px_rgba(215,161,113,0.08)]"
-          />
+            {isUsernameHistoryOpen && visibleUsernameHistory.length > 0 && (
+              <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-[18px] border border-white/14 bg-[#141a14]/88 p-1.5 text-left shadow-[0_18px_45px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+                {visibleUsernameHistory.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault();
+                      setUsername(item);
+                      setIsUsernameHistoryOpen(false);
+                      setError("");
+                    }}
+                    className="block w-full rounded-[14px] px-4 py-2.5 text-left text-sm font-semibold text-white/88 transition hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white focus:outline-none"
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-2 block text-left text-xs font-semibold text-white/48">
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setError("");
+              }}
+              placeholder="Password"
+              autoComplete="current-password"
+              className="h-16 w-full rounded-[18px] border border-white/14 bg-white/[0.09] px-5 text-lg font-medium text-white outline-none transition placeholder:text-white/34 focus:border-white/70 focus:bg-white/[0.13] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.11)]"
+            />
+          </div>
 
           {error && (
-            <p className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-center text-sm font-semibold text-red-200">
+            <p className="rounded-[18px] border border-[#ff453a]/25 bg-[#ff453a]/10 px-4 py-3 text-center text-sm font-semibold text-[#ffb4ae]">
               {error}
             </p>
           )}
@@ -421,8 +479,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="group relative inline-flex w-full items-center justify-center overflow-hidden rounded-2xl bg-white px-6 py-4 text-base font-black text-zinc-950 shadow-[0_12px_35px_rgba(255,255,255,0.12)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(255,255,255,0.2)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
+            className="group relative inline-flex h-16 w-full items-center justify-center overflow-hidden rounded-[18px] bg-white px-6 text-lg font-black text-[#111827] shadow-[0_18px_45px_rgba(0,0,0,0.32)] transition duration-300 hover:-translate-y-0.5 hover:bg-zinc-100 hover:shadow-[0_22px_55px_rgba(0,0,0,0.42)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
           >
+            <span className="absolute inset-x-4 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.65),transparent)]" />
             {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
           </button>
         </div>

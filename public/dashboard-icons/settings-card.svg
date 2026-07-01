@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 431 475" fill="none">
+  <defs>
+    <radialGradient id="bgGlow" cx="0" cy="0" r="1" gradientTransform="translate(216 386) rotate(90) scale(184 260)">
+      <stop stop-color="#61e38a" stop-opacity=".26"/>
+      <stop offset=".55" stop-color="#087a34" stop-opacity=".09"/>
+      <stop offset="1" stop-color="#087a34" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="topGlow" cx="0" cy="0" r="1" gradientTransform="translate(216 100) rotate(90) scale(150 210)">
+      <stop stop-color="#61e38a" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#61e38a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="431" y2="475">
+      <stop stop-color="#0e2b1b"/>
+      <stop offset=".52" stop-color="#07100c"/>
+      <stop offset="1" stop-color="#050907"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="122" y1="112" x2="310" y2="245">
+      <stop stop-color="#495568"/>
+      <stop offset=".55" stop-color="#1a2330"/>
+      <stop offset="1" stop-color="#03070b"/>
+    </linearGradient>
+    <filter id="shadow" x="76" y="86" width="280" height="208" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="19" flood-color="#000" flood-opacity=".62"/>
+      <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#61e38a" flood-opacity=".25"/>
+    </filter>
+    <filter id="soft" x="-30" y="-30" width="491" height="535" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect x="1" y="1" width="429" height="473" rx="20" fill="url(#card)"/>
+  <rect width="431" height="475" rx="20" fill="url(#bgGlow)"/>
+  <rect width="431" height="475" rx="20" fill="url(#topGlow)"/>
+  <path d="M1 105 105 1H1v104Z" fill="#61e38a" opacity=".08"/>
+  <path d="M1 105 105 1" stroke="#61e38a" stroke-opacity=".42" stroke-width="1.4"/>
+  <rect x="27" y="28" width="5" height="48" rx="2.5" fill="#fff" filter="url(#soft)"/>
+  <rect x="27" y="28" width="5" height="48" rx="2.5" fill="#ddffe8"/>
+  <rect x="27" y="48" width="5" height="28" rx="2.5" fill="#61e38a"/>
+  <path d="M112 124h200M112 382h200" stroke="#61e38a" stroke-opacity=".12"/>
+  <g stroke="#61e38a" stroke-opacity=".34" stroke-width="1.4">
+    <path d="M96 199h42l24-23h34"/>
+    <path d="M294 176h28l19-19"/>
+    <path d="M95 232h38l27 24h63"/>
+    <path d="M280 231h54l22 21h34"/>
+  </g>
+  <g transform="translate(0 8)">
+    <ellipse cx="216" cy="246" rx="80" ry="20" stroke="#61e38a" stroke-width="2.2"/>
+    <ellipse cx="216" cy="246" rx="57" ry="13" stroke="#61e38a" stroke-opacity=".48" stroke-width="1.4"/>
+    <ellipse cx="216" cy="264" rx="88" ry="13" fill="#000" opacity=".3"/>
+    <g filter="url(#shadow)">
+      <rect x="132" y="133" width="168" height="107" rx="37" fill="url(#panel)"/>
+      <path d="M166 170h94M166 205h94" stroke="#dfffe8" stroke-width="12" stroke-linecap="round"/>
+      <circle cx="185" cy="170" r="18" fill="#61e38a"/>
+      <circle cx="246" cy="205" r="18" fill="#61e38a"/>
+      <path d="M150 145c30-15 96-18 132-4" stroke="#fff" stroke-opacity=".25" stroke-width="5" stroke-linecap="round"/>
+    </g>
+  </g>
+  <text x="215.5" y="328" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="31" font-weight="800" fill="#fff">ตั้งค่าระบบ</text>
+  <text x="215.5" y="369" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#fff" opacity=".48">จัดการข้อมูลระบบ</text>
+  <text x="215.5" y="425" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18" font-weight="700" fill="#61e38a">เปิดใช้งาน ›</text>
+  <rect x="1" y="1" width="429" height="473" rx="20" stroke="#61e38a" stroke-opacity=".34" stroke-width="2"/>
+  <path d="M30 474h371" stroke="#61e38a" stroke-opacity=".7" stroke-width="2"/>
+</svg>

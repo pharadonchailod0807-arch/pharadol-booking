@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 431 475" fill="none">
+  <defs>
+    <radialGradient id="bgGlow" cx="0" cy="0" r="1" gradientTransform="translate(216 388) rotate(90) scale(188 260)">
+      <stop stop-color="#20d0ff" stop-opacity=".26"/>
+      <stop offset=".55" stop-color="#006b8b" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#006b8b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="topGlow" cx="0" cy="0" r="1" gradientTransform="translate(214 94) rotate(90) scale(150 210)">
+      <stop stop-color="#20d0ff" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#20d0ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="431" y2="475">
+      <stop stop-color="#102536"/>
+      <stop offset=".52" stop-color="#070b12"/>
+      <stop offset="1" stop-color="#041014"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="118" y1="122" x2="303" y2="250">
+      <stop stop-color="#435365"/>
+      <stop offset=".55" stop-color="#182431"/>
+      <stop offset="1" stop-color="#03070b"/>
+    </linearGradient>
+    <filter id="shadow" x="78" y="86" width="280" height="208" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="22" stdDeviation="18" flood-color="#000" flood-opacity=".58"/>
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#20d0ff" flood-opacity=".26"/>
+    </filter>
+    <filter id="soft" x="-30" y="-30" width="491" height="535" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect x="1" y="1" width="429" height="473" rx="20" fill="url(#card)"/>
+  <rect width="431" height="475" rx="20" fill="url(#bgGlow)"/>
+  <rect width="431" height="475" rx="20" fill="url(#topGlow)"/>
+  <path d="M1 105 105 1H1v104Z" fill="#20d0ff" opacity=".08"/>
+  <path d="M1 105 105 1" stroke="#20d0ff" stroke-opacity=".42" stroke-width="1.4"/>
+  <rect x="27" y="28" width="5" height="48" rx="2.5" fill="url(#paint0_linear)" filter="url(#soft)"/>
+  <rect x="27" y="28" width="5" height="48" rx="2.5" fill="#c9f5ff"/>
+  <rect x="27" y="48" width="5" height="28" rx="2.5" fill="#20d0ff"/>
+  <path d="M112 124h200M112 382h200" stroke="#20d0ff" stroke-opacity=".12"/>
+  <g stroke="#20d0ff" stroke-opacity=".34" stroke-width="1.4">
+    <path d="M96 199h42l24-23h34"/>
+    <path d="M294 176h28l19-19"/>
+    <path d="M95 232h38l27 24h63"/>
+    <path d="M280 231h54l22 21h34"/>
+  </g>
+  <g transform="translate(26 28) scale(0.88)">
+    <ellipse cx="216" cy="246" rx="78" ry="19" stroke="#20d0ff" stroke-width="2.2"/>
+    <ellipse cx="216" cy="246" rx="55" ry="13" stroke="#20d0ff" stroke-opacity=".48" stroke-width="1.4"/>
+    <ellipse cx="216" cy="263" rx="92" ry="13" fill="#000" opacity=".28"/>
+    <g filter="url(#shadow)">
+      <rect x="135" y="132" width="162" height="118" rx="27" fill="url(#bar)"/>
+      <path d="M158 215V181M191 215V151M224 215V171M257 215V137" stroke="#20d0ff" stroke-width="15" stroke-linecap="round"/>
+      <path d="M152 161c29 18 53 14 77-10 17-17 37-18 63-8" stroke="#dbf8ff" stroke-width="7" stroke-linecap="round"/>
+      <path d="M150 142c31-18 84-21 129-8" stroke="#fff" stroke-opacity=".28" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </g>
+  <text x="215.5" y="328" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="31" font-weight="800" fill="#fff">รายงาน</text>
+  <text x="215.5" y="369" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="600" fill="#fff" opacity=".48">สถิติและรายงานธุรกิจ</text>
+  <text x="215.5" y="425" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18" font-weight="700" fill="#20d0ff">เปิดใช้งาน ›</text>
+  <rect x="1" y="1" width="429" height="473" rx="20" stroke="#20d0ff" stroke-opacity=".34" stroke-width="2"/>
+  <path d="M30 474h371" stroke="#20d0ff" stroke-opacity=".7" stroke-width="2"/>
+  <defs>
+    <linearGradient id="paint0_linear" x1="29.5" y1="28" x2="29.5" y2="76">
+      <stop stop-color="#fff"/>
+      <stop offset="1" stop-color="#20d0ff"/>
+    </linearGradient>
+  </defs>
+</svg>

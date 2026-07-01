@@ -1,5 +1,8 @@
 const RESEND_EMAIL_URL = "https://api.resend.com/emails";
 
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
 const BRAND_SENDERS = {
   pharadol: {
     name: "Pharadol Production",
@@ -73,13 +76,29 @@ export async function POST(request) {
 
   const payload = await request.json().catch(() => null);
   const brandId = String(payload?.brandId || "").trim();
+  const expectedBrandId = String(payload?.expectedBrandId || brandId).trim();
   const sender = BRAND_SENDERS[brandId];
   const to = String(payload?.to || "").trim();
   const subject = String(payload?.subject || "").trim();
   const body = String(payload?.body || "").trim();
+  const attachments = Array.isArray(payload?.attachments)
+    ? payload.attachments
+        .map((attachment) => ({
+          filename: String(attachment?.filename || "").trim(),
+          content: String(attachment?.content || "").trim(),
+        }))
+        .filter((attachment) => attachment.filename && attachment.content)
+    : [];
 
   if (!sender) {
     return Response.json({ error: "ไม่พบแบรนด์สำหรับส่งอีเมล" }, { status: 400 });
+  }
+
+  if (brandId !== expectedBrandId) {
+    return Response.json(
+      { error: "แบรนด์ของอีเมลไม่ตรงกับแบรนด์ที่กำลังใช้งาน" },
+      { status: 403 }
+    );
   }
 
   if (!sender.from) {
@@ -131,6 +150,7 @@ export async function POST(request) {
       text: body,
       html: textToHtml(body),
       reply_to: sender.replyTo,
+      ...(attachments.length > 0 ? { attachments } : {}),
     }),
   });
 
