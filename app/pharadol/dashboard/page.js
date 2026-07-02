@@ -302,7 +302,9 @@ export default function Dashboard() {
     const loadDashboardTheme = () => {
       const savedTheme = localStorage.getItem(DASHBOARD_THEME_KEY);
       setDashboardTheme(
-        ["classic", "neon"].includes(savedTheme) ? savedTheme : "clean"
+        ["aurora", "classic", "neon"].includes(savedTheme)
+          ? savedTheme
+          : "clean"
       );
     };
 
@@ -542,7 +544,21 @@ export default function Dashboard() {
     mail: "/dashboard-icons/mail-card.png",
   };
 
+  const auroraAccent = {
+    document: "from-sky-400 to-cyan-300 text-cyan-100",
+    customers: "from-violet-400 to-fuchsia-300 text-violet-100",
+    archive: "from-slate-300 to-blue-300 text-blue-100",
+    calendar: "from-pink-400 to-rose-300 text-pink-100",
+    trash: "from-slate-300 to-slate-100 text-slate-100",
+    income: "from-amber-300 to-orange-300 text-amber-100",
+    reports: "from-sky-400 to-blue-300 text-sky-100",
+    bell: "from-orange-300 to-pink-300 text-orange-100",
+    settings: "from-emerald-300 to-teal-300 text-emerald-100",
+    mail: "from-indigo-400 to-fuchsia-300 text-indigo-100",
+  };
+
   const isNeonTheme = dashboardTheme === "neon";
+  const isAuroraTheme = dashboardTheme === "aurora";
   const isClassicTheme = dashboardTheme === "classic";
 
   const actionCardEmojis = {
@@ -557,6 +573,186 @@ export default function Dashboard() {
     settings: "⚙️",
     mail: "✉️",
   };
+
+  if (isAuroraTheme) {
+    const totalBookings = customerCount + archiveCount;
+
+    return (
+      <main className="min-h-screen overflow-hidden bg-[#061327] p-6 text-white">
+        <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(45,156,255,0.28),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(128,91,255,0.22),transparent_28%),linear-gradient(135deg,#081b35_0%,#061123_48%,#030816_100%)]" />
+        <div className="pointer-events-none fixed inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px)] [background-size:46px_46px]" />
+
+        <section className="relative mx-auto grid min-h-[calc(100vh-48px)] max-w-[1760px] grid-cols-[250px_1fr] gap-8 rounded-[34px] border border-white/20 bg-white/[0.035] p-8 shadow-[0_35px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+          <aside className="flex min-h-full flex-col rounded-[30px] border border-sky-200/20 bg-sky-200/[0.08] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+            <div className="mb-10 flex items-center gap-4 px-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 via-blue-500 to-violet-500 text-3xl font-black shadow-[0_0_35px_rgba(56,189,248,0.55)]">
+                A
+              </div>
+              <div>
+                <p className="text-lg font-black tracking-wide">DASHBOARD</p>
+                <p className="text-xs font-semibold text-white/45">
+                  {currentUser.brandName || "PHARADOL"}
+                </p>
+              </div>
+            </div>
+
+            <nav className="space-y-3">
+              {actionCards.map(([href, icon, title]) => {
+                const active = icon === "document";
+
+                return (
+                  <button
+                    key={href}
+                    type="button"
+                    onClick={() => (window.location.href = href)}
+                    className={`flex w-full items-center gap-4 rounded-2xl px-4 py-4 text-left text-sm font-semibold transition ${
+                      active
+                        ? "border border-sky-200/35 bg-white/14 text-white shadow-[0_0_28px_rgba(56,189,248,0.22)]"
+                        : "text-white/72 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <Icon name={icon} className="h-6 w-6" />
+                    <span>{title}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            <div className="mt-auto rounded-2xl border border-emerald-200/20 bg-white/[0.07] p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-300/15 text-emerald-200">
+                  <Icon name="settings" className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white/65">
+                    สถานะระบบ
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-emerald-300">
+                    • ปกติ
+                  </p>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <div className="min-w-0">
+            <header className="mb-8 flex items-center justify-between gap-5">
+              <div>
+                <h1 className="text-4xl font-black tracking-tight">
+                  ภาพรวมระบบ
+                </h1>
+                <p className="mt-2 text-white/55">
+                  ยินดีต้อนรับกลับมา, {currentUser?.name || currentUser?.username}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="hidden h-14 min-w-[360px] items-center gap-3 rounded-full border border-white/18 bg-white/[0.08] px-5 text-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] lg:flex">
+                  <span className="text-xl">⌕</span>
+                  <span>ค้นหา...</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => (window.location.href = "/pharadol/notifications")}
+                  className="relative flex h-14 w-14 items-center justify-center rounded-full border border-white/18 bg-white/[0.08] text-white/78"
+                >
+                  <Icon name="bell" className="h-6 w-6" />
+                  {upcomingJobs > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-7 min-w-7 items-center justify-center rounded-full bg-violet-500 px-2 text-xs font-black">
+                      {upcomingJobs}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="rounded-full border border-white/18 bg-white/[0.08] px-5 py-4 text-sm font-bold text-white"
+                >
+                  Admin ⌄
+                </button>
+              </div>
+            </header>
+
+            <div className="grid grid-cols-4 gap-5">
+              {actionCards.slice(0, 8).map(([href, icon, title, description]) => (
+                <button
+                  key={href}
+                  type="button"
+                  onClick={() => (window.location.href = href)}
+                  className="group relative min-h-[260px] overflow-hidden rounded-[24px] border border-white/20 bg-white/[0.085] p-8 text-left shadow-[0_22px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-white/38"
+                >
+                  <span className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.18),transparent_26%)] opacity-80" />
+                  <span
+                    className={`relative flex h-24 w-24 items-center justify-center rounded-[24px] bg-gradient-to-br ${auroraAccent[icon]} shadow-[0_0_45px_rgba(56,189,248,0.22)]`}
+                  >
+                    <Icon name={icon} className="h-14 w-14" />
+                  </span>
+                  <span className="relative mt-8 block text-2xl font-black">
+                    {title}
+                  </span>
+                  <span className="relative mt-2 block text-base text-white/62">
+                    {description}
+                  </span>
+                  <span className="relative mt-6 inline-flex items-center gap-3 text-sm font-bold text-sky-300">
+                    เปิดใช้งาน <span className="transition group-hover:translate-x-1">→</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-5">
+              {actionCards.slice(8).map(([href, icon, title, description]) => (
+                <button
+                  key={href}
+                  type="button"
+                  onClick={() => (window.location.href = href)}
+                  className="group flex min-h-[150px] items-center gap-8 rounded-[24px] border border-white/20 bg-white/[0.08] p-8 text-left shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-300 hover:-translate-y-1"
+                >
+                  <span
+                    className={`flex h-24 w-24 shrink-0 items-center justify-center rounded-[24px] bg-gradient-to-br ${auroraAccent[icon]}`}
+                  >
+                    <Icon name={icon} className="h-14 w-14" />
+                  </span>
+                  <span>
+                    <span className="block text-2xl font-black">{title}</span>
+                    <span className="mt-2 block text-white/58">{description}</span>
+                    <span className="mt-5 inline-flex text-sm font-bold text-sky-300">
+                      เปิดใช้งาน →
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <section className="mt-8 grid grid-cols-4 overflow-hidden rounded-[24px] border border-white/20 bg-white/[0.08] shadow-[0_18px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl">
+              {[
+                ["document", totalBookings, "ใบจองทั้งหมด", "+12.5%"],
+                ["customers", customerCount, "ลูกค้าทั้งหมด", "+8.1%"],
+                ["calendar", todayJobs, "งานวันนี้", `+${todayJobs} งาน`],
+                ["income", "฿248,950", "รายได้เดือนนี้", "+15.3%"],
+              ].map(([icon, value, label, trend]) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-5 border-r border-white/10 p-6 last:border-r-0"
+                >
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-sky-200">
+                    <Icon name={icon} className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <p className="text-3xl font-black">{value}</p>
+                    <p className="mt-1 text-sm text-white/55">{label}</p>
+                    <p className="mt-1 text-sm font-bold text-emerald-300">
+                      {trend} ↗
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </section>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   if (isClassicTheme) {
     return (

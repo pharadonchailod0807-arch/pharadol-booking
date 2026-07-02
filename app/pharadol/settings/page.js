@@ -158,7 +158,11 @@ function SettingsContent() {
 
     const loadDashboardTheme = () => {
       const savedTheme = localStorage.getItem(DASHBOARD_THEME_KEY);
-      setDashboardTheme(savedTheme === "neon" ? "neon" : "clean");
+      setDashboardTheme(
+        ["aurora", "classic", "neon"].includes(savedTheme)
+          ? savedTheme
+          : "clean"
+      );
     };
 
     loadDashboardTheme();
@@ -172,7 +176,9 @@ function SettingsContent() {
   }, [isAuthorized]);
 
   const saveDashboardTheme = (theme) => {
-    const nextTheme = ["classic", "neon"].includes(theme) ? theme : "clean";
+    const nextTheme = ["aurora", "classic", "neon"].includes(theme)
+      ? theme
+      : "clean";
     localStorage.setItem(DASHBOARD_THEME_KEY, nextTheme);
     setDashboardTheme(nextTheme);
     alert("บันทึกธีม Dashboard เรียบร้อยแล้ว");
@@ -663,11 +669,13 @@ function SettingsContent() {
 
               <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4">
                 <span className="text-sm font-semibold text-zinc-700">
-                  {dashboardTheme === "classic"
-                    ? "Classic Emoji"
-                    : dashboardTheme === "neon"
-                      ? "ธีมเดิม Neon"
-                      : "ธีมคลีน Luxury"}
+                  {dashboardTheme === "aurora"
+                    ? "Aurora Sidebar"
+                    : dashboardTheme === "classic"
+                      ? "Classic Emoji"
+                      : dashboardTheme === "neon"
+                        ? "ธีมเดิม Neon"
+                        : "ธีมคลีน Luxury"}
                 </span>
                 <span className="text-xl text-zinc-400 transition group-hover:translate-x-1">
                   →
@@ -692,6 +700,7 @@ function SettingsContent() {
             <div className="grid gap-4 md:grid-cols-2">
               {[
                 ["clean", "คลีน ใส เรียบหรู", "พื้นหลังสว่าง การ์ดกระจก เงานุ่ม เหมาะกับงานพรีเมียม"],
+                ["aurora", "Aurora Sidebar", "ธีมแก้วสีน้ำเงิน มีแถบเมนูซ้ายและการ์ดเรืองแสงแบบภาพตัวอย่าง"],
                 ["classic", "Classic Emoji", "ธีมแรกสุด การ์ดขาวเรียบง่ายพร้อมไอคอนอิโมจิ"],
                 ["neon", "ธีมเดิม Neon", "พื้นหลังเข้ม การ์ดภาพไอคอนเรืองแสงแบบเดิม"],
               ].map(([theme, title, description]) => (
@@ -709,11 +718,26 @@ function SettingsContent() {
                     className={`mb-5 h-28 rounded-2xl border ${
                       theme === "clean"
                         ? "border-zinc-200 bg-gradient-to-br from-white via-zinc-50 to-zinc-200"
+                        : theme === "aurora"
+                          ? "border-sky-300/40 bg-[radial-gradient(circle_at_18%_12%,rgba(56,189,248,0.42),transparent_32%),radial-gradient(circle_at_78%_18%,rgba(168,85,247,0.32),transparent_30%),linear-gradient(135deg,#071b34,#030816)]"
                         : theme === "classic"
                           ? "border-zinc-200 bg-[linear-gradient(135deg,#f4f4f5,#ffffff)]"
                         : "border-sky-500/30 bg-[radial-gradient(circle_at_20%_10%,rgba(14,165,233,0.45),transparent_35%),linear-gradient(135deg,#07111d,#020408)]"
                     }`}
                   >
+                    {theme === "aurora" && (
+                      <div className="flex h-full gap-2 p-3">
+                        <div className="h-full w-8 rounded-xl bg-white/15" />
+                        <div className="grid flex-1 grid-cols-3 gap-2">
+                          <span className="rounded-xl bg-sky-300/25" />
+                          <span className="rounded-xl bg-violet-300/25" />
+                          <span className="rounded-xl bg-pink-300/25" />
+                          <span className="rounded-xl bg-slate-200/20" />
+                          <span className="rounded-xl bg-amber-300/25" />
+                          <span className="rounded-xl bg-blue-300/25" />
+                        </div>
+                      </div>
+                    )}
                     {theme === "classic" && (
                       <div className="flex h-full items-center justify-center gap-3 text-3xl">
                         <span>📄</span>
