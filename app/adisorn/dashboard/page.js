@@ -542,17 +542,18 @@ export default function Dashboard() {
     mail: "/dashboard-icons/mail-card.png",
   };
 
-  const auroraAccent = {
-    document: "from-sky-400 to-cyan-300 text-cyan-100",
-    customers: "from-violet-400 to-fuchsia-300 text-violet-100",
-    archive: "from-slate-300 to-blue-300 text-blue-100",
-    calendar: "from-pink-400 to-rose-300 text-pink-100",
-    trash: "from-slate-300 to-slate-100 text-slate-100",
-    income: "from-amber-300 to-orange-300 text-amber-100",
-    reports: "from-sky-400 to-blue-300 text-sky-100",
-    bell: "from-orange-300 to-pink-300 text-orange-100",
-    settings: "from-emerald-300 to-teal-300 text-emerald-100",
-    mail: "from-indigo-400 to-fuchsia-300 text-indigo-100",
+  const auroraIconImages = {
+    brand: "/aurora-icons/brand-a.png",
+    document: "/aurora-icons/document.png",
+    customers: "/aurora-icons/customers.png",
+    archive: "/aurora-icons/archive.png",
+    calendar: "/aurora-icons/calendar.png",
+    trash: "/aurora-icons/trash.png",
+    income: "/aurora-icons/income.png",
+    reports: "/aurora-icons/reports.png",
+    bell: "/aurora-icons/bell.png",
+    settings: "/aurora-icons/settings.png",
+    mail: "/aurora-icons/mail.png",
   };
 
   const isNeonTheme = dashboardTheme === "neon";
@@ -583,8 +584,14 @@ export default function Dashboard() {
         <section className="relative mx-auto grid min-h-[calc(100vh-48px)] max-w-[1760px] grid-cols-[250px_1fr] gap-8 rounded-[34px] border border-white/20 bg-white/[0.035] p-8 shadow-[0_35px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
           <aside className="flex min-h-full flex-col rounded-[30px] border border-sky-200/20 bg-sky-200/[0.08] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
             <div className="mb-10 flex items-center gap-4 px-2">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-300 via-blue-500 to-violet-500 text-3xl font-black shadow-[0_0_35px_rgba(56,189,248,0.55)]">
-                A
+              <div className="relative h-14 w-14">
+                <Image
+                  src={auroraIconImages.brand}
+                  alt=""
+                  fill
+                  sizes="56px"
+                  className="object-contain drop-shadow-[0_0_22px_rgba(56,189,248,0.72)]"
+                />
               </div>
               <div>
                 <p className="text-lg font-black tracking-wide">DASHBOARD</p>
@@ -680,10 +687,14 @@ export default function Dashboard() {
                   className="group relative min-h-[260px] overflow-hidden rounded-[24px] border border-white/20 bg-white/[0.085] p-8 text-left shadow-[0_22px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-white/38"
                 >
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.18),transparent_26%)] opacity-80" />
-                  <span
-                    className={`relative flex h-24 w-24 items-center justify-center rounded-[24px] bg-gradient-to-br ${auroraAccent[icon]} shadow-[0_0_45px_rgba(56,189,248,0.22)]`}
-                  >
-                    <Icon name={icon} className="h-14 w-14" />
+                  <span className="relative block h-28 w-28">
+                    <Image
+                      src={auroraIconImages[icon]}
+                      alt=""
+                      fill
+                      sizes="112px"
+                      className="object-contain mix-blend-screen drop-shadow-[0_0_24px_rgba(96,165,250,0.42)]"
+                    />
                   </span>
                   <span className="relative mt-8 block text-2xl font-black">
                     {title}
@@ -706,10 +717,14 @@ export default function Dashboard() {
                   onClick={() => (window.location.href = href)}
                   className="group flex min-h-[150px] items-center gap-8 rounded-[24px] border border-white/20 bg-white/[0.08] p-8 text-left shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-300 hover:-translate-y-1"
                 >
-                  <span
-                    className={`flex h-24 w-24 shrink-0 items-center justify-center rounded-[24px] bg-gradient-to-br ${auroraAccent[icon]}`}
-                  >
-                    <Icon name={icon} className="h-14 w-14" />
+                  <span className="relative block h-28 w-28 shrink-0">
+                    <Image
+                      src={auroraIconImages[icon]}
+                      alt=""
+                      fill
+                      sizes="112px"
+                      className="object-contain mix-blend-screen drop-shadow-[0_0_24px_rgba(96,165,250,0.42)]"
+                    />
                   </span>
                   <span>
                     <span className="block text-2xl font-black">{title}</span>
@@ -733,8 +748,14 @@ export default function Dashboard() {
                   key={label}
                   className="flex items-center gap-5 border-r border-white/10 p-6 last:border-r-0"
                 >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-sky-200">
-                    <Icon name={icon} className="h-8 w-8" />
+                  <div className="relative h-16 w-16 shrink-0">
+                    <Image
+                      src={auroraIconImages[icon]}
+                      alt=""
+                      fill
+                      sizes="64px"
+                      className="object-contain mix-blend-screen drop-shadow-[0_0_16px_rgba(96,165,250,0.38)]"
+                    />
                   </div>
                   <div>
                     <p className="text-3xl font-black">{value}</p>
