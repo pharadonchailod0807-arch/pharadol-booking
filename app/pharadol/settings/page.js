@@ -172,7 +172,7 @@ function SettingsContent() {
   }, [isAuthorized]);
 
   const saveDashboardTheme = (theme) => {
-    const nextTheme = theme === "neon" ? "neon" : "clean";
+    const nextTheme = ["classic", "neon"].includes(theme) ? theme : "clean";
     localStorage.setItem(DASHBOARD_THEME_KEY, nextTheme);
     setDashboardTheme(nextTheme);
     alert("บันทึกธีม Dashboard เรียบร้อยแล้ว");
@@ -663,7 +663,11 @@ function SettingsContent() {
 
               <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4">
                 <span className="text-sm font-semibold text-zinc-700">
-                  {dashboardTheme === "neon" ? "ธีมเดิม Neon" : "ธีมคลีน Luxury"}
+                  {dashboardTheme === "classic"
+                    ? "Classic Emoji"
+                    : dashboardTheme === "neon"
+                      ? "ธีมเดิม Neon"
+                      : "ธีมคลีน Luxury"}
                 </span>
                 <span className="text-xl text-zinc-400 transition group-hover:translate-x-1">
                   →
@@ -688,6 +692,7 @@ function SettingsContent() {
             <div className="grid gap-4 md:grid-cols-2">
               {[
                 ["clean", "คลีน ใส เรียบหรู", "พื้นหลังสว่าง การ์ดกระจก เงานุ่ม เหมาะกับงานพรีเมียม"],
+                ["classic", "Classic Emoji", "ธีมแรกสุด การ์ดขาวเรียบง่ายพร้อมไอคอนอิโมจิ"],
                 ["neon", "ธีมเดิม Neon", "พื้นหลังเข้ม การ์ดภาพไอคอนเรืองแสงแบบเดิม"],
               ].map(([theme, title, description]) => (
                 <button
@@ -704,9 +709,19 @@ function SettingsContent() {
                     className={`mb-5 h-28 rounded-2xl border ${
                       theme === "clean"
                         ? "border-zinc-200 bg-gradient-to-br from-white via-zinc-50 to-zinc-200"
+                        : theme === "classic"
+                          ? "border-zinc-200 bg-[linear-gradient(135deg,#f4f4f5,#ffffff)]"
                         : "border-sky-500/30 bg-[radial-gradient(circle_at_20%_10%,rgba(14,165,233,0.45),transparent_35%),linear-gradient(135deg,#07111d,#020408)]"
                     }`}
-                  />
+                  >
+                    {theme === "classic" && (
+                      <div className="flex h-full items-center justify-center gap-3 text-3xl">
+                        <span>📄</span>
+                        <span>👥</span>
+                        <span>📅</span>
+                      </div>
+                    )}
+                  </div>
                   <h3 className="text-xl font-bold">{title}</h3>
                   <p
                     className={`mt-2 text-sm leading-6 ${

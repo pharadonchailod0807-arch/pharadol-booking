@@ -303,7 +303,9 @@ export default function Dashboard() {
   useEffect(() => {
     const loadDashboardTheme = () => {
       const savedTheme = localStorage.getItem(DASHBOARD_THEME_KEY);
-      setDashboardTheme(savedTheme === "neon" ? "neon" : "clean");
+      setDashboardTheme(
+        ["classic", "neon"].includes(savedTheme) ? savedTheme : "clean"
+      );
     };
 
     loadDashboardTheme();
@@ -539,6 +541,93 @@ export default function Dashboard() {
   };
 
   const isNeonTheme = dashboardTheme === "neon";
+  const isClassicTheme = dashboardTheme === "classic";
+
+  const actionCardEmojis = {
+    document: "📄",
+    customers: "👥",
+    archive: "📦",
+    calendar: "📅",
+    trash: "🗑️",
+    income: "💰",
+    reports: "📊",
+    bell: "🔔",
+    settings: "⚙️",
+    mail: "✉️",
+  };
+
+  if (isClassicTheme) {
+    return (
+      <div className="min-h-screen bg-zinc-100 p-10 text-zinc-950">
+        <div className="mb-10 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold">
+              {currentUser.brandName || "Adisorn Wedding Studio"}
+            </h1>
+            <p className="mt-2 text-zinc-500">ระบบจัดการงานและข้อมูลลูกค้า</p>
+          </div>
+
+          <button
+            onClick={logout}
+            className="rounded-xl bg-red-500 px-5 py-3 font-semibold text-white"
+          >
+            ออกจากระบบ
+          </button>
+        </div>
+
+        <div className="mx-auto mb-10 grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-5">
+          {statCards.map(([label, value, unit]) => (
+            <div
+              key={label}
+              className="rounded-3xl bg-white p-6 text-center shadow-xl"
+            >
+              <p className="text-zinc-500">{label}</p>
+              <h2 className="mt-2 text-4xl font-bold">{value}</h2>
+              <p className="mt-2 text-zinc-500">{unit}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mx-auto mb-10 max-w-7xl rounded-3xl bg-white p-6 shadow-xl">
+          <h2 className="mb-4 text-2xl font-bold">⚠️ งานใกล้ถึงวัน</h2>
+          {alerts.length === 0 ? (
+            <p className="text-zinc-500">ไม่มีงานใน 7 วันข้างหน้า</p>
+          ) : (
+            <div className="space-y-3">
+              {alerts.map((job, index) => (
+                <div
+                  key={`${job.customerName}-${index}`}
+                  className="flex items-center justify-between rounded-xl border p-3"
+                >
+                  <div>
+                    <p className="font-semibold">{job.customerName}</p>
+                    <p className="text-sm text-zinc-500">{job.service}</p>
+                  </div>
+                  <div className="font-bold text-emerald-600">
+                    อีก {job.diffDays} วัน
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 md:grid-cols-3">
+          {actionCards.map(([href, icon, title, description]) => (
+            <div
+              key={href}
+              onClick={() => (window.location.href = href)}
+              className="cursor-pointer rounded-3xl bg-white p-10 text-center shadow-xl transition hover:scale-105"
+            >
+              <div className="mb-4 text-7xl">{actionCardEmojis[icon]}</div>
+              <h2 className="text-2xl font-bold">{title}</h2>
+              <p className="mt-3 text-zinc-500">{description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main
