@@ -4,6 +4,11 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const maxDuration = 15;
 
+const GOOGLE_OAUTH_SCOPES = [
+  "https://www.googleapis.com/auth/drive.file",
+  "https://www.googleapis.com/auth/gmail.compose",
+];
+
 const getGoogleOAuthConfig = (requestUrl) => {
   const envBaseUrl = String(process.env.NEXT_PUBLIC_APP_URL || "").replace(
     /\/$/,
@@ -50,7 +55,7 @@ export async function GET(request) {
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: "offline",
     prompt: "consent",
-    scope: ["https://www.googleapis.com/auth/drive.file"],
+    scope: GOOGLE_OAUTH_SCOPES,
   });
 
   return Response.redirect(authUrl);

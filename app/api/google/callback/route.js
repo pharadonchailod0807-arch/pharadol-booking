@@ -140,7 +140,7 @@ export async function GET(request) {
         title: "เชื่อมต่อ Google สำเร็จ",
         message:
           tokens.refresh_token
-            ? "คัดลอกค่า refresh token ด้านล่างไปใส่ใน PHARADOL_GOOGLE_REFRESH_TOKEN หรือ GOOGLE_REFRESH_TOKEN"
+            ? "คัดลอกค่า refresh token ด้านล่างไปใส่ใน PHARADOL_GOOGLE_REFRESH_TOKEN หรือ GOOGLE_REFRESH_TOKEN (token นี้รวมสิทธิ์ Google Drive และ Gmail draft)"
             : "Google ไม่ส่ง refresh token กลับมา ถ้าเคยอนุญาตแล้ว ให้ revoke access แล้วลองเข้า /api/google/auth ใหม่",
         token: tokens.refresh_token || "",
       }),
