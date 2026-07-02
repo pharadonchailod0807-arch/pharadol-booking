@@ -6,27 +6,12 @@ export const maxDuration = 60;
 
 const BRAND_CONFIG = {
   pharadol: {
-    clientId:
-      process.env.PHARADOL_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
-    clientSecret:
-      process.env.PHARADOL_GOOGLE_CLIENT_SECRET ||
-      process.env.GOOGLE_CLIENT_SECRET,
-    refreshToken:
-      process.env.PHARADOL_GOOGLE_REFRESH_TOKEN ||
-      process.env.GOOGLE_REFRESH_TOKEN,
-    folderId:
-      process.env.PHARADOL_GOOGLE_DRIVE_FOLDER_ID ||
-      process.env.GOOGLE_DRIVE_FOLDER_ID,
+    refreshToken: process.env.PHARADOL_GOOGLE_REFRESH_TOKEN,
+    folderId: process.env.PHARADOL_GOOGLE_DRIVE_FOLDER_ID,
   },
   adisorn: {
-    clientId: process.env.ADISORN_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
-    clientSecret:
-      process.env.ADISORN_GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET,
-    refreshToken:
-      process.env.ADISORN_GOOGLE_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN,
-    folderId:
-      process.env.ADISORN_GOOGLE_DRIVE_FOLDER_ID ||
-      "1a0BzjxAfwcnVTu7s_xZwkxKYDcPyJK5g",
+    refreshToken: process.env.ADISORN_GOOGLE_REFRESH_TOKEN,
+    folderId: process.env.ADISORN_GOOGLE_DRIVE_FOLDER_ID,
   },
 };
 
@@ -36,8 +21,15 @@ const BRAND_NAMES = {
 };
 
 const GOOGLE_SECRET_ENV_NAMES = {
-  pharadol: "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET",
-  adisorn: "ADISORN_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET",
+  pharadol: "GOOGLE_CLIENT_SECRET",
+  adisorn: "GOOGLE_CLIENT_SECRET",
+};
+
+const BRAND_ENV_NAMES = {
+  pharadol:
+    "GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, PHARADOL_GOOGLE_REFRESH_TOKEN และ PHARADOL_GOOGLE_DRIVE_FOLDER_ID",
+  adisorn:
+    "GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ADISORN_GOOGLE_REFRESH_TOKEN และ ADISORN_GOOGLE_DRIVE_FOLDER_ID",
 };
 
 const getFolderIdFromValue = (value) => {
@@ -74,14 +66,16 @@ export async function POST(request) {
       );
     }
 
-    const { clientId, clientSecret, refreshToken } = config;
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const { refreshToken } = config;
     const folderId = getFolderIdFromValue(config.folderId);
 
     if (!clientId || !clientSecret || !refreshToken || !folderId) {
       return Response.json(
         {
           success: false,
-          error: `ตั้งค่า Google Drive ของ ${BRAND_NAMES[brandId]} ไม่ครบ`,
+          error: `ตั้งค่า Google Drive ของ ${BRAND_NAMES[brandId]} ไม่ครบ กรุณาตรวจค่า ${BRAND_ENV_NAMES[brandId]}`,
         },
         { status: 500 }
       );
@@ -167,7 +161,7 @@ export async function POST(request) {
     ) {
       const envNames =
         GOOGLE_SECRET_ENV_NAMES[requestBrandId] ||
-        "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET";
+        "GOOGLE_CLIENT_SECRET";
       errorMessage = `Google Client Secret ไม่ถูกต้อง กรุณาตรวจค่า ${envNames} ใน .env.local/Vercel ให้เป็น Client secret ของ OAuth Client เดียวกับที่ใช้ขอ refresh token แล้วเชื่อมต่อ Google ใหม่`;
     } else if (
       normalizedGoogleError.includes("invalid_grant") ||
@@ -182,7 +176,7 @@ export async function POST(request) {
       normalizedGoogleError.includes("scope")
     ) {
       errorMessage =
-        "Google token ยังไม่มีสิทธิ์ Google Drive กรุณาเชื่อมต่อ Google ใหม่เพื่ออนุญาตสิทธิ์ Drive";
+        "บัญชี Google นี้ยังไม่ได้อนุญาตสิทธิ์ Google Drive กรุณาเชื่อมบัญชีใหม่";
     }
 
     return Response.json(

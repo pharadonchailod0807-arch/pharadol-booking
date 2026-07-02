@@ -114,9 +114,7 @@ const isDuplicateBookingNumberError = (error) =>
   String(error?.message || "").toLowerCase().includes("duplicate key");
 
 const getGoogleClientSecretEnvLabel = () =>
-  BRAND_ID === "adisorn"
-    ? "ADISORN_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET"
-    : "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET";
+  "GOOGLE_CLIENT_SECRET";
 
 const normalizeSendErrorMessage = (message) => {
   const normalizedMessage = String(message || "").toLowerCase();
@@ -127,6 +125,14 @@ const normalizeSendErrorMessage = (message) => {
     normalizedMessage.includes("unauthorized_client")
   ) {
     return `Google Client Secret ไม่ถูกต้อง กรุณาตรวจค่า ${getGoogleClientSecretEnvLabel()} ใน .env.local/Vercel ให้ตรงกับ OAuth Client ที่ใช้ขอ refresh token แล้วเชื่อมต่อ Google ใหม่`;
+  }
+
+  if (
+    normalizedMessage.includes("insufficient authentication scopes") ||
+    normalizedMessage.includes("insufficient") ||
+    normalizedMessage.includes("scope")
+  ) {
+    return "บัญชี Google นี้ยังไม่ได้อนุญาตสิทธิ์ Google Drive กรุณาเชื่อมบัญชีใหม่";
   }
 
   return message;

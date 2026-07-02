@@ -5,23 +5,12 @@ export const maxDuration = 60;
 
 const BRAND_CONFIG = {
   pharadol: {
-    clientId:
-      process.env.PHARADOL_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
-    clientSecret:
-      process.env.PHARADOL_GOOGLE_CLIENT_SECRET ||
-      process.env.GOOGLE_CLIENT_SECRET,
-    refreshToken:
-      process.env.PHARADOL_GOOGLE_REFRESH_TOKEN ||
-      process.env.GOOGLE_REFRESH_TOKEN,
+    refreshToken: process.env.PHARADOL_GOOGLE_REFRESH_TOKEN,
     senderName: "Pharadol Production",
     senderEmail: "pharadol.production@gmail.com",
   },
   adisorn: {
-    clientId: process.env.ADISORN_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID,
-    clientSecret:
-      process.env.ADISORN_GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET,
-    refreshToken:
-      process.env.ADISORN_GOOGLE_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN,
+    refreshToken: process.env.ADISORN_GOOGLE_REFRESH_TOKEN,
     senderName: "Adisorn Wedding Studio",
     senderEmail: "adisornweddingstudio@gmail.com",
   },
@@ -33,8 +22,15 @@ const BRAND_NAMES = {
 };
 
 const GOOGLE_SECRET_ENV_NAMES = {
-  pharadol: "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET",
-  adisorn: "ADISORN_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET",
+  pharadol: "GOOGLE_CLIENT_SECRET",
+  adisorn: "GOOGLE_CLIENT_SECRET",
+};
+
+const BRAND_ENV_NAMES = {
+  pharadol:
+    "GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET และ PHARADOL_GOOGLE_REFRESH_TOKEN",
+  adisorn:
+    "GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET และ ADISORN_GOOGLE_REFRESH_TOKEN",
 };
 
 const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
@@ -137,11 +133,14 @@ export async function POST(request) {
       );
     }
 
-    if (!config.clientId || !config.clientSecret || !config.refreshToken) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret || !config.refreshToken) {
       return Response.json(
         {
           success: false,
-          error: `ตั้งค่า Google/Gmail ของ ${BRAND_NAMES[brandId]} ไม่ครบ`,
+          error: `ตั้งค่า Google/Gmail ของ ${BRAND_NAMES[brandId]} ไม่ครบ กรุณาตรวจค่า ${BRAND_ENV_NAMES[brandId]}`,
         },
         { status: 500 }
       );
@@ -169,8 +168,8 @@ export async function POST(request) {
     }
 
     const oauth2Client = new google.auth.OAuth2(
-      config.clientId,
-      config.clientSecret
+      clientId,
+      clientSecret
     );
 
     oauth2Client.setCredentials({
@@ -225,7 +224,7 @@ export async function POST(request) {
     ) {
       const envNames =
         GOOGLE_SECRET_ENV_NAMES[requestBrandId] ||
-        "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET";
+        "GOOGLE_CLIENT_SECRET";
       errorMessage = `Google Client Secret ไม่ถูกต้อง กรุณาตรวจค่า ${envNames} ใน .env.local/Vercel ให้เป็น Client secret ของ OAuth Client เดียวกับที่ใช้ขอ refresh token แล้วเชื่อมต่อ Google ใหม่`;
     } else if (
       normalizedGoogleError.includes("invalid_grant") ||
