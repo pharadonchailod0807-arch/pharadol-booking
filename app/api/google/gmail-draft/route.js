@@ -32,6 +32,11 @@ const BRAND_NAMES = {
   adisorn: "Adisorn",
 };
 
+const GOOGLE_SECRET_ENV_NAMES = {
+  pharadol: "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET",
+  adisorn: "ADISORN_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET",
+};
+
 const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 
 const encodeMimeWord = (value) =>
@@ -102,9 +107,12 @@ const buildRawMessage = ({
 };
 
 export async function POST(request) {
+  let requestBrandId = "";
+
   try {
     const payload = await request.json().catch(() => null);
     const brandId = String(payload?.brandId || "").trim();
+    requestBrandId = brandId;
     const expectedBrandId = String(payload?.expectedBrandId || brandId).trim();
     const config = BRAND_CONFIG[brandId] || null;
     const to = String(payload?.to || "").trim();
@@ -199,20 +207,46 @@ export async function POST(request) {
       gmailDraftsUrl: "https://mail.google.com/mail/u/0/#drafts",
     });
   } catch (error) {
-    console.error("Cannot create Gmail draft:", error);
+    const googleErrorData = error?.response?.data || {};
+    console.error("Cannot create Gmail draft:", googleErrorData || error);
 
     const googleError =
-      error?.response?.data?.error_description ||
-      error?.response?.data?.error ||
+      googleErrorData.error_description ||
+      googleErrorData.error ||
       error?.message ||
       "สร้าง Gmail Draft ไม่สำเร็จ";
+    const normalizedGoogleError = String(googleError).toLowerCase();
+    let errorMessage = googleError;
+
+    if (
+      normalizedGoogleError.includes("client secret") ||
+      normalizedGoogleError.includes("invalid_client") ||
+      normalizedGoogleError.includes("unauthorized_client")
+    ) {
+      const envNames =
+        GOOGLE_SECRET_ENV_NAMES[requestBrandId] ||
+        "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET";
+      errorMessage = `Google Client Secret ไม่ถูกต้อง กรุณาตรวจค่า ${envNames} ใน .env.local/Vercel ให้เป็น Client secret ของ OAuth Client เดียวกับที่ใช้ขอ refresh token แล้วเชื่อมต่อ Google ใหม่`;
+    } else if (
+      normalizedGoogleError.includes("invalid_grant") ||
+      normalizedGoogleError.includes("token has been expired") ||
+      normalizedGoogleError.includes("revoked")
+    ) {
+      errorMessage =
+        "Google refresh token ใช้ไม่ได้หรือหมดอายุ กรุณาเชื่อมต่อ Google ใหม่เพื่อขอ refresh token ชุดใหม่";
+    } else if (
+      normalizedGoogleError.includes("insufficient") ||
+      normalizedGoogleError.includes("permission") ||
+      normalizedGoogleError.includes("scope")
+    ) {
+      errorMessage =
+        "Google token ยังไม่มีสิทธิ์ Gmail compose กรุณาเชื่อมต่อ Google ใหม่เพื่ออนุญาตสิทธิ์ Gmail";
+    }
 
     return Response.json(
       {
         success: false,
-        error: googleError.includes("insufficient")
-          ? "Google token ยังไม่มีสิทธิ์ Gmail compose กรุณาเชื่อมต่อ Google ใหม่"
-          : googleError,
+        error: errorMessage,
       },
       { status: 500 }
     );
