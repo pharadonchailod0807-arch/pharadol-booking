@@ -20,6 +20,8 @@ const BRAND_SENDERS = {
   },
 };
 
+const VALID_BRANDS = new Set(["pharadol", "adisorn"]);
+
 const escapeHtml = (value) =>
   String(value || "")
     .replace(/&/g, "&amp;")
@@ -75,9 +77,9 @@ export async function POST(request) {
   }
 
   const payload = await request.json().catch(() => null);
-  const brandId = String(payload?.brandId || "").trim();
-  const expectedBrandId = String(payload?.expectedBrandId || brandId).trim();
-  const sender = BRAND_SENDERS[brandId];
+  const brand = String(payload?.brand || payload?.brandId || "").trim();
+  const expectedBrandId = String(payload?.expectedBrandId || brand).trim();
+  const sender = BRAND_SENDERS[brand];
   const to = String(payload?.to || "").trim();
   const subject = String(payload?.subject || "").trim();
   const body = String(payload?.body || "").trim();
@@ -90,11 +92,11 @@ export async function POST(request) {
         .filter((attachment) => attachment.filename && attachment.content)
     : [];
 
-  if (!sender) {
+  if (!VALID_BRANDS.has(brand) || !sender) {
     return Response.json({ error: "ไม่พบแบรนด์สำหรับส่งอีเมล" }, { status: 400 });
   }
 
-  if (brandId !== expectedBrandId) {
+  if (brand !== expectedBrandId) {
     return Response.json(
       { error: "แบรนด์ของอีเมลไม่ตรงกับแบรนด์ที่กำลังใช้งาน" },
       { status: 403 }
@@ -105,7 +107,7 @@ export async function POST(request) {
     return Response.json(
       {
         error: `ยังไม่ได้ตั้งค่า ${
-          brandId === "pharadol" ? "PHARADOL_EMAIL_FROM" : "ADISORN_EMAIL_FROM"
+          brand === "pharadol" ? "PHARADOL_EMAIL_FROM" : "ADISORN_EMAIL_FROM"
         } ใน .env.local`,
       },
       { status: 500 }
@@ -149,6 +151,12 @@ export async function POST(request) {
       subject,
       text: body,
       html: textToHtml(body),
+      headers: {
+        "BIMI-Selector":
+          brand === "adisorn"
+            ? "v=BIMI1; s=adisorn;"
+            : "v=BIMI1; s=pharadol;",
+      },
       reply_to: sender.replyTo,
       ...(attachments.length > 0 ? { attachments } : {}),
     }),
