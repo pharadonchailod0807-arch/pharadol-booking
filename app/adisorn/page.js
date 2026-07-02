@@ -233,6 +233,7 @@ const [emailPreview, setEmailPreview] = useState(null);
 const [emailSendMessage, setEmailSendMessage] = useState("");
 const [isSendingEmail, setIsSendingEmail] = useState(false);
 const [isPreparingAttachment, setIsPreparingAttachment] = useState(false);
+const [isOpeningGmail, setIsOpeningGmail] = useState(false);
 const [isViewMode, setIsViewMode] = useState(false);
 const [isCustomerView, setIsCustomerView] = useState(false);
 const [loadedBookingNumber, setLoadedBookingNumber] = useState("");
@@ -2863,7 +2864,7 @@ const downloadBlob = (blob, filename) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 const uploadBookingPdfToDrive = async (pdfAttachment) => {
@@ -2996,7 +2997,86 @@ const downloadJPG = async () => {
 };
 
 const openCustomerSendOptions = () => {
+  setEmailSendMessage("");
   setIsSendOptionsOpen(true);
+};
+
+const getBookingEmailSubject = () =>
+  `เอกสารยืนยันการจอง ${bookingNumber} | Adisorn Wedding Studio`;
+
+const getBookingEmailBody = () =>
+  [
+    `เรียน คุณ${customerName || "-"}`,
+    "",
+    "ขอบคุณที่เลือกใช้บริการ Adisorn Wedding Studio",
+    "",
+    "กรุณาตรวจสอบรายละเอียดการจองตามเอกสาร PDF ที่แนบมาพร้อมอีเมลนี้",
+    "",
+    `เลขที่การจอง: ${bookingNumber || "-"}`,
+    `วันที่งาน: ${formattedEventDate || eventDate || "-"}`,
+    `สถานที่: ${location || "-"}`,
+    "",
+    "หากมีข้อสงสัย กรุณาติดต่อ",
+    "Adisorn Wedding Studio",
+    "อีเมล adisornweddingstudio@gmail.com",
+  ].join("\n");
+
+const openGmailForManualSend = async () => {
+  if (isOpeningGmail) return;
+
+  const customerEmail = email.trim();
+  const currentBookingNumber = String(bookingNumber || "").trim();
+
+  if (!customerEmail) {
+    window.alert("กรุณากรอกอีเมลลูกค้าก่อนเปิด Gmail");
+    return;
+  }
+
+  if (!customerEmail.includes("@")) {
+    window.alert("รูปแบบอีเมลลูกค้าไม่ถูกต้อง");
+    return;
+  }
+
+  if (!currentBookingNumber) {
+    window.alert("ไม่พบเลขที่การจอง กรุณาตรวจสอบหรือบันทึกใบจองก่อน");
+    return;
+  }
+
+  setIsOpeningGmail(true);
+  setEmailSendMessage("กำลังสร้าง PDF...");
+
+  try {
+    const pdfAttachment = await createBookingPdfAttachment();
+
+    if (!pdfAttachment?.blob || !pdfAttachment?.filename) {
+      throw new Error("ไม่สามารถสร้าง PDF ได้");
+    }
+
+    downloadBlob(pdfAttachment.blob, pdfAttachment.filename);
+
+    const subject = getBookingEmailSubject();
+    const body = getBookingEmailBody();
+    const gmailUrl =
+      "https://mail.google.com/mail/?view=cm&fs=1" +
+      `&to=${encodeURIComponent(customerEmail)}` +
+      `&su=${encodeURIComponent(subject)}` +
+      `&body=${encodeURIComponent(body)}`;
+
+    window.open(gmailUrl, "_blank", "noopener,noreferrer");
+    setIsSendOptionsOpen(false);
+    setEmailSendMessage(
+      "ดาวน์โหลด PDF แล้ว กรุณาแนบไฟล์ใน Gmail ก่อนกดส่ง"
+    );
+    window.alert("ดาวน์โหลด PDF แล้ว กรุณาแนบไฟล์ใน Gmail ก่อนกดส่ง");
+  } catch (error) {
+    console.error("Cannot open Gmail with booking PDF", error);
+    setEmailSendMessage(
+      error.message || "ไม่สามารถสร้าง PDF สำหรับเปิด Gmail ได้"
+    );
+    window.alert(error.message || "ไม่สามารถสร้าง PDF สำหรับเปิด Gmail ได้");
+  } finally {
+    setIsOpeningGmail(false);
+  }
 };
 
 const sendBookingEmail = async () => {
@@ -3027,29 +3107,8 @@ const sendBookingEmail = async () => {
     return;
   }
 
-  const subject = `ใบจอง ${bookingNumber} - ${customerName || "ลูกค้า"}`;
-  const body = [
-    `เรียน คุณ${customerName || "-"}`,
-    "",
-    "ทาง Adisorn Wedding Studio ขอขอบพระคุณที่ไว้วางใจใช้บริการของเรา",
-    "",
-    "ทางทีมงานได้จัดเตรียมเอกสารยืนยันการจองงานและรายละเอียดการชำระเงินไว้ให้แล้ว",
-    "",
-    "รายละเอียดงานโดยสรุป",
-    `• เลขที่ใบจอง : ${bookingNumber}`,
-    `• วันที่จัดงาน : ${formattedEventDate || "-"}`,
-    `• ประเภทงาน : ${service || "-"}`,
-    "",
-    "หากมีการเปลี่ยนแปลงรายละเอียดงาน หรือต้องการสอบถามข้อมูลเพิ่มเติม สามารถติดต่อทีมงานได้ตลอดเวลา",
-    "",
-    "ขอขอบพระคุณอีกครั้งที่ให้เราเป็นส่วนหนึ่งในวันสำคัญของท่าน",
-    "",
-    "ขอแสดงความนับถือ",
-    "",
-    "Adisorn Wedding Studio",
-    "โทร. 082-141-9633",
-    "E-mail: adisornweddingstudio@gmail.com",
-  ].join("\n");
+  const subject = getBookingEmailSubject();
+  const body = getBookingEmailBody();
 
   setEmailPreview({
     from: `Adisorn Wedding Studio <${senderEmail}>`,
@@ -5101,19 +5160,33 @@ const confirmSendBookingEmail = async () => {
               <button
                 type="button"
                 onClick={sendBookingEmail}
-                disabled={isPreparingAttachment}
+                disabled={isPreparingAttachment || isOpeningGmail}
                 className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700"
               >
                 <span className="text-lg">@</span>
                 <span>
-                  {isPreparingAttachment ? "กำลังสร้าง PDF..." : "ส่งทางอีเมล"}
+                  {isPreparingAttachment
+                    ? "กำลังสร้าง PDF..."
+                    : "ส่งอัตโนมัติผ่าน Resend"}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={openGmailForManualSend}
+                disabled={isPreparingAttachment || isOpeningGmail}
+                className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-zinc-950 px-4 py-3 font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span className="text-lg">✉</span>
+                <span>
+                  {isOpeningGmail ? "กำลังสร้าง PDF..." : "เปิด Gmail เพื่อส่งเอง"}
                 </span>
               </button>
 
               <button
                 type="button"
                 onClick={sendBookingSms}
-                disabled={isPreparingAttachment}
+                disabled={isPreparingAttachment || isOpeningGmail}
                 className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition hover:bg-emerald-700"
               >
                 <span className="text-lg">SMS</span>
@@ -5122,6 +5195,12 @@ const confirmSendBookingEmail = async () => {
                 </span>
               </button>
             </div>
+
+            {emailSendMessage && (
+              <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+                {emailSendMessage}
+              </div>
+            )}
 
             <button
               type="button"
@@ -5197,7 +5276,9 @@ const confirmSendBookingEmail = async () => {
                 disabled={isSendingEmail}
                 className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSendingEmail ? "กำลังอัปโหลดและส่ง..." : "ส่ง"}
+                {isSendingEmail
+                  ? "กำลังอัปโหลดและส่ง..."
+                  : "ส่งอัตโนมัติผ่าน Resend"}
               </button>
             </div>
           </div>
