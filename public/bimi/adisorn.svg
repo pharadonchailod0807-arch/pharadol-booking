@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Adisorn Wedding Studio</title>
+  <desc id="desc">Adisorn Wedding Studio BIMI mark</desc>
+  <rect width="256" height="256" fill="#5a2c10"/>
+  <circle cx="128" cy="128" r="98" fill="#4a260e" stroke="#c4935d" stroke-width="5"/>
+  <text x="128" y="119" fill="#fff4e4" font-family="Georgia, 'Times New Roman', serif" font-size="31" font-weight="600" text-anchor="middle" letter-spacing="4">
+    ADISORN
+  </text>
+  <path d="M71 137h114" stroke="#c4935d" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="128" y="158" fill="#ddb987" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="3.5">
+    WEDDING STUDIO
+  </text>
+</svg>
