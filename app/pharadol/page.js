@@ -3044,37 +3044,58 @@ const openGmailForManualSend = async () => {
   }
 
   setIsOpeningGmail(true);
-  setEmailSendMessage("กำลังสร้าง PDF...");
+  setEmailSendMessage("กำลังสร้าง PDF และ Gmail Draft...");
 
   try {
     const pdfAttachment = await createBookingPdfAttachment();
 
-    if (!pdfAttachment?.blob || !pdfAttachment?.filename) {
+    if (!pdfAttachment?.base64 || !pdfAttachment?.filename) {
       throw new Error("ไม่สามารถสร้าง PDF ได้");
     }
 
-    downloadBlob(pdfAttachment.blob, pdfAttachment.filename);
-
     const subject = getBookingEmailSubject();
     const body = getBookingEmailBody();
-    const gmailUrl =
-      "https://mail.google.com/mail/?view=cm&fs=1" +
-      `&to=${encodeURIComponent(customerEmail)}` +
-      `&su=${encodeURIComponent(subject)}` +
-      `&body=${encodeURIComponent(body)}`;
+    const response = await fetch("/api/google/gmail-draft", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        brandId: BRAND_ID,
+        expectedBrandId: BRAND_ID,
+        to: customerEmail,
+        subject,
+        body,
+        attachment: {
+          filename: pdfAttachment.filename,
+          content: pdfAttachment.base64,
+        },
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
 
-    window.open(gmailUrl, "_blank", "noopener,noreferrer");
+    if (!response.ok || !result?.success) {
+      throw new Error(result?.error || "ไม่สามารถสร้าง Gmail Draft ได้");
+    }
+
+    window.open(
+      result.gmailDraftsUrl || "https://mail.google.com/mail/u/0/#drafts",
+      "_blank",
+      "noopener,noreferrer"
+    );
     setIsSendOptionsOpen(false);
     setEmailSendMessage(
-      "ดาวน์โหลด PDF แล้ว กรุณาแนบไฟล์ใน Gmail ก่อนกดส่ง"
+      "สร้าง Gmail Draft พร้อมแนบ PDF แล้ว กรุณาตรวจสอบก่อนกดส่ง"
     );
-    window.alert("ดาวน์โหลด PDF แล้ว กรุณาแนบไฟล์ใน Gmail ก่อนกดส่ง");
+    window.alert(
+      "สร้าง Gmail Draft พร้อมแนบ PDF แล้ว กรุณาตรวจสอบใน Gmail ก่อนกดส่ง"
+    );
   } catch (error) {
     console.error("Cannot open Gmail with booking PDF", error);
     setEmailSendMessage(
-      error.message || "ไม่สามารถสร้าง PDF สำหรับเปิด Gmail ได้"
+      error.message || "ไม่สามารถสร้าง Gmail Draft พร้อม PDF ได้"
     );
-    window.alert(error.message || "ไม่สามารถสร้าง PDF สำหรับเปิด Gmail ได้");
+    window.alert(error.message || "ไม่สามารถสร้าง Gmail Draft พร้อม PDF ได้");
   } finally {
     setIsOpeningGmail(false);
   }
@@ -5191,7 +5212,9 @@ const confirmSendBookingEmail = async () => {
               >
                 <span className="text-lg">✉</span>
                 <span>
-                  {isOpeningGmail ? "กำลังสร้าง PDF..." : "เปิด Gmail เพื่อส่งเอง"}
+                  {isOpeningGmail
+                    ? "กำลังสร้าง PDF..."
+                    : "สร้าง Gmail Draft พร้อม PDF"}
                 </span>
               </button>
 
