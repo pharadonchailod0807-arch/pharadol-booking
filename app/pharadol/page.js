@@ -113,14 +113,40 @@ const isDuplicateBookingNumberError = (error) =>
   String(error?.message || "").includes("bookings_booking_number_key") ||
   String(error?.message || "").toLowerCase().includes("duplicate key");
 
+const getGoogleClientSecretEnvLabel = () =>
+  BRAND_ID === "adisorn"
+    ? "ADISORN_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET"
+    : "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET";
+
+const normalizeSendErrorMessage = (message) => {
+  const normalizedMessage = String(message || "").toLowerCase();
+
+  if (
+    normalizedMessage.includes("client secret") ||
+    normalizedMessage.includes("invalid_client") ||
+    normalizedMessage.includes("unauthorized_client")
+  ) {
+    return `Google Client Secret ไม่ถูกต้อง กรุณาตรวจค่า ${getGoogleClientSecretEnvLabel()} ใน .env.local/Vercel ให้ตรงกับ OAuth Client ที่ใช้ขอ refresh token แล้วเชื่อมต่อ Google ใหม่`;
+  }
+
+  return message;
+};
+
 const getReadableErrorMessage = (value, fallback) => {
   if (!value) return fallback;
-  if (typeof value === "string") return value;
-  if (typeof value?.message === "string") return value.message;
-  if (typeof value?.error === "string") return value.error;
+  if (typeof value === "string") return normalizeSendErrorMessage(value);
+  if (typeof value?.message === "string") {
+    return normalizeSendErrorMessage(value.message);
+  }
+  if (typeof value?.error === "string") {
+    return normalizeSendErrorMessage(value.error);
+  }
+  if (value?.error && typeof value.error === "object") {
+    return getReadableErrorMessage(value.error, fallback);
+  }
 
   try {
-    return JSON.stringify(value);
+    return normalizeSendErrorMessage(JSON.stringify(value));
   } catch {
     return fallback;
   }

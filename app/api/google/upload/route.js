@@ -35,6 +35,11 @@ const BRAND_NAMES = {
   adisorn: "Adisorn",
 };
 
+const GOOGLE_SECRET_ENV_NAMES = {
+  pharadol: "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET",
+  adisorn: "ADISORN_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET",
+};
+
 const getFolderIdFromValue = (value) => {
   const folderValue = String(value || "").trim();
 
@@ -46,9 +51,12 @@ const getFolderIdFromValue = (value) => {
 };
 
 export async function POST(request) {
+  let requestBrandId = "";
+
   try {
     const formData = await request.formData();
     const brandId = String(formData.get("brandId") || "").trim();
+    requestBrandId = brandId;
     const expectedBrandId = String(formData.get("expectedBrandId") || brandId).trim();
     const config = BRAND_CONFIG[brandId] || null;
 
@@ -141,12 +149,46 @@ export async function POST(request) {
       file: sharedFile.data,
     });
   } catch (error) {
-    console.error(error);
+    const googleErrorData = error?.response?.data || {};
+    console.error(googleErrorData || error);
+
+    const googleError =
+      googleErrorData.error_description ||
+      googleErrorData.error ||
+      error?.message ||
+      "อัปโหลดไม่สำเร็จ";
+    const normalizedGoogleError = String(googleError).toLowerCase();
+    let errorMessage = googleError;
+
+    if (
+      normalizedGoogleError.includes("client secret") ||
+      normalizedGoogleError.includes("invalid_client") ||
+      normalizedGoogleError.includes("unauthorized_client")
+    ) {
+      const envNames =
+        GOOGLE_SECRET_ENV_NAMES[requestBrandId] ||
+        "PHARADOL_GOOGLE_CLIENT_SECRET หรือ GOOGLE_CLIENT_SECRET";
+      errorMessage = `Google Client Secret ไม่ถูกต้อง กรุณาตรวจค่า ${envNames} ใน .env.local/Vercel ให้เป็น Client secret ของ OAuth Client เดียวกับที่ใช้ขอ refresh token แล้วเชื่อมต่อ Google ใหม่`;
+    } else if (
+      normalizedGoogleError.includes("invalid_grant") ||
+      normalizedGoogleError.includes("token has been expired") ||
+      normalizedGoogleError.includes("revoked")
+    ) {
+      errorMessage =
+        "Google refresh token ใช้ไม่ได้หรือหมดอายุ กรุณาเชื่อมต่อ Google ใหม่เพื่อขอ refresh token ชุดใหม่";
+    } else if (
+      normalizedGoogleError.includes("insufficient") ||
+      normalizedGoogleError.includes("permission") ||
+      normalizedGoogleError.includes("scope")
+    ) {
+      errorMessage =
+        "Google token ยังไม่มีสิทธิ์ Google Drive กรุณาเชื่อมต่อ Google ใหม่เพื่ออนุญาตสิทธิ์ Drive";
+    }
 
     return Response.json(
       {
         success: false,
-        error: error?.message || "อัปโหลดไม่สำเร็จ",
+        error: errorMessage,
       },
       { status: 500 }
     );
