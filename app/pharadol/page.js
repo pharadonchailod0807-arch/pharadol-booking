@@ -113,6 +113,19 @@ const isDuplicateBookingNumberError = (error) =>
   String(error?.message || "").includes("bookings_booking_number_key") ||
   String(error?.message || "").toLowerCase().includes("duplicate key");
 
+const getReadableErrorMessage = (value, fallback) => {
+  if (!value) return fallback;
+  if (typeof value === "string") return value;
+  if (typeof value?.message === "string") return value.message;
+  if (typeof value?.error === "string") return value.error;
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return fallback;
+  }
+};
+
 export default function BookingSystem() {
   const router = useRouter();
 
@@ -3075,7 +3088,12 @@ const openGmailForManualSend = async () => {
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok || !result?.success) {
-      throw new Error(result?.error || "ไม่สามารถสร้าง Gmail Draft ได้");
+      throw new Error(
+        getReadableErrorMessage(
+          result?.error || result,
+          "ไม่สามารถสร้าง Gmail Draft ได้"
+        )
+      );
     }
 
     window.open(
@@ -3092,10 +3110,12 @@ const openGmailForManualSend = async () => {
     );
   } catch (error) {
     console.error("Cannot open Gmail with booking PDF", error);
-    setEmailSendMessage(
-      error.message || "ไม่สามารถสร้าง Gmail Draft พร้อม PDF ได้"
+    const errorMessage = getReadableErrorMessage(
+      error,
+      "ไม่สามารถสร้าง Gmail Draft พร้อม PDF ได้"
     );
-    window.alert(error.message || "ไม่สามารถสร้าง Gmail Draft พร้อม PDF ได้");
+    setEmailSendMessage(errorMessage);
+    window.alert(errorMessage);
   } finally {
     setIsOpeningGmail(false);
   }
@@ -3233,10 +3253,15 @@ const confirmSendBookingEmail = async () => {
         ],
       }),
     });
-    const result = await response.json();
+    const result = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(result?.error || "ส่งอีเมลไม่สำเร็จ");
+      throw new Error(
+        getReadableErrorMessage(
+          result?.error || result,
+          "ส่งอีเมลไม่สำเร็จ"
+        )
+      );
     }
 
     await markBookingEmailSent({
@@ -3253,7 +3278,7 @@ const confirmSendBookingEmail = async () => {
     window.alert("ส่งอีเมลให้ลูกค้าเรียบร้อยแล้ว");
     setEmailPreview(null);
   } catch (error) {
-    setEmailSendMessage(error.message || "ส่งอีเมลไม่สำเร็จ");
+    setEmailSendMessage(getReadableErrorMessage(error, "ส่งอีเมลไม่สำเร็จ"));
   } finally {
     setIsSendingEmail(false);
   }

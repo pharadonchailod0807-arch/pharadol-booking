@@ -37,6 +37,20 @@ const textToHtml = (text) =>
 
 const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 
+const getReadableErrorMessage = (value, fallback) => {
+  if (!value) return fallback;
+  if (typeof value === "string") return value;
+  if (typeof value?.message === "string") return value.message;
+  if (typeof value?.error === "string") return value.error;
+  if (typeof value?.name === "string") return value.name;
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return fallback;
+  }
+};
+
 const getEmailFromValue = (value) => {
   const emailMatch = String(value || "").match(/[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+/);
   return emailMatch?.[0] || "";
@@ -168,9 +182,10 @@ export async function POST(request) {
     return Response.json(
       {
         error:
-          result?.message ||
-          result?.error ||
-          "ส่งอีเมลไม่สำเร็จ กรุณาตรวจสอบ Resend API key และ sender domain",
+          getReadableErrorMessage(
+            result?.message || result?.error || result,
+            "ส่งอีเมลไม่สำเร็จ กรุณาตรวจสอบ Resend API key และ sender domain"
+          ),
       },
       { status: resendResponse.status }
     );
