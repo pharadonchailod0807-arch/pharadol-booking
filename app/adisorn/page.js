@@ -114,7 +114,7 @@ const isDuplicateBookingNumberError = (error) =>
   String(error?.message || "").toLowerCase().includes("duplicate key");
 
 const getGoogleClientSecretEnvLabel = () =>
-  "GOOGLE_CLIENT_SECRET";
+  "ADISORN_GOOGLE_CLIENT_ID, ADISORN_GOOGLE_CLIENT_SECRET และ ADISORN_GOOGLE_REFRESH_TOKEN";
 
 const normalizeSendErrorMessage = (message) => {
   const normalizedMessage = String(message || "").toLowerCase();
@@ -275,10 +275,10 @@ const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
 const [isSendOptionsOpen, setIsSendOptionsOpen] = useState(false);
 const [emailPreview, setEmailPreview] = useState(null);
+const [gmailDraftOpenInfo, setGmailDraftOpenInfo] = useState(null);
 const [emailSendMessage, setEmailSendMessage] = useState("");
 const [isSendingEmail, setIsSendingEmail] = useState(false);
 const [isPreparingAttachment, setIsPreparingAttachment] = useState(false);
-const [isOpeningGmail, setIsOpeningGmail] = useState(false);
 const [isViewMode, setIsViewMode] = useState(false);
 const [isCustomerView, setIsCustomerView] = useState(false);
 const [loadedBookingNumber, setLoadedBookingNumber] = useState("");
@@ -3043,6 +3043,7 @@ const downloadJPG = async () => {
 
 const openCustomerSendOptions = () => {
   setEmailSendMessage("");
+  setGmailDraftOpenInfo(null);
   setIsSendOptionsOpen(true);
 };
 
@@ -3066,95 +3067,24 @@ const getBookingEmailBody = () =>
     "อีเมล adisornweddingstudio@gmail.com",
   ].join("\n");
 
-const openGmailForManualSend = async () => {
-  if (isOpeningGmail) return;
-
-  const customerEmail = email.trim();
-  const currentBookingNumber = String(bookingNumber || "").trim();
-
-  if (!customerEmail) {
-    window.alert("กรุณากรอกอีเมลลูกค้าก่อนเปิด Gmail");
-    return;
+const getGmailDraftOpenUrl = ({ threadId, messageId, draftId }) => {
+  if (threadId) {
+    return `https://mail.google.com/mail/u/0/#drafts/${encodeURIComponent(threadId)}`;
   }
 
-  if (!customerEmail.includes("@")) {
-    window.alert("รูปแบบอีเมลลูกค้าไม่ถูกต้อง");
-    return;
+  if (messageId) {
+    return `https://mail.google.com/mail/u/0/#drafts/${encodeURIComponent(messageId)}`;
   }
 
-  if (!currentBookingNumber) {
-    window.alert("ไม่พบเลขที่การจอง กรุณาตรวจสอบหรือบันทึกใบจองก่อน");
-    return;
+  if (draftId) {
+    return `https://mail.google.com/mail/u/0/#drafts?compose=${encodeURIComponent(draftId)}`;
   }
 
-  setIsOpeningGmail(true);
-  setEmailSendMessage("กำลังสร้าง PDF และ Gmail Draft...");
-
-  try {
-    const pdfAttachment = await createBookingPdfAttachment();
-
-    if (!pdfAttachment?.base64 || !pdfAttachment?.filename) {
-      throw new Error("ไม่สามารถสร้าง PDF ได้");
-    }
-
-    const subject = getBookingEmailSubject();
-    const body = getBookingEmailBody();
-    const response = await fetch("/api/google/gmail-draft", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        brandId: BRAND_ID,
-        expectedBrandId: BRAND_ID,
-        to: customerEmail,
-        subject,
-        body,
-        attachment: {
-          filename: pdfAttachment.filename,
-          content: pdfAttachment.base64,
-        },
-      }),
-    });
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok || !result?.success) {
-      throw new Error(
-        getReadableErrorMessage(
-          result?.error || result,
-          "ไม่สามารถสร้าง Gmail Draft ได้"
-        )
-      );
-    }
-
-    window.open(
-      result.gmailDraftsUrl || "https://mail.google.com/mail/u/0/#drafts",
-      "_blank",
-      "noopener,noreferrer"
-    );
-    setIsSendOptionsOpen(false);
-    setEmailSendMessage(
-      "สร้าง Gmail Draft พร้อมแนบ PDF แล้ว กรุณาตรวจสอบก่อนกดส่ง"
-    );
-    window.alert(
-      "สร้าง Gmail Draft พร้อมแนบ PDF แล้ว กรุณาตรวจสอบใน Gmail ก่อนกดส่ง"
-    );
-  } catch (error) {
-    console.error("Cannot open Gmail with booking PDF", error);
-    const errorMessage = getReadableErrorMessage(
-      error,
-      "ไม่สามารถสร้าง Gmail Draft พร้อม PDF ได้"
-    );
-    setEmailSendMessage(errorMessage);
-    window.alert(errorMessage);
-  } finally {
-    setIsOpeningGmail(false);
-  }
+  return "";
 };
 
 const sendBookingEmail = async () => {
   const customerEmail = email.trim();
-  const senderEmail = "adisornweddingstudio@gmail.com";
 
   if (!customerEmail) {
     window.alert("กรุณากรอกอีเมลลูกค้าก่อนส่งใบจอง");
@@ -3184,7 +3114,6 @@ const sendBookingEmail = async () => {
   const body = getBookingEmailBody();
 
   setEmailPreview({
-    from: `Adisorn Wedding Studio <${senderEmail}>`,
     to: customerEmail,
     subject,
     body,
@@ -3260,12 +3189,11 @@ const confirmSendBookingEmail = async () => {
   if (!emailPreview) return;
 
   setIsSendingEmail(true);
-  setEmailSendMessage("");
+  setEmailSendMessage("กำลังสร้าง Gmail Draft...");
 
   try {
-    const driveFile = await uploadBookingPdfToDrive(emailPreview.pdfAttachment);
     const finalBody = emailPreview.body;
-    const response = await fetch("/api/send-booking-email", {
+    const response = await fetch("/api/google/gmail-draft", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -3275,13 +3203,9 @@ const confirmSendBookingEmail = async () => {
         expectedBrandId: BRAND_ID,
         to: emailPreview.to,
         subject: emailPreview.subject,
-        body: finalBody,
-        attachments: [
-          {
-            filename: emailPreview.pdfAttachment.filename,
-            content: emailPreview.pdfAttachment.base64,
-          },
-        ],
+        text: finalBody,
+        pdfBase64: emailPreview.pdfAttachment.base64,
+        filename: emailPreview.pdfAttachment.filename,
       }),
     });
     const result = await response.json().catch(() => ({}));
@@ -3290,26 +3214,33 @@ const confirmSendBookingEmail = async () => {
       throw new Error(
         getReadableErrorMessage(
           result?.error || result,
-          "ส่งอีเมลไม่สำเร็จ"
+          "สร้าง Gmail Draft ไม่สำเร็จ"
         )
       );
     }
 
-    await markBookingEmailSent({
-      driveFile,
-      messageId: result?.id || "",
-    });
-    saveEmailHistoryRecord({
-      driveFile,
-      messageId: result?.id || "",
-      subject: emailPreview.subject,
-      body: finalBody,
+    const gmailUrl = getGmailDraftOpenUrl({
+      draftId: result?.draftId || "",
+      messageId: result?.messageId || "",
+      threadId: result?.threadId || "",
     });
 
-    window.alert("ส่งอีเมลให้ลูกค้าเรียบร้อยแล้ว");
+    setGmailDraftOpenInfo({
+      to: emailPreview.to,
+      subject: emailPreview.subject,
+      filename: emailPreview.pdfAttachment.filename,
+      draftId: result?.draftId || "",
+      messageId: result?.messageId || "",
+      threadId: result?.threadId || "",
+      url: gmailUrl,
+    });
+
+    setEmailSendMessage("สร้าง Draft พร้อม PDF สำเร็จแล้ว");
     setEmailPreview(null);
   } catch (error) {
-    setEmailSendMessage(getReadableErrorMessage(error, "ส่งอีเมลไม่สำเร็จ"));
+    setEmailSendMessage(
+      getReadableErrorMessage(error, "สร้าง Gmail Draft ไม่สำเร็จ")
+    );
   } finally {
     setIsSendingEmail(false);
   }
@@ -5238,35 +5169,21 @@ const confirmSendBookingEmail = async () => {
               <button
                 type="button"
                 onClick={sendBookingEmail}
-                disabled={isPreparingAttachment || isOpeningGmail}
+                disabled={isPreparingAttachment}
                 className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700"
               >
                 <span className="text-lg">@</span>
                 <span>
                   {isPreparingAttachment
                     ? "กำลังสร้าง PDF..."
-                    : "ส่งอัตโนมัติผ่าน Resend"}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={openGmailForManualSend}
-                disabled={isPreparingAttachment || isOpeningGmail}
-                className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-zinc-950 px-4 py-3 font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span className="text-lg">✉</span>
-                <span>
-                  {isOpeningGmail
-                    ? "กำลังสร้าง PDF..."
-                    : "สร้าง Gmail Draft พร้อม PDF"}
+                    : "ส่งอีเมลให้ลูกค้า"}
                 </span>
               </button>
 
               <button
                 type="button"
                 onClick={sendBookingSms}
-                disabled={isPreparingAttachment || isOpeningGmail}
+                disabled={isPreparingAttachment}
                 className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition hover:bg-emerald-700"
               >
                 <span className="text-lg">SMS</span>
@@ -5307,11 +5224,7 @@ const confirmSendBookingEmail = async () => {
             <div className="space-y-4 px-6 py-5">
               <div className="grid gap-3 rounded-xl bg-zinc-50 p-4 text-sm">
                 <div>
-                  <span className="font-semibold text-zinc-500">จาก: </span>
-                  <span className="text-zinc-900">{emailPreview.from}</span>
-                </div>
-                <div>
-                  <span className="font-semibold text-zinc-500">ถึง: </span>
+                  <span className="font-semibold text-zinc-500">อีเมลผู้รับ: </span>
                   <span className="text-zinc-900">{emailPreview.to}</span>
                 </div>
                 <div>
@@ -5324,15 +5237,20 @@ const confirmSendBookingEmail = async () => {
                       PDF:{" "}
                     </span>
                     <span className="text-zinc-900">
-                      {emailPreview.pdfAttachment.filename} (แนบอีเมลและบันทึกเข้า Google Drive ตอนกดส่ง)
+                      {emailPreview.pdfAttachment.filename}
                     </span>
                   </div>
                 )}
               </div>
 
-              <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-xl border border-zinc-200 bg-white p-4 font-sans text-sm leading-7 text-zinc-800">
-                {emailPreview.body}
-              </pre>
+              <div>
+                <div className="mb-2 text-sm font-semibold text-zinc-500">
+                  เนื้อหาอีเมล
+                </div>
+                <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-xl border border-zinc-200 bg-white p-4 font-sans text-sm leading-7 text-zinc-800">
+                  {emailPreview.body}
+                </pre>
+              </div>
 
               {emailSendMessage && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -5348,7 +5266,7 @@ const confirmSendBookingEmail = async () => {
                 disabled={isSendingEmail}
                 className="rounded-xl border border-zinc-300 bg-white px-5 py-3 font-semibold text-zinc-700 transition hover:bg-zinc-100"
               >
-                ยกเลิกการส่ง
+                ยกเลิก
               </button>
               <button
                 type="button"
@@ -5356,9 +5274,63 @@ const confirmSendBookingEmail = async () => {
                 disabled={isSendingEmail}
                 className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSendingEmail
-                  ? "กำลังอัปโหลดและส่ง..."
-                  : "ส่งอัตโนมัติผ่าน Resend"}
+                {isSendingEmail ? "กำลังสร้าง Gmail Draft..." : "เปิด Gmail Draft"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {gmailDraftOpenInfo && (
+        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 className="text-xl font-bold text-zinc-900">
+              สร้าง Draft พร้อม PDF สำเร็จแล้ว
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-600">
+              ระบบสร้าง Gmail Draft พร้อมแนบ PDF แล้ว อยู่ในเว็บนี้ต่อได้เลย หรือกดเปิด Gmail Draft เองเมื่อต้องการตรวจสอบและส่ง
+            </p>
+            <div className="mt-4 rounded-xl bg-zinc-50 p-4 text-sm text-zinc-700">
+              <div>
+                <span className="font-semibold text-zinc-500">อีเมลผู้รับ: </span>
+                {gmailDraftOpenInfo.to || "-"}
+              </div>
+              <div>
+                <span className="font-semibold text-zinc-500">หัวข้อ: </span>
+                {gmailDraftOpenInfo.subject || "-"}
+              </div>
+              <div>
+                <span className="font-semibold text-zinc-500">PDF: </span>
+                {gmailDraftOpenInfo.filename || "-"}
+              </div>
+              {gmailDraftOpenInfo.threadId && (
+                <div className="mt-2 text-xs text-zinc-500">Thread ID: {gmailDraftOpenInfo.threadId}</div>
+              )}
+              {gmailDraftOpenInfo.messageId && (
+                <div className="text-xs text-zinc-500">Message ID: {gmailDraftOpenInfo.messageId}</div>
+              )}
+              {gmailDraftOpenInfo.draftId && (
+                <div className="text-xs text-zinc-500">Draft ID: {gmailDraftOpenInfo.draftId}</div>
+              )}
+            </div>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setGmailDraftOpenInfo(null)}
+                className="rounded-xl border border-zinc-300 bg-white px-5 py-3 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+              >
+                ปิด
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!gmailDraftOpenInfo.url) return;
+                  window.open(gmailDraftOpenInfo.url, "_blank", "noopener,noreferrer");
+                  setGmailDraftOpenInfo(null);
+                }}
+                disabled={!gmailDraftOpenInfo.url}
+                className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                เปิด Draft ใน Gmail
               </button>
             </div>
           </div>

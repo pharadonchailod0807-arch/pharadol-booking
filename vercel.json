@@ -9,6 +9,9 @@
     "app/api/google/callback/route.js": {
       "maxDuration": 30
     },
+    "app/api/google/gmail-draft/route.js": {
+      "maxDuration": 60
+    },
     "app/api/send-booking-email/route.js": {
       "maxDuration": 30
     },

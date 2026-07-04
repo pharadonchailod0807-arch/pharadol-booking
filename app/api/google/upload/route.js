@@ -6,10 +6,14 @@ export const maxDuration = 60;
 
 const BRAND_CONFIG = {
   pharadol: {
+    clientId: process.env.PHARADOL_GOOGLE_CLIENT_ID,
+    clientSecret: process.env.PHARADOL_GOOGLE_CLIENT_SECRET,
     refreshToken: process.env.PHARADOL_GOOGLE_REFRESH_TOKEN,
     folderId: process.env.PHARADOL_GOOGLE_DRIVE_FOLDER_ID,
   },
   adisorn: {
+    clientId: process.env.ADISORN_GOOGLE_CLIENT_ID,
+    clientSecret: process.env.ADISORN_GOOGLE_CLIENT_SECRET,
     refreshToken: process.env.ADISORN_GOOGLE_REFRESH_TOKEN,
     folderId: process.env.ADISORN_GOOGLE_DRIVE_FOLDER_ID,
   },
@@ -20,16 +24,18 @@ const BRAND_NAMES = {
   adisorn: "Adisorn",
 };
 
-const GOOGLE_SECRET_ENV_NAMES = {
-  pharadol: "GOOGLE_CLIENT_SECRET",
-  adisorn: "GOOGLE_CLIENT_SECRET",
+const GOOGLE_CREDENTIAL_ENV_NAMES = {
+  pharadol:
+    "PHARADOL_GOOGLE_CLIENT_ID, PHARADOL_GOOGLE_CLIENT_SECRET และ PHARADOL_GOOGLE_REFRESH_TOKEN",
+  adisorn:
+    "ADISORN_GOOGLE_CLIENT_ID, ADISORN_GOOGLE_CLIENT_SECRET และ ADISORN_GOOGLE_REFRESH_TOKEN",
 };
 
 const BRAND_ENV_NAMES = {
   pharadol:
-    "GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, PHARADOL_GOOGLE_REFRESH_TOKEN และ PHARADOL_GOOGLE_DRIVE_FOLDER_ID",
+    `${GOOGLE_CREDENTIAL_ENV_NAMES.pharadol} และ PHARADOL_GOOGLE_DRIVE_FOLDER_ID`,
   adisorn:
-    "GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, ADISORN_GOOGLE_REFRESH_TOKEN และ ADISORN_GOOGLE_DRIVE_FOLDER_ID",
+    `${GOOGLE_CREDENTIAL_ENV_NAMES.adisorn} และ ADISORN_GOOGLE_DRIVE_FOLDER_ID`,
 };
 
 const getFolderIdFromValue = (value) => {
@@ -66,9 +72,7 @@ export async function POST(request) {
       );
     }
 
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const { refreshToken } = config;
+    const { clientId, clientSecret, refreshToken } = config;
     const folderId = getFolderIdFromValue(config.folderId);
 
     if (!clientId || !clientSecret || !refreshToken || !folderId) {
@@ -160,8 +164,8 @@ export async function POST(request) {
       normalizedGoogleError.includes("unauthorized_client")
     ) {
       const envNames =
-        GOOGLE_SECRET_ENV_NAMES[requestBrandId] ||
-        "GOOGLE_CLIENT_SECRET";
+        GOOGLE_CREDENTIAL_ENV_NAMES[requestBrandId] ||
+        GOOGLE_CREDENTIAL_ENV_NAMES.pharadol;
       errorMessage = `Google Client Secret ไม่ถูกต้อง กรุณาตรวจค่า ${envNames} ใน .env.local/Vercel ให้เป็น Client secret ของ OAuth Client เดียวกับที่ใช้ขอ refresh token แล้วเชื่อมต่อ Google ใหม่`;
     } else if (
       normalizedGoogleError.includes("invalid_grant") ||

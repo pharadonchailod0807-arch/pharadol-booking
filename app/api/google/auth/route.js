@@ -10,10 +10,44 @@ const GOOGLE_OAUTH_SCOPES = [
 ];
 
 const VALID_BRANDS = new Set(["pharadol", "adisorn"]);
-const EXPECTED_GOOGLE_REDIRECT_URI =
+const PRODUCTION_GOOGLE_REDIRECT_URI =
   "https://www.pharadolproduction.com/api/google/callback";
+const LOCAL_GOOGLE_REDIRECT_HOSTS = new Set(["localhost", "127.0.0.1"]);
+const BRAND_CONFIG = {
+  pharadol: {
+    clientId: process.env.PHARADOL_GOOGLE_CLIENT_ID,
+    clientSecret: process.env.PHARADOL_GOOGLE_CLIENT_SECRET,
+  },
+  adisorn: {
+    clientId: process.env.ADISORN_GOOGLE_CLIENT_ID,
+    clientSecret: process.env.ADISORN_GOOGLE_CLIENT_SECRET,
+  },
+};
+const GOOGLE_CREDENTIAL_ENV_NAMES = {
+  pharadol:
+    "PHARADOL_GOOGLE_CLIENT_ID, PHARADOL_GOOGLE_CLIENT_SECRET และ PHARADOL_GOOGLE_REFRESH_TOKEN",
+  adisorn:
+    "ADISORN_GOOGLE_CLIENT_ID, ADISORN_GOOGLE_CLIENT_SECRET และ ADISORN_GOOGLE_REFRESH_TOKEN",
+};
 
-const getGoogleOAuthConfig = (requestUrl) => {
+const isLocalGoogleRedirectHost = (hostname) =>
+  LOCAL_GOOGLE_REDIRECT_HOSTS.has(String(hostname || "").toLowerCase());
+
+const isAllowedGoogleRedirectUri = (redirectUri) => {
+  if (redirectUri === PRODUCTION_GOOGLE_REDIRECT_URI) return true;
+
+  try {
+    const parsedUrl = new URL(redirectUri);
+    return (
+      isLocalGoogleRedirectHost(parsedUrl.hostname) &&
+      parsedUrl.pathname === "/api/google/callback"
+    );
+  } catch {
+    return false;
+  }
+};
+
+const getGoogleOAuthConfig = (brand, requestUrl) => {
   const envRedirectUri = String(process.env.GOOGLE_REDIRECT_URI || "").trim();
   const envBaseUrl = String(process.env.NEXT_PUBLIC_APP_URL || "")
     .trim()
@@ -21,13 +55,19 @@ const getGoogleOAuthConfig = (requestUrl) => {
   const requestBaseUrl = requestUrl
     ? `${requestUrl.protocol}//${requestUrl.host}`.replace(/\/$/, "")
     : "";
+  const isLocalRequest = requestUrl
+    ? isLocalGoogleRedirectHost(requestUrl.hostname)
+    : false;
   const baseUrl = envBaseUrl || requestBaseUrl;
-  const redirectUri =
-    envRedirectUri || (baseUrl ? `${baseUrl}/api/google/callback` : "");
+  const redirectUri = isLocalRequest
+    ? `${requestBaseUrl}/api/google/callback`
+    : envRedirectUri || (baseUrl ? `${baseUrl}/api/google/callback` : "");
+
+  const brandConfig = BRAND_CONFIG[brand] || {};
 
   return {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    clientId: brandConfig.clientId,
+    clientSecret: brandConfig.clientSecret,
     redirectUri,
   };
 };
@@ -35,9 +75,6 @@ const getGoogleOAuthConfig = (requestUrl) => {
 export async function GET(request) {
   const requestUrl = new URL(request.url);
   const brand = String(requestUrl.searchParams.get("brand") || "").trim();
-  const { clientId, clientSecret, redirectUri } = getGoogleOAuthConfig(
-    requestUrl
-  );
 
   if (!VALID_BRANDS.has(brand)) {
     return NextResponse.json(
@@ -49,20 +86,24 @@ export async function GET(request) {
     );
   }
 
+  const { clientId, clientSecret, redirectUri } = getGoogleOAuthConfig(
+    brand,
+    requestUrl
+  );
+
   if (!clientId || !clientSecret || !redirectUri) {
     return NextResponse.json(
       {
-        error:
-          "ตั้งค่า GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET หรือ GOOGLE_REDIRECT_URI ไม่ครบ",
+        error: `ตั้งค่า Google OAuth ไม่ครบ กรุณาตรวจค่า ${GOOGLE_CREDENTIAL_ENV_NAMES[brand]} และ GOOGLE_REDIRECT_URI`,
       },
       { status: 500 }
     );
   }
 
-  if (redirectUri !== EXPECTED_GOOGLE_REDIRECT_URI) {
+  if (!isAllowedGoogleRedirectUri(redirectUri)) {
     return NextResponse.json(
       {
-        error: `GOOGLE_REDIRECT_URI ต้องเป็น ${EXPECTED_GOOGLE_REDIRECT_URI}`,
+        error: `GOOGLE_REDIRECT_URI ต้องเป็น ${PRODUCTION_GOOGLE_REDIRECT_URI} หรือ http://localhost:<port>/api/google/callback สำหรับ local dev`,
         currentRedirectUri: redirectUri,
       },
       { status: 500 }
