@@ -581,8 +581,8 @@ export default function Dashboard() {
         <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(45,156,255,0.28),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(128,91,255,0.22),transparent_28%),linear-gradient(135deg,#081b35_0%,#061123_48%,#030816_100%)]" />
         <div className="pointer-events-none fixed inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px)] [background-size:46px_46px]" />
 
-        <section className="relative mx-auto grid min-h-[calc(100vh-48px)] max-w-[1760px] grid-cols-[250px_1fr] gap-8 rounded-[34px] border border-white/20 bg-white/[0.035] p-8 shadow-[0_35px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-          <aside className="flex min-h-full flex-col rounded-[30px] border border-sky-200/20 bg-sky-200/[0.08] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+        <section className="relative mx-auto grid min-h-[calc(100vh-48px)] max-w-[1760px] grid-cols-1 gap-5 rounded-[28px] border border-white/20 bg-white/[0.035] p-4 shadow-[0_35px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl md:p-6 xl:grid-cols-[250px_1fr] xl:gap-8 xl:rounded-[34px] xl:p-8">
+          <aside className="flex min-h-full flex-col rounded-[24px] border border-sky-200/20 bg-sky-200/[0.08] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] xl:rounded-[30px]">
             <div className="mb-10 flex items-center gap-4 px-2">
               <div className="relative h-14 w-14">
                 <Image
@@ -601,7 +601,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <nav className="space-y-3">
+            <nav className="grid gap-3 sm:grid-cols-2 xl:block xl:space-y-3">
               {actionCards.map(([href, icon, title]) => {
                 const active = icon === "document";
 
@@ -623,7 +623,7 @@ export default function Dashboard() {
               })}
             </nav>
 
-            <div className="mt-auto rounded-2xl border border-emerald-200/20 bg-white/[0.07] p-4">
+            <div className="mt-4 rounded-2xl border border-emerald-200/20 bg-white/[0.07] p-4 xl:mt-auto">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-300/15 text-emerald-200">
                   <Icon name="settings" className="h-6 w-6" />
@@ -641,7 +641,7 @@ export default function Dashboard() {
           </aside>
 
           <div className="min-w-0">
-            <header className="mb-8 flex items-center justify-between gap-5">
+            <header className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h1 className="text-4xl font-black tracking-tight">
                   ภาพรวมระบบ
@@ -678,7 +678,7 @@ export default function Dashboard() {
               </div>
             </header>
 
-            <div className="grid grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
               {actionCards.slice(0, 8).map(([href, icon, title, description]) => (
                 <button
                   key={href}
@@ -709,7 +709,7 @@ export default function Dashboard() {
               ))}
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-5">
+            <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
               {actionCards.slice(8).map(([href, icon, title, description]) => (
                 <button
                   key={href}
@@ -737,7 +737,7 @@ export default function Dashboard() {
               ))}
             </div>
 
-            <section className="mt-8 grid grid-cols-4 overflow-hidden rounded-[24px] border border-white/20 bg-white/[0.08] shadow-[0_18px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl">
+            <section className="mt-8 grid grid-cols-1 overflow-hidden rounded-[24px] border border-white/20 bg-white/[0.08] shadow-[0_18px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl sm:grid-cols-2 xl:grid-cols-4">
               {[
                 ["document", totalBookings, "ใบจองทั้งหมด", "+12.5%"],
                 ["customers", customerCount, "ลูกค้าทั้งหมด", "+8.1%"],
@@ -855,8 +855,8 @@ export default function Dashboard() {
           : "radial-gradient(circle at 12% 0%, rgba(255,255,255,0.92), transparent 30%), radial-gradient(circle at 86% 8%, rgba(226,232,240,0.88), transparent 28%), linear-gradient(180deg, #f8fafc 0%, #eef2f7 48%, #f7f7f5 100%)",
       }}
     >
-      <section className={`mx-auto px-6 pb-6 pt-8 text-center md:px-8 ${isNeonTheme ? "max-w-[1840px]" : "max-w-[1680px]"}`}>
-        <div className="mb-6 flex items-center justify-between gap-4 text-left">
+      <section className={`mx-auto px-4 pb-6 pt-6 text-center sm:px-6 md:px-8 ${isNeonTheme ? "max-w-[1840px]" : "max-w-[1680px]"}`}>
+        <div className="mb-6 flex flex-col items-stretch gap-3 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div
             className={
               isNeonTheme
@@ -880,7 +880,7 @@ export default function Dashboard() {
         <p className={isNeonTheme ? "text-sm font-semibold text-white/45" : "text-xs font-bold uppercase tracking-[0.32em] text-zinc-400"}>
           Dashboard
         </p>
-        <h1 className={isNeonTheme ? "mt-2 text-5xl font-semibold md:text-6xl" : "mx-auto mt-3 max-w-5xl text-4xl font-semibold leading-tight text-zinc-950 md:text-6xl"}>
+        <h1 className={isNeonTheme ? "mt-2 break-words text-3xl font-semibold sm:text-4xl md:text-6xl" : "mx-auto mt-3 max-w-5xl break-words text-3xl font-semibold leading-tight text-zinc-950 sm:text-4xl md:text-6xl"}>
           {currentUser.brandName || "Adisorn Wedding Studio"}
         </h1>
         <p className={isNeonTheme ? "mx-auto mt-4 max-w-2xl text-lg font-medium leading-8 text-white/50" : "mx-auto mt-4 max-w-2xl text-base font-medium leading-8 text-zinc-500 md:text-lg"}>
@@ -888,8 +888,8 @@ export default function Dashboard() {
         </p>
       </section>
 
-      <section className={`mx-auto px-6 pb-10 md:px-8 ${isNeonTheme ? "max-w-[1840px]" : "max-w-[1680px]"}`}>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <section className={`mx-auto px-4 pb-10 sm:px-6 md:px-8 ${isNeonTheme ? "max-w-[1840px]" : "max-w-[1680px]"}`}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {statCards.map(([label, value, unit, icon]) => (
             <article
               key={label}
@@ -899,7 +899,7 @@ export default function Dashboard() {
                 <Icon name={icon} className="h-5 w-5" />
               </div>
               <p className={isNeonTheme ? "text-center text-sm font-semibold text-white/48" : "text-center text-sm font-semibold text-zinc-500"}>{label}</p>
-              <h2 className={isNeonTheme ? "mt-2 text-center text-4xl font-semibold" : "mt-2 text-center text-4xl font-semibold text-zinc-950"}>{value}</h2>
+              <h2 className={isNeonTheme ? "mt-2 text-center text-3xl font-semibold md:text-4xl" : "mt-2 text-center text-3xl font-semibold text-zinc-950 md:text-4xl"}>{value}</h2>
               <p className={isNeonTheme ? "mt-1 text-center text-sm font-medium text-white/42" : "mt-1 text-center text-sm font-medium text-zinc-400"}>{unit}</p>
             </article>
           ))}
@@ -922,7 +922,7 @@ export default function Dashboard() {
                   {alerts.map((job, index) => (
                     <div
                       key={`${job.customerName}-${index}`}
-                      className={isNeonTheme ? "flex items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-3" : "flex items-center justify-between rounded-2xl border border-zinc-100 bg-white px-4 py-3 shadow-sm"}
+                      className={isNeonTheme ? "flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 sm:flex-row sm:items-center sm:justify-between" : "flex flex-col gap-3 rounded-2xl border border-zinc-100 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"}
                     >
                       <div>
                         <p className={isNeonTheme ? "font-semibold" : "font-semibold text-zinc-950"}>{job.customerName}</p>
@@ -939,7 +939,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <div className={isNeonTheme ? "mx-auto mt-6 grid max-w-[1640px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5" : "mx-auto mt-6 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"}>
+        <div className={isNeonTheme ? "mx-auto mt-6 grid max-w-[1640px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" : "mx-auto mt-6 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"}>
           {actionCards.map(([href, icon, title, description]) => {
             if (isNeonTheme) {
               const cardImage = actionCardImages[icon];

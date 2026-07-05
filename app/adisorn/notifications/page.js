@@ -117,7 +117,7 @@ export default function ArchivesPage() {
 
   return (
     <main className="min-h-screen bg-zinc-100 p-8">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto w-full max-w-6xl">
         <div className="mb-6 flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">ถังเก็บใบจอง</h1>
 
@@ -133,7 +133,7 @@ export default function ArchivesPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/dashboard")}
-              className="rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
+              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
             >
               กลับสู่หน้าหลัก
             </button>
@@ -176,7 +176,7 @@ export default function ArchivesPage() {
                         );
                         router.push("/adisorn?view=customer", { scroll: false });
                       }}
-                      className="rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+                      className="min-h-10 rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
                     >
                       ดูใบจอง
                     </button>

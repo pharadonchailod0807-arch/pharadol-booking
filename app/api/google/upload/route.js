@@ -144,6 +144,9 @@ export async function POST(request) {
 
     return Response.json({
       success: true,
+      driveFileId: sharedFile.data.id || "",
+      driveViewUrl: sharedFile.data.webViewLink || "",
+      driveDownloadUrl: sharedFile.data.webContentLink || "",
       file: sharedFile.data,
     });
   } catch (error) {

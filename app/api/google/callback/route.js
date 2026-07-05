@@ -218,7 +218,7 @@ export async function GET(request) {
         title: `เชื่อมต่อ Google สำเร็จ: ${BRAND_NAMES[brand]}`,
         message:
           tokens.refresh_token
-            ? `คัดลอกค่า refresh token ด้านล่างไปใส่ใน ${BRAND_REFRESH_TOKEN_ENV[brand]} (token นี้รวมสิทธิ์ Google Drive และ Gmail draft)`
+            ? `คัดลอกค่า refresh token ด้านล่างไปใส่ใน ${BRAND_REFRESH_TOKEN_ENV[brand]} (token นี้รวมสิทธิ์ Google Drive และ Gmail)`
             : `Google ไม่ส่ง refresh token กลับมา ถ้าเคยอนุญาตแล้ว ให้ revoke access แล้วลองเข้า /api/google/auth?brand=${brand} ใหม่`,
         token: tokens.refresh_token || "",
         envName: BRAND_REFRESH_TOKEN_ENV[brand],

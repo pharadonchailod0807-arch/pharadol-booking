@@ -168,13 +168,13 @@ export default function ReportsPage() {
   return (
     <main className="min-h-screen bg-zinc-100 p-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold">แจ้งเตือน</h1>
+            <h1 className="text-3xl font-bold md:text-4xl">แจ้งเตือน</h1>
             <p className="mt-1 text-zinc-500">รายการแจ้งเตือนล่าสุด</p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={() => router.back()}
@@ -186,7 +186,7 @@ export default function ReportsPage() {
             <button
               type="button"
               onClick={() => router.push("/pharadol/dashboard")}
-              className="rounded-xl bg-black px-5 py-3 font-semibold text-white"
+              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white"
             >
               เมนูหลัก
             </button>
@@ -209,44 +209,46 @@ export default function ReportsPage() {
           </select>
         </div>
 
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="grid grid-cols-[auto_1fr_auto] gap-4 bg-zinc-900 px-5 py-4 font-semibold text-white">
-            <div>วันที่</div>
-            <div>ข้อความ</div>
-            <div className="text-center">จัดการ</div>
-          </div>
-
-          {filteredNotifications.length > 0 ? (
-            filteredNotifications.map((notification) => (
-              <div
-                key={notification.id}
-                className="grid grid-cols-[auto_1fr_auto] items-center gap-4 border-t border-zinc-200 px-5 py-4"
-              >
-                <div className="font-semibold text-zinc-700">
-                  {new Date(notification.date).toLocaleDateString("th-TH")}
-                </div>
-                <div>
-                  <p className="font-semibold">{notification.message}</p>
-                  <p className="text-sm text-zinc-500">
-                    สถานะ: {notification.status}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => moveToTrash(notification)}
-                    className="rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
-                  >
-                    ลบ
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="p-10 text-center text-zinc-500">
-              ไม่พบแจ้งเตือนตามตัวกรอง
+        <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
+          <div className="min-w-[680px]">
+            <div className="grid grid-cols-[auto_1fr_auto] gap-4 bg-zinc-900 px-5 py-4 font-semibold text-white">
+              <div>วันที่</div>
+              <div>ข้อความ</div>
+              <div className="text-center">จัดการ</div>
             </div>
-          )}
+
+            {filteredNotifications.length > 0 ? (
+              filteredNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="grid grid-cols-[auto_1fr_auto] items-center gap-4 border-t border-zinc-200 px-5 py-4"
+                >
+                  <div className="font-semibold text-zinc-700">
+                    {new Date(notification.date).toLocaleDateString("th-TH")}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{notification.message}</p>
+                    <p className="text-sm text-zinc-500">
+                      สถานะ: {notification.status}
+                    </p>
+                  </div>
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => moveToTrash(notification)}
+                      className="min-h-10 rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                    >
+                      ลบ
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-10 text-center text-zinc-500">
+                ไม่พบแจ้งเตือนตามตัวกรอง
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </main>

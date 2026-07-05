@@ -585,8 +585,8 @@ export default function CustomersPage() {
 
   return (
     <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
-      <div className="mx-auto max-w-[1840px]">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-[1840px]">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">ข้อมูลลูกค้า</h1>
             <p className="mt-1 text-zinc-500">
@@ -594,11 +594,11 @@ export default function CustomersPage() {
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={() => goTo(ROUTES.booking)}
-              className="rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700"
+              className="min-h-12 rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700"
             >
               กลับหน้าสร้างใบจอง
             </button>
@@ -606,7 +606,7 @@ export default function CustomersPage() {
             <button
               type="button"
               onClick={() => goTo(ROUTES.dashboard)}
-              className="rounded-xl bg-black px-4 py-2 font-semibold text-white"
+              className="min-h-12 rounded-xl bg-black px-4 py-2 font-semibold text-white"
             >
               เมนูหลัก
             </button>
@@ -633,7 +633,7 @@ export default function CustomersPage() {
                 <p className="mb-2 text-sm font-semibold text-zinc-700">
                   เรียงตาม
                 </p>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   {[
                     ["bookingNumber", "เลขที่จอง"],
                     ["customerName", "ชื่อลูกค้า"],
@@ -644,7 +644,7 @@ export default function CustomersPage() {
                       key={value}
                       type="button"
                       onClick={() => setSortBy(value)}
-                      className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+                      className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                         sortBy === value
                           ? "bg-zinc-950 text-white shadow-sm"
                           : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
@@ -674,7 +674,7 @@ export default function CustomersPage() {
               type="button"
               onClick={toggleSelectAll}
               disabled={visibleBookingNumbers.length === 0}
-              className={`rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+              className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                 allVisibleSelected
                   ? "bg-zinc-900 text-white"
                   : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
@@ -691,14 +691,14 @@ export default function CustomersPage() {
                 <button
                   type="button"
                   onClick={bulkMoveToArchive}
-                  className="rounded-2xl bg-amber-500 px-5 py-3 text-sm font-semibold text-white hover:bg-amber-600"
+                  className="min-h-12 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-600"
                 >
                   จัดเก็บที่เลือก
                 </button>
                 <button
                   type="button"
                   onClick={bulkMoveToTrash}
-                  className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white hover:bg-red-700"
+                  className="min-h-12 rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
                 >
                   ย้ายที่เลือกไปถังขยะ
                 </button>
@@ -709,8 +709,8 @@ export default function CustomersPage() {
         </div>
 
         <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
-          <div className="min-w-[1320px]">
-            <div className="grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_430px] gap-4 bg-zinc-900 px-5 py-4 font-semibold text-white">
+          <div className="min-w-[980px] lg:min-w-[1320px]">
+            <div className="grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-3 bg-zinc-900 px-4 py-4 text-sm font-semibold text-white lg:grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_430px] lg:gap-4 lg:px-5">
               <div className="flex items-center justify-center">
                 <input
                   type="checkbox"
@@ -736,7 +736,7 @@ export default function CustomersPage() {
                 return (
                   <div
                     key={customer.bookingNumber || index}
-                    className={`grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_430px] items-center gap-4 border-t px-5 py-4 transition ${
+                    className={`grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_360px] items-center gap-3 border-t px-4 py-4 text-sm transition lg:grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_430px] lg:gap-4 lg:px-5 lg:text-base ${
                       selectedBookingNumbers.includes(customer.bookingNumber)
                         ? "border-blue-200 bg-blue-50/60"
                         : "border-zinc-200"
@@ -800,11 +800,11 @@ export default function CustomersPage() {
                       </select>
                     </div>
 
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
                       <button
                         type="button"
                         onClick={() => openBooking(customer)}
-                        className="rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+                        className="min-h-10 rounded-xl bg-blue-600 px-3 py-2 font-semibold text-white hover:bg-blue-700"
                       >
                         ดูใบจอง
                       </button>
@@ -812,7 +812,7 @@ export default function CustomersPage() {
                       <button
                         type="button"
                         onClick={() => moveToArchive(customer)}
-                        className="rounded-xl bg-amber-500 px-4 py-2 font-semibold text-white hover:bg-amber-600"
+                        className="min-h-10 rounded-xl bg-amber-500 px-3 py-2 font-semibold text-white hover:bg-amber-600"
                       >
                         จัดเก็บข้อมูล
                       </button>
@@ -820,7 +820,7 @@ export default function CustomersPage() {
                       <button
                         type="button"
                         onClick={() => moveToTrash(customer)}
-                        className="rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                        className="min-h-10 rounded-xl bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-700"
                       >
                         ย้ายไปถังขยะ
                       </button>

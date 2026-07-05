@@ -882,8 +882,8 @@ export default function ArchivesPage() {
 
   return (
     <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
-      <div className="mx-auto max-w-[1840px]">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-[1840px]">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">คลังข้อมูล</h1>
             <p className="mt-1 text-zinc-500">
@@ -891,18 +891,18 @@ export default function ArchivesPage() {
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="button"
               onClick={() => router.push("/pharadol/customers")}
-              className="rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700"
+              className="min-h-12 rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700"
             >
               ข้อมูลลูกค้า
             </button>
             <button
               type="button"
               onClick={() => router.push("/pharadol/dashboard")}
-              className="rounded-xl bg-black px-4 py-2 font-semibold text-white"
+              className="min-h-12 rounded-xl bg-black px-4 py-2 font-semibold text-white"
             >
               เมนูหลัก
             </button>

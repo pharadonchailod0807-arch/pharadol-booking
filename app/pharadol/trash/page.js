@@ -432,23 +432,23 @@ export default function TrashPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-6 md:p-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 lg:p-10">
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold">🗑️ ถังขยะ</h1>
+            <h1 className="text-3xl font-bold md:text-4xl">🗑️ ถังขยะ</h1>
             <p className="mt-2 text-zinc-500">
               รายการที่ถูกลบและสามารถกู้คืนได้
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
 
             <button
               type="button"
               onClick={clearTrash}
               disabled={trash.length === 0}
-              className="rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="min-h-12 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               ล้างถังขยะทั้งหมด
             </button>
@@ -457,7 +457,7 @@ export default function TrashPage() {
               type="button"
               onClick={clearMailTrash}
               disabled={mailTrash.length === 0}
-              className="rounded-xl border border-red-200 bg-white px-5 py-3 font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="min-h-12 rounded-xl border border-red-200 bg-white px-5 py-3 font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               ล้างขยะเมล
             </button>
@@ -465,7 +465,7 @@ export default function TrashPage() {
             <button
               type="button"
               onClick={() => router.push("/pharadol/dashboard")}
-              className="rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
+              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
             >
               เมนูหลัก
             </button>
@@ -544,7 +544,7 @@ export default function TrashPage() {
                   <button
                     type="button"
                     onClick={() => restoreCustomer(originalIndex)}
-                    className="rounded-xl bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                    className="min-h-10 rounded-xl bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
                   >
                     ♻️ กู้คืน
                   </button>
@@ -552,7 +552,7 @@ export default function TrashPage() {
                   <button
                     type="button"
                     onClick={() => deleteForever(originalIndex)}
-                    className="rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                    className="min-h-10 rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
                   >
                     ❌ ลบถาวร
                   </button>
@@ -597,7 +597,7 @@ export default function TrashPage() {
                   <button
                     type="button"
                     onClick={() => restoreMailTrash(originalIndex)}
-                    className="rounded-xl bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                    className="min-h-10 rounded-xl bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
                   >
                     กู้คืนเมล
                   </button>
@@ -605,7 +605,7 @@ export default function TrashPage() {
                   <button
                     type="button"
                     onClick={() => deleteMailTrashForever(originalIndex)}
-                    className="rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                    className="min-h-10 rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
                   >
                     ลบถาวร
                   </button>

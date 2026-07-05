@@ -111,12 +111,25 @@ const buildRawMessage = ({
 
 const getReadableGoogleError = (error, brandId) => {
   const googleErrorData = error?.response?.data || {};
-  const googleError =
+  const rawGoogleError =
     googleErrorData.error_description ||
-    googleErrorData.error ||
     googleErrorData.message ||
+    googleErrorData.error ||
     error?.message ||
-    "สร้าง Gmail Draft ไม่สำเร็จ";
+    "ส่งอีเมลผ่าน Gmail ไม่สำเร็จ";
+  const googleError =
+    typeof rawGoogleError === "string"
+      ? rawGoogleError
+      : rawGoogleError?.message ||
+        rawGoogleError?.error_description ||
+        rawGoogleError?.error ||
+        (() => {
+          try {
+            return JSON.stringify(rawGoogleError);
+          } catch {
+            return "ส่งอีเมลผ่าน Gmail ไม่สำเร็จ";
+          }
+        })();
   const normalizedGoogleError = String(googleError).toLowerCase();
 
   if (
@@ -140,7 +153,7 @@ const getReadableGoogleError = (error, brandId) => {
     normalizedGoogleError.includes("permission") ||
     normalizedGoogleError.includes("scope")
   ) {
-    return "Google token ยังไม่มีสิทธิ์สร้าง Gmail Draft กรุณาเชื่อมต่อ Google ใหม่เพื่ออนุญาตสิทธิ์ Gmail Compose";
+    return "Google token ยังไม่มีสิทธิ์ส่งอีเมลผ่าน Gmail กรุณาเชื่อมต่อ Google ใหม่เพื่ออนุญาตสิทธิ์ Gmail Compose หรือ Gmail Send";
   }
 
   return googleError;
@@ -167,7 +180,7 @@ export async function POST(request) {
 
     if (!config) {
       return Response.json(
-        { success: false, error: "ไม่พบแบรนด์สำหรับสร้าง Gmail Draft" },
+        { success: false, error: "ไม่พบแบรนด์สำหรับส่งอีเมลผ่าน Gmail" },
         { status: 400 }
       );
     }
@@ -207,7 +220,7 @@ export async function POST(request) {
 
     if (!attachment.filename || !attachment.content) {
       return Response.json(
-        { success: false, error: "ไม่พบไฟล์ PDF สำหรับแนบ Gmail Draft" },
+        { success: false, error: "ไม่พบไฟล์ PDF สำหรับแนบอีเมล" },
         { status: 400 }
       );
     }
@@ -232,27 +245,29 @@ export async function POST(request) {
       attachment,
     });
 
-    const draft = await gmail.users.drafts.create({
+    const sentMessage = await gmail.users.messages.send({
       userId: "me",
       requestBody: {
-        message: {
-          raw,
-        },
+        raw,
       },
     });
 
-    const draftId = draft.data.id || "";
-    const messageId = draft.data.message?.id || "";
-    const threadId = draft.data.message?.threadId || "";
+    const messageId = sentMessage.data.id || "";
+    const threadId = sentMessage.data.threadId || "";
+
+    console.log("Gmail message sent:", {
+      brandId,
+      messageId,
+      threadId,
+    });
 
     return Response.json({
       success: true,
-      draftId,
       messageId,
       threadId,
     });
   } catch (error) {
-    console.error("Cannot create Gmail draft:", error?.response?.data || error);
+    console.error("Cannot send Gmail message:", error?.response?.data || error);
 
     return Response.json(
       {

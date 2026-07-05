@@ -541,8 +541,8 @@ export default function BrandMailPage({ brandId }) {
 
   return (
     <main className="min-h-screen bg-zinc-100 p-4 text-zinc-900 md:p-6 xl:p-8">
-      <div className="mx-auto max-w-[1840px]">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-[1840px]">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">อีเมล</h1>
             <p className="mt-1 text-zinc-500">
@@ -561,14 +561,14 @@ export default function BrandMailPage({ brandId }) {
             <button
               type="button"
               onClick={() => router.push(brand.dashboardPath)}
-              className="rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
+              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
             >
               กลับสู่หน้าหลัก
             </button>
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[440px_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(320px,440px)_minmax(0,1fr)]">
           <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
             <div className="border-b border-zinc-200 p-4">
               <div className="flex items-center justify-between gap-3">
@@ -583,14 +583,14 @@ export default function BrandMailPage({ brandId }) {
                     <button
                       type="button"
                       onClick={deleteSelected}
-                      className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold hover:bg-zinc-100"
+                      className="min-h-10 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold hover:bg-zinc-100"
                     >
                       ลบ
                     </button>
                     <button
                       type="button"
                       onClick={clearAll}
-                      className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      className="min-h-10 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
                     >
                       ล้างทั้งหมด
                     </button>
@@ -637,7 +637,7 @@ export default function BrandMailPage({ brandId }) {
               />
             </div>
 
-            <div className="max-h-[430px] divide-y divide-zinc-100 overflow-auto">
+            <div className="max-h-[52vh] divide-y divide-zinc-100 overflow-auto xl:max-h-[430px]">
               {activeFolder === "sent" &&
                 filteredHistory.map((item) => (
                   <div
@@ -762,7 +762,7 @@ export default function BrandMailPage({ brandId }) {
             </div>
           </section>
 
-          <section className="rounded-2xl bg-white p-5 shadow-sm">
+          <section className="min-w-0 rounded-2xl bg-white p-4 shadow-sm md:p-5">
             {isComposerOpen ? (
               <>
                 <div className="mb-4 flex items-center justify-between gap-3">
@@ -770,13 +770,13 @@ export default function BrandMailPage({ brandId }) {
                   <button
                     type="button"
                     onClick={closeComposer}
-                    className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold hover:bg-zinc-100"
+                    className="min-h-10 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold hover:bg-zinc-100"
                   >
                     ปิด
                   </button>
                 </div>
                 <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white">
-                  <label className="flex items-center border-b border-zinc-100 px-4 py-3">
+                  <label className="flex flex-col gap-1 border-b border-zinc-100 px-4 py-3 sm:flex-row sm:items-center">
                     <span className="w-16 shrink-0 text-sm font-semibold text-zinc-500">
                       ถึง
                     </span>
@@ -788,7 +788,7 @@ export default function BrandMailPage({ brandId }) {
                       className="min-w-0 flex-1 bg-transparent text-base outline-none"
                     />
                   </label>
-                  <label className="flex items-center border-b border-zinc-100 px-4 py-3">
+                  <label className="flex flex-col gap-1 border-b border-zinc-100 px-4 py-3 sm:flex-row sm:items-center">
                     <span className="w-16 shrink-0 text-sm font-semibold text-zinc-500">
                       หัวข้อ
                     </span>
@@ -805,7 +805,7 @@ export default function BrandMailPage({ brandId }) {
                     onChange={(event) => setMessage(event.target.value)}
                     rows={17}
                     placeholder="เนื้อหาอีเมล"
-                    className="min-h-[430px] w-full resize-y px-6 py-5 leading-8 outline-none"
+                    className="min-h-[300px] w-full resize-y px-4 py-4 leading-8 outline-none md:min-h-[430px] md:px-6 md:py-5"
                   />
                 </div>
                 <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
@@ -827,11 +827,11 @@ export default function BrandMailPage({ brandId }) {
                       </span>
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                     <button
                       type="button"
                       onClick={moveCurrentMailToTrash}
-                      className="rounded-xl border border-zinc-300 px-5 py-3 font-semibold hover:bg-zinc-100"
+                      className="min-h-12 rounded-xl border border-zinc-300 px-5 py-3 font-semibold hover:bg-zinc-100"
                     >
                       ลบ
                     </button>
@@ -839,7 +839,7 @@ export default function BrandMailPage({ brandId }) {
                       type="button"
                       onClick={() => sendEmail()}
                       disabled={isSending}
-                      className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                      className="min-h-12 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
                     >
                       {isSending ? "กำลังส่ง..." : "ส่งอีเมล"}
                     </button>
@@ -847,7 +847,7 @@ export default function BrandMailPage({ brandId }) {
                 </div>
               </>
             ) : selectedEmail ? (
-              <div className="min-h-[720px]">
+              <div className="min-h-[60vh] xl:min-h-[720px]">
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-5">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-zinc-500">
@@ -870,7 +870,7 @@ export default function BrandMailPage({ brandId }) {
                     <button
                       type="button"
                       onClick={() => editEmail(selectedEmail)}
-                      className="rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold hover:bg-zinc-100"
+                      className="min-h-10 rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold hover:bg-zinc-100"
                     >
                       แก้ไข
                     </button>
@@ -878,14 +878,14 @@ export default function BrandMailPage({ brandId }) {
                       type="button"
                       onClick={() => sendEmailAgain(selectedEmail)}
                       disabled={isSending}
-                      className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                      className="min-h-10 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
                     >
                       ส่งอีกครั้ง
                     </button>
                     <button
                       type="button"
                       onClick={() => deleteEmailRecord(selectedEmail)}
-                      className="rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      className="min-h-10 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
                     >
                       ลบ
                     </button>
@@ -903,12 +903,12 @@ export default function BrandMailPage({ brandId }) {
                   </a>
                 )}
 
-                <article className="mt-5 min-h-[520px] whitespace-pre-wrap rounded-2xl border border-zinc-200 bg-zinc-50 p-6 text-base leading-8 text-zinc-800">
+                <article className="mt-5 max-h-[70vh] min-h-[320px] overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-7 text-zinc-800 md:min-h-[520px] md:p-6 md:text-base md:leading-8">
                   {selectedEmail.body}
                 </article>
               </div>
             ) : (
-              <div className="flex min-h-[560px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 p-8 text-center">
+              <div className="flex min-h-[360px] flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-300 p-6 text-center md:min-h-[560px] md:p-8">
                 <p className="text-2xl font-bold">เลือกเมลเพื่อดูรายละเอียด</p>
                 <p className="mt-2 max-w-sm text-zinc-500">
                   เลือกเมลที่ส่งแล้วจากกล่องเมลด้านซ้าย หรือกด + เพื่อสร้างเมลใหม่

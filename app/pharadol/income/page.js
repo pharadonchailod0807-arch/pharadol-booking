@@ -90,7 +90,7 @@ const normalizeArchivedBookingRow = (row) => {
 
 export default function IncomePage() {
   const router = useRouter();
-  const currentDate = new Date();
+  const currentDate = useMemo(() => new Date(), []);
   const [totalIncome, setTotalIncome] = useState(0);
   const [jobCount, setJobCount] = useState(0);
   const [averageIncome, setAverageIncome] = useState(0);
@@ -309,10 +309,10 @@ export default function IncomePage() {
 
   return (
     <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
-      <div className="mx-auto max-w-[1720px]">
-        <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-[1720px]">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mb-10">
           <div>
-            <h1 className="text-4xl font-bold">💰 รายได้สตูดิโอ</h1>
+            <h1 className="text-3xl font-bold md:text-4xl">รายได้สตูดิโอ</h1>
             <p className="mt-2 text-zinc-500">
               สรุปรายได้จากงานที่ปิดแล้ว
             </p>
@@ -321,28 +321,28 @@ export default function IncomePage() {
           <button
             type="button"
             onClick={() => router.push("/pharadol/dashboard")}
-            className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+            className="min-h-12 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
           >
             กลับเมนูหลัก
           </button>
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="rounded-3xl bg-white p-8 text-center shadow-xl">
+          <div className="rounded-3xl bg-white p-5 text-center shadow-xl md:p-8">
             <p className="text-zinc-500">รายได้ทั้งหมด</p>
-            <h2 className="mt-3 text-5xl font-bold text-green-600">
+            <h2 className="mt-3 break-words text-3xl font-bold text-green-600 md:text-5xl">
               ฿ {totalIncome.toLocaleString()}
             </h2>
           </div>
 
-          <div className="rounded-3xl bg-white p-8 text-center shadow-xl">
+          <div className="rounded-3xl bg-white p-5 text-center shadow-xl md:p-8">
             <p className="text-zinc-500">งานที่ปิดแล้ว</p>
-            <h2 className="mt-3 text-5xl font-bold">{jobCount}</h2>
+            <h2 className="mt-3 text-3xl font-bold md:text-5xl">{jobCount}</h2>
           </div>
 
-          <div className="rounded-3xl bg-white p-8 text-center shadow-xl">
+          <div className="rounded-3xl bg-white p-5 text-center shadow-xl md:p-8">
             <p className="text-zinc-500">ค่าเฉลี่ยต่องาน</p>
-            <h2 className="mt-3 text-5xl font-bold text-blue-600">
+            <h2 className="mt-3 break-words text-3xl font-bold text-blue-600 md:text-5xl">
               ฿ {averageIncome.toLocaleString()}
             </h2>
           </div>
@@ -358,8 +358,8 @@ export default function IncomePage() {
                 ใช้ข้อมูลจากคลังข้อมูล เฉพาะสถานะงานเสร็จแล้ว
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-xl bg-zinc-100 p-1">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+              <div className="grid w-full grid-cols-3 rounded-xl bg-zinc-100 p-1 sm:w-auto">
                 {Object.entries(CHART_MODES).map(([mode, label]) => (
                   <button
                     key={mode}

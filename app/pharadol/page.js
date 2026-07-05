@@ -275,7 +275,7 @@ const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
 const [isDownloadMenuOpen, setIsDownloadMenuOpen] = useState(false);
 const [isSendOptionsOpen, setIsSendOptionsOpen] = useState(false);
 const [emailPreview, setEmailPreview] = useState(null);
-const [gmailDraftOpenInfo, setGmailDraftOpenInfo] = useState(null);
+const [emailSentInfo, setEmailSentInfo] = useState(null);
 const [emailSendMessage, setEmailSendMessage] = useState("");
 const [isSendingEmail, setIsSendingEmail] = useState(false);
 const [isPreparingAttachment, setIsPreparingAttachment] = useState(false);
@@ -3043,7 +3043,7 @@ const downloadJPG = async () => {
 
 const openCustomerSendOptions = () => {
   setEmailSendMessage("");
-  setGmailDraftOpenInfo(null);
+  setEmailSentInfo(null);
   setIsSendOptionsOpen(true);
 };
 
@@ -3052,37 +3052,27 @@ const getBookingEmailSubject = () =>
 
 const getBookingEmailBody = () =>
   [
-    `เรียน คุณ${customerName || "-"}`,
+    customerName ? `เรียน คุณ${customerName}` : "เรียน",
     "",
-    "ขอบคุณที่เลือกใช้บริการ Pharadol Production",
+    "ทาง Pharadol Production ขอขอบพระคุณที่ไว้วางใจใช้บริการของเรา",
     "",
-    "กรุณาตรวจสอบรายละเอียดการจองตามเอกสาร PDF ที่แนบมาพร้อมอีเมลนี้",
+    "ทางทีมงานได้จัดเตรียมเอกสารยืนยันการจองงานและรายละเอียดการชำระเงินไว้ให้แล้ว",
     "",
-    `เลขที่การจอง: ${bookingNumber || "-"}`,
-    `วันที่งาน: ${formattedEventDate || eventDate || "-"}`,
-    `สถานที่: ${location || "-"}`,
+    "รายละเอียดงานโดยสรุป",
+    `• เลขที่ใบจอง : ${bookingNumber || "-"}`,
+    `• วันที่จัดงาน : ${formattedEventDate || eventDate || "-"}`,
+    `• ประเภทงาน : ${service || "-"}`,
     "",
-    "หากมีข้อสงสัย กรุณาติดต่อ",
+    "หากมีการเปลี่ยนแปลงรายละเอียดงาน หรือต้องการสอบถามข้อมูลเพิ่มเติม สามารถติดต่อทีมงานได้ตลอดเวลา",
+    "",
+    "ขอขอบพระคุณอีกครั้งที่ให้เราเป็นส่วนหนึ่งในวันสำคัญของท่าน",
+    "",
+    "ขอแสดงความนับถือ",
+    "",
     "Pharadol Production",
-    "โทร 091-064-9380",
-    "อีเมล pharadol.production@gmail.com",
+    "โทร. 091-064-9380",
+    "E-mail: pharadol.production@gmail.com",
   ].join("\n");
-
-const getGmailDraftOpenUrl = ({ threadId, messageId, draftId }) => {
-  if (threadId) {
-    return `https://mail.google.com/mail/u/0/#drafts/${encodeURIComponent(threadId)}`;
-  }
-
-  if (messageId) {
-    return `https://mail.google.com/mail/u/0/#drafts/${encodeURIComponent(messageId)}`;
-  }
-
-  if (draftId) {
-    return `https://mail.google.com/mail/u/0/#drafts?compose=${encodeURIComponent(draftId)}`;
-  }
-
-  return "";
-};
 
 const sendBookingEmail = async () => {
   const customerEmail = email.trim();
@@ -3190,11 +3180,26 @@ const confirmSendBookingEmail = async () => {
   if (!emailPreview) return;
 
   setIsSendingEmail(true);
-  setEmailSendMessage("กำลังสร้าง Gmail Draft...");
+  setEmailSendMessage("กำลังอัปโหลด PDF ไป Google Drive...");
 
   try {
     const finalBody = emailPreview.body;
-    const response = await fetch("/api/google/gmail-draft", {
+    let driveFile = null;
+    let driveUploadError = "";
+
+    try {
+      driveFile = await uploadBookingPdfToDrive(emailPreview.pdfAttachment);
+      setEmailSendMessage("อัปโหลด PDF ไป Google Drive สำเร็จ กำลังส่งอีเมล...");
+    } catch (driveError) {
+      driveUploadError = getReadableErrorMessage(
+        driveError,
+        "อัปโหลด PDF ไป Google Drive ไม่สำเร็จ"
+      );
+      console.error("Cannot upload booking PDF to Drive:", driveError);
+      setEmailSendMessage("อัปโหลด Drive ไม่สำเร็จ กำลังส่งอีเมลต่อ...");
+    }
+
+    const response = await fetch("/api/google/gmail-send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -3215,32 +3220,39 @@ const confirmSendBookingEmail = async () => {
       throw new Error(
         getReadableErrorMessage(
           result?.error || result,
-          "สร้าง Gmail Draft ไม่สำเร็จ"
+          "ส่งอีเมลผ่าน Gmail ไม่สำเร็จ"
         )
       );
     }
 
-    const gmailUrl = getGmailDraftOpenUrl({
-      draftId: result?.draftId || "",
+    console.log("Gmail send debug:", {
       messageId: result?.messageId || "",
       threadId: result?.threadId || "",
+      driveFileId: driveFile?.id || "",
+      driveUploadError,
     });
 
-    setGmailDraftOpenInfo({
+    setEmailSentInfo({
       to: emailPreview.to,
       subject: emailPreview.subject,
       filename: emailPreview.pdfAttachment.filename,
-      draftId: result?.draftId || "",
       messageId: result?.messageId || "",
       threadId: result?.threadId || "",
-      url: gmailUrl,
+      driveFileId: driveFile?.id || "",
+      driveViewUrl: driveFile?.webViewLink || "",
+      driveDownloadUrl: driveFile?.webContentLink || "",
+      driveUploadError,
     });
 
-    setEmailSendMessage("สร้าง Draft พร้อม PDF สำเร็จแล้ว");
+    setEmailSendMessage(
+      driveUploadError
+        ? `ส่งอีเมลสำเร็จ แต่ยังอัปโหลด Drive ไม่สำเร็จ: ${driveUploadError}`
+        : "ส่งอีเมลพร้อม PDF สำเร็จแล้ว"
+    );
     setEmailPreview(null);
   } catch (error) {
     setEmailSendMessage(
-      getReadableErrorMessage(error, "สร้าง Gmail Draft ไม่สำเร็จ")
+      getReadableErrorMessage(error, "ส่งอีเมลผ่าน Gmail ไม่สำเร็จ")
     );
   } finally {
     setIsSendingEmail(false);
@@ -3269,7 +3281,7 @@ const confirmSendBookingEmail = async () => {
             ? "hidden"
             : isSidebarCollapsed
               ? "w-14 overflow-hidden p-2"
-              : "w-[360px] overflow-y-auto p-8"
+              : "w-[calc(100vw-24px)] max-w-[360px] overflow-y-auto p-5 md:p-8"
         }`}
       >
         <button
@@ -3933,7 +3945,7 @@ const confirmSendBookingEmail = async () => {
             ? "hidden"
             : isSidebarCollapsed
               ? "left-14"
-              : "left-[360px]"
+              : "left-0 md:left-[360px]"
         }`}
       >
         <div className="mx-auto max-w-[1180px]">
@@ -4069,7 +4081,7 @@ const confirmSendBookingEmail = async () => {
 
           {isMoreMenuOpen && (
             <div className="mt-3 space-y-3 border-t border-zinc-200 pt-3">
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.booking)}
@@ -4107,7 +4119,7 @@ const confirmSendBookingEmail = async () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.archives)}
@@ -4145,7 +4157,7 @@ const confirmSendBookingEmail = async () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.settings)}
@@ -4183,7 +4195,7 @@ const confirmSendBookingEmail = async () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <button
                   type="button"
                   onClick={openCustomerSendOptions}
@@ -4228,14 +4240,14 @@ const confirmSendBookingEmail = async () => {
       {/* ========================= */}
 
       <div
-        className={`print-container px-10 pb-10 transition-all duration-300 ${
+        className={`print-container overflow-x-auto px-4 pb-10 transition-all duration-300 md:px-10 ${
           isViewMode
             ? "ml-0 pt-0"
-            : `${isSidebarCollapsed ? "ml-14" : "ml-[380px]"} pt-[190px]`
+            : `${isSidebarCollapsed ? "ml-14" : "ml-0 md:ml-[380px]"} pt-[220px] md:pt-[190px]`
         }`}
       >
         {isViewMode && (
-          <div className="no-print mx-auto mb-5 flex w-[210mm] items-center justify-between rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+          <div className="no-print mx-auto mb-5 flex w-full min-w-[min(210mm,calc(100vw-32px))] max-w-[210mm] flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               onClick={() => goTo(ROUTES.customers)}
@@ -4244,7 +4256,7 @@ const confirmSendBookingEmail = async () => {
               ← กลับหน้าข้อมูลลูกค้า
             </button>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -4998,15 +5010,15 @@ const confirmSendBookingEmail = async () => {
       </div>
 
       {showServiceModal && (
-        <div className="no-print fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-5">
-          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-6">
+        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl md:p-6">
             <h2 className="text-2xl font-bold mb-1">เพิ่มรายการบริการ</h2>
             <p className="text-zinc-500 mb-5">
               เลือกรายการและกรอกราคา
             </p>
 
             <label className="block font-semibold mb-2">ประเภทรายการ</label>
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => {
@@ -5145,7 +5157,7 @@ const confirmSendBookingEmail = async () => {
               )}
             />
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={closeServiceModal}
@@ -5166,8 +5178,8 @@ const confirmSendBookingEmail = async () => {
         </div>
       )}
       {isSendOptionsOpen && (
-        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4">
+          <div className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-zinc-900">
                 ส่งข้อมูลลูกค้า
@@ -5222,8 +5234,8 @@ const confirmSendBookingEmail = async () => {
         </div>
       )}
       {emailPreview && (
-        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
             <div className="border-b border-zinc-200 px-6 py-4">
               <h2 className="text-xl font-bold text-zinc-900">
                 พรีวิวอีเมลใบจอง
@@ -5233,7 +5245,7 @@ const confirmSendBookingEmail = async () => {
               </p>
             </div>
 
-            <div className="space-y-4 px-6 py-5">
+            <div className="space-y-4 px-4 py-5 md:px-6">
               <div className="grid gap-3 rounded-xl bg-zinc-50 p-4 text-sm">
                 <div>
                   <span className="font-semibold text-zinc-500">อีเมลผู้รับ: </span>
@@ -5259,7 +5271,7 @@ const confirmSendBookingEmail = async () => {
                 <div className="mb-2 text-sm font-semibold text-zinc-500">
                   เนื้อหาอีเมล
                 </div>
-                <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap rounded-xl border border-zinc-200 bg-white p-4 font-sans text-sm leading-7 text-zinc-800">
+                <pre className="max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-zinc-200 bg-white p-4 font-sans text-sm leading-7 text-zinc-800 md:max-h-[420px]">
                   {emailPreview.body}
                 </pre>
               </div>
@@ -5271,7 +5283,7 @@ const confirmSendBookingEmail = async () => {
               )}
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-zinc-200 px-6 py-4">
+            <div className="flex flex-col justify-end gap-3 border-t border-zinc-200 px-4 py-4 sm:flex-row md:px-6">
               <button
                 type="button"
                 onClick={() => setEmailPreview(null)}
@@ -5286,63 +5298,71 @@ const confirmSendBookingEmail = async () => {
                 disabled={isSendingEmail}
                 className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSendingEmail ? "กำลังสร้าง Gmail Draft..." : "เปิด Gmail Draft"}
+                {isSendingEmail ? "กำลังส่งอีเมล..." : "ส่งอีเมลทันที"}
               </button>
             </div>
           </div>
         </div>
       )}
-      {gmailDraftOpenInfo && (
-        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+      {emailSentInfo && (
+        <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl md:p-6">
             <h2 className="text-xl font-bold text-zinc-900">
-              สร้าง Draft พร้อม PDF สำเร็จแล้ว
+              ส่งอีเมลพร้อม PDF สำเร็จแล้ว
             </h2>
             <p className="mt-2 text-sm leading-6 text-zinc-600">
-              ระบบสร้าง Gmail Draft พร้อมแนบ PDF แล้ว อยู่ในเว็บนี้ต่อได้เลย หรือกดเปิด Gmail Draft เองเมื่อต้องการตรวจสอบและส่ง
+              ระบบส่งอีเมลพร้อมแนบ PDF ให้ลูกค้าแล้ว
             </p>
             <div className="mt-4 rounded-xl bg-zinc-50 p-4 text-sm text-zinc-700">
               <div>
                 <span className="font-semibold text-zinc-500">อีเมลผู้รับ: </span>
-                {gmailDraftOpenInfo.to || "-"}
+                {emailSentInfo.to || "-"}
               </div>
               <div>
                 <span className="font-semibold text-zinc-500">หัวข้อ: </span>
-                {gmailDraftOpenInfo.subject || "-"}
+                {emailSentInfo.subject || "-"}
               </div>
               <div>
                 <span className="font-semibold text-zinc-500">PDF: </span>
-                {gmailDraftOpenInfo.filename || "-"}
+                {emailSentInfo.filename || "-"}
               </div>
-              {gmailDraftOpenInfo.threadId && (
-                <div className="mt-2 text-xs text-zinc-500">Thread ID: {gmailDraftOpenInfo.threadId}</div>
+              {emailSentInfo.driveViewUrl ? (
+                <div className="mt-2">
+                  <span className="font-semibold text-emerald-700">
+                    อัปโหลด PDF ไป Google Drive สำเร็จ:{" "}
+                  </span>
+                  <a
+                    href={emailSentInfo.driveViewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold text-sky-700 underline"
+                  >
+                    เปิดไฟล์
+                  </a>
+                </div>
+              ) : (
+                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
+                  ส่งอีเมลสำเร็จ แต่ยังอัปโหลด Drive ไม่สำเร็จ
+                  {emailSentInfo.driveUploadError ? `: ${emailSentInfo.driveUploadError}` : ""}
+                </div>
               )}
-              {gmailDraftOpenInfo.messageId && (
-                <div className="text-xs text-zinc-500">Message ID: {gmailDraftOpenInfo.messageId}</div>
+              {emailSentInfo.driveFileId && (
+                <div className="mt-2 text-xs text-zinc-500">Drive File ID: {emailSentInfo.driveFileId}</div>
               )}
-              {gmailDraftOpenInfo.draftId && (
-                <div className="text-xs text-zinc-500">Draft ID: {gmailDraftOpenInfo.draftId}</div>
+              {emailSentInfo.threadId && (
+                <div className="mt-2 text-xs text-zinc-500">Thread ID: {emailSentInfo.threadId}</div>
+              )}
+              {emailSentInfo.messageId && (
+                <div className="text-xs text-zinc-500">Message ID: {emailSentInfo.messageId}</div>
               )}
             </div>
-            <div className="mt-5 flex justify-end gap-3">
+            <div className="mt-5 flex flex-col justify-end gap-3 sm:flex-row">
               <button
                 type="button"
-                onClick={() => setGmailDraftOpenInfo(null)}
-                className="rounded-xl border border-zinc-300 bg-white px-5 py-3 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                onClick={() => setEmailSentInfo(null)}
+                className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700"
               >
-                ปิด
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!gmailDraftOpenInfo.url) return;
-                  window.open(gmailDraftOpenInfo.url, "_blank", "noopener,noreferrer");
-                  setGmailDraftOpenInfo(null);
-                }}
-                disabled={!gmailDraftOpenInfo.url}
-                className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                เปิด Draft ใน Gmail
+                เสร็จสิ้น
               </button>
             </div>
           </div>

@@ -237,15 +237,15 @@ export default function ReportsPage() {
   return (
     <main className="min-h-screen bg-zinc-100 p-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold">รายงานและสถิติ</h1>
+            <h1 className="text-3xl font-bold md:text-4xl">รายงานและสถิติ</h1>
             <p className="mt-1 text-zinc-500">
               ภาพรวมลูกค้า การชำระเงิน และสถานะงาน
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="button"
               onClick={() => router.back()}
@@ -257,7 +257,7 @@ export default function ReportsPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/dashboard")}
-              className="rounded-xl bg-black px-5 py-3 font-semibold text-white"
+              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white"
             >
               เมนูหลัก
             </button>
@@ -360,7 +360,8 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
+          <div className="min-w-[1040px]">
           <div className="grid grid-cols-[1fr_1.2fr_1fr_1fr_1fr_1fr_auto] gap-4 bg-zinc-900 px-5 py-4 font-semibold text-white">
             <div>เลขที่จอง</div>
             <div>ชื่อลูกค้า</div>
@@ -403,7 +404,7 @@ export default function ReportsPage() {
                       );
                       router.push("/adisorn?view=customer", { scroll: false });
                     }}
-                    className="rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+                    className="min-h-10 rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
                   >
                     ดูใบจอง
                   </button>
@@ -420,6 +421,7 @@ export default function ReportsPage() {
               ไม่พบข้อมูลตามตัวกรอง
             </div>
           )}
+          </div>
         </div>
       </div>
     </main>

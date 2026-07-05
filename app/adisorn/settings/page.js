@@ -446,9 +446,9 @@ function SettingsContent() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-6 md:p-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-zinc-900">
               {isBarcodePage
@@ -470,12 +470,12 @@ function SettingsContent() {
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             {isBarcodePage || isTeamPage || isThemePage ? (
               <button
                 type="button"
                 onClick={() => router.push("/adisorn/settings")}
-                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                className="min-h-12 rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700 transition hover:bg-zinc-50"
               >
                 กลับหน้าตั้งค่า
               </button>
@@ -483,7 +483,7 @@ function SettingsContent() {
               <button
                 type="button"
                 onClick={() => router.push("/adisorn")}
-                className="rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                className="min-h-12 rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700 transition hover:bg-zinc-50"
               >
                 กลับหน้าสร้างใบจอง
               </button>
@@ -492,7 +492,7 @@ function SettingsContent() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/dashboard")}
-              className="rounded-xl bg-black px-4 py-2 font-semibold text-white transition hover:bg-zinc-800"
+              className="min-h-12 rounded-xl bg-black px-4 py-2 font-semibold text-white transition hover:bg-zinc-800"
             >
               เมนูหลัก
             </button>
@@ -714,7 +714,7 @@ function SettingsContent() {
               <button
                 type="button"
                 onClick={addTeamMember}
-                className="rounded-xl bg-black px-5 py-3 font-semibold text-white transition hover:bg-zinc-800 md:col-span-2"
+                className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white transition hover:bg-zinc-800 md:col-span-2"
               >
                 บันทึกทีมงาน
               </button>
@@ -755,7 +755,7 @@ function SettingsContent() {
                         <button
                           type="button"
                           onClick={() => toggleTeamMember(member.id)}
-                          className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                          className="min-h-12 rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
                         >
                           {member.active === false ? "เปิดใช้งาน" : "พักใช้งาน"}
                         </button>
@@ -903,7 +903,7 @@ function SettingsContent() {
                 <button
                   type="button"
                   onClick={saveCustomBookingNumber}
-                  className="rounded-xl bg-black px-5 py-3 font-semibold text-white transition hover:bg-zinc-800"
+                  className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white transition hover:bg-zinc-800"
                 >
                   {bookingNumberMode === "auto"
                     ? "ใช้เลขอัตโนมัติ"
@@ -955,7 +955,7 @@ function SettingsContent() {
                   type="button"
                   onClick={clearHistory}
                   disabled={bookingNumberHistory.length === 0}
-                  className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="min-h-12 rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   ล้างประวัติ
                 </button>
@@ -1001,7 +1001,7 @@ function SettingsContent() {
                         <button
                           type="button"
                           onClick={() => reuseHistoryItem(item)}
-                          className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                          className="min-h-12 rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
                         >
                           นำกลับมาใช้
                         </button>

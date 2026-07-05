@@ -227,9 +227,9 @@ export default function NotificationsPage() {
   ).length;
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-6 md:p-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 lg:p-8">
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-zinc-900">แจ้งเตือน</h1>
             <p className="mt-1 text-zinc-500">
@@ -240,7 +240,7 @@ export default function NotificationsPage() {
           <button
             type="button"
             onClick={() => router.push("/pharadol/dashboard")}
-            className="rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
+            className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
           >
             กลับสู่หน้าหลัก
           </button>
