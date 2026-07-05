@@ -220,11 +220,21 @@ const packageDescriptions = {
   "แพ็กเกจวิดีโอ 2 Plus": "ช่างวิดีโอ 2 คน + ผู้ช่วย 1 คน",
   "แพ็กเกจวิดีโอ 3 Plus": "ช่างวิดีโอ 3 คน + ผู้ช่วย 1 คน",
   "QR Code": {
+    packageTitle: "QR CODE PACKAGE",
     title: "ADISORN WEDDING STUDIO บริการเสริมสแกนคิวอาร์รับรูป",
     details: [
-      "แขกร่วมงานและญาติผู้ใหญ่สามารถรับรูปได้ทันทีหลังถ่ายเสร็จ ทั้งดาวน์โหลดจากตัวโปรแกรม หรือส่งเข้า LINE",
-      "สีสันสดใส และสามารถเลือกโทนภาพเองได้",
-      "ทีมงานใช้โปรแกรมคุณภาพ หลังจบงานยังสามารถดาวน์โหลดรูปได้",
+      {
+        title: "รับรูปได้ทันที",
+        text: "แขกร่วมงานและญาติผู้ใหญ่สามารถรับรูปได้ทันทีหลังถ่ายเสร็จ ทั้งดาวน์โหลดจากตัวโปรแกรม หรือส่งเข้า LINE",
+      },
+      {
+        title: "โทนสีและภาพ",
+        text: "สีสันสดใส และสามารถเลือกโทนภาพเองได้",
+      },
+      {
+        title: "ระบบคุณภาพ",
+        text: "ทีมงานใช้โปรแกรมคุณภาพ หลังจบงานยังสามารถดาวน์โหลดรูปได้",
+      },
     ],
     periodsTitle: "ช่วงเวลาใช้งาน",
     periods: [
@@ -234,18 +244,44 @@ const packageDescriptions = {
     ],
   },
   "Video Guestbook": {
+    packageTitle: "VIDEO GUESTBOOK PACKAGE",
     quote: "\"บางความทรงจำ...ไม่อาจบันทึกได้ด้วยภาพเพียงอย่างเดียว\"",
     description:
       "รอยยิ้ม น้ำเสียง และความรู้สึกจากคนที่คุณรัก\nคือของขวัญที่มีค่าที่สุดในวันสำคัญ",
     itemsTitle: "รายการอุปกรณ์และบริการ",
     items: [
-      "เครื่องโทรศัพท์บันทึกวิดีโอ 1 เครื่อง",
-      "เปลี่ยนภาพหน้าจอ Standby เฉพาะตัวงานลูกค้า",
-      "ตกแต่งจุดวางอุปกรณ์และป้ายการใช้งานเพื่อความสวยงาม",
-      "มีทีม Staff 1 คน คอยแนะนำการใช้งาน",
-      "VDO Reels คัดไฮไลท์แขกในงาน ตัดต่อวิดีโออวยพร ส่งภายใน 7 วัน",
+      {
+        title: "อุปกรณ์",
+        text: "เครื่องโทรศัพท์บันทึกวิดีโอ 1 เครื่อง",
+      },
+      {
+        title: "หน้าจอเฉพาะงาน",
+        text: "เปลี่ยนภาพหน้าจอ Standby เฉพาะตัวงานลูกค้า",
+      },
+      {
+        title: "การตกแต่ง",
+        text: "ตกแต่งจุดวางอุปกรณ์และป้ายการใช้งานเพื่อความสวยงาม",
+      },
+      {
+        title: "ทีมงานดูแล",
+        text: "มีทีม Staff 1 คน คอยแนะนำการใช้งาน",
+      },
+      {
+        title: "วิดีโอไฮไลท์",
+        text: "VDO Reels คัดไฮไลท์แขกในงาน ตัดต่อวิดีโออวยพร ส่งภายใน 7 วัน",
+      },
     ],
   },
+};
+
+const formatDescriptionItemText = (item, index) => {
+  if (!item) return "";
+  if (typeof item === "string") return `${index + 1}. ${item}`;
+
+  const title = item.title ? `${index + 1}. ${item.title}` : "";
+  const text = item.text || item.description || "";
+
+  return [title, text].filter(Boolean).join("\n");
 };
 
 const getServiceDescriptionText = (description) => {
@@ -260,7 +296,11 @@ const getServiceDescriptionText = (description) => {
     lines.push(...String(description.description).split("\n"));
   }
   if (Array.isArray(description.details)) {
-    lines.push(...description.details.map((item) => `- ${item}`));
+    lines.push(
+      ...description.details.map((item, index) =>
+        formatDescriptionItemText(item, index)
+      )
+    );
   }
   if (description.periodsTitle) lines.push(description.periodsTitle);
   if (Array.isArray(description.periods)) {
@@ -268,7 +308,11 @@ const getServiceDescriptionText = (description) => {
   }
   if (description.itemsTitle) lines.push(description.itemsTitle);
   if (Array.isArray(description.items)) {
-    lines.push(...description.items.map((item) => `- ${item}`));
+    lines.push(
+      ...description.items.map((item, index) =>
+        formatDescriptionItemText(item, index)
+      )
+    );
   }
 
   return lines.filter(Boolean).join("\n");
@@ -373,6 +417,32 @@ const renderServiceDescription = (description, options = {}) => {
   if (!description) return null;
 
   const compact = options.compact || false;
+  const renderDescriptionList = (items) => (
+    <div className={compact ? "grid gap-1" : "grid gap-2"}>
+      {items.map((item, index) => {
+        if (typeof item === "string") {
+          return <p key={item}>{index + 1}. {item}</p>;
+        }
+
+        const key = `${item.title || "item"}-${index}`;
+
+        return (
+          <div key={key}>
+            {item.title && (
+              <p className={compact ? "font-semibold text-zinc-700" : "font-semibold text-zinc-800"}>
+                {index + 1}. {item.title}
+              </p>
+            )}
+            {(item.text || item.description) && (
+              <p className={compact ? "mt-0.5 text-zinc-500" : "mt-1 text-zinc-600"}>
+                {item.text || item.description}
+              </p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   if (typeof description === "string") {
     return (
@@ -391,22 +461,18 @@ const renderServiceDescription = (description, options = {}) => {
       )}
       {description.quote && (
         <div className="mx-auto max-w-xl text-center">
-          <p className={compact ? "text-[11px] font-bold text-zinc-800" : "text-base font-bold text-zinc-900"}>
+          <p className={compact ? "text-[11px] font-bold leading-snug text-zinc-800" : "text-base font-bold leading-snug text-zinc-900"}>
             {description.quote}
           </p>
           {description.description && (
-            <p className={compact ? "mt-1 whitespace-pre-line text-[10px] text-zinc-500" : "mt-2 whitespace-pre-line text-sm text-zinc-500"}>
+            <p className={compact ? "mt-1 whitespace-pre-line text-[10px] leading-relaxed text-zinc-500" : "mt-2 whitespace-pre-line text-sm leading-6 text-zinc-500"}>
               {description.description}
             </p>
           )}
         </div>
       )}
       {Array.isArray(description.details) && description.details.length > 0 && (
-        <ul className="space-y-1">
-          {description.details.map((item) => (
-            <li key={item}>• {item}</li>
-          ))}
-        </ul>
+        renderDescriptionList(description.details)
       )}
       {Array.isArray(description.periods) && description.periods.length > 0 && (
         <div>
@@ -425,11 +491,9 @@ const renderServiceDescription = (description, options = {}) => {
           {description.itemsTitle && (
             <p className="font-semibold text-zinc-700">{description.itemsTitle}</p>
           )}
-          <ul className="mt-1 space-y-1">
-            {description.items.map((item) => (
-              <li key={item}>• {item}</li>
-            ))}
-          </ul>
+          <div className="mt-1">
+            {renderDescriptionList(description.items)}
+          </div>
         </div>
       )}
     </div>
