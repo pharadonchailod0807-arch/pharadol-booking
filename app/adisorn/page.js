@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import Barcode from "react-barcode";
 import { supabase } from "@/lib/supabase";
 import {
+  formatBookingNumber,
+  getNextAvailableBookingNumber,
+  getNextBookingSequence,
+} from "@/lib/booking-number";
+import {
   fetchGooglePlaceSuggestions,
   getAutocompleteOptionsFromBookings,
   getAutocompleteSuggestions,
@@ -65,22 +70,6 @@ const readArrayFromStorage = (...keys) => {
   }
 
   return [];
-};
-
-const getNextBookingSequence = (customers, date = new Date()) => {
-  const datePrefix = `BK-${date.getFullYear()}${String(
-    date.getMonth() + 1
-  ).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}-`;
-
-  const highestSequence = customers.reduce((highest, customer) => {
-    const bookingValue = String(customer?.bookingNumber || "");
-    if (!bookingValue.startsWith(datePrefix)) return highest;
-
-    const sequence = Number(bookingValue.slice(datePrefix.length));
-    return Number.isFinite(sequence) ? Math.max(highest, sequence) : highest;
-  }, 0);
-
-  return highestSequence >= 9999 ? 1 : highestSequence + 1;
 };
 
 const getPaymentProgress = (totalPaid, finalPrice) => {
@@ -1032,6 +1021,15 @@ const chooseLocationSuggestion = (suggestion) => {
           : getNextBookingSequence(customers)
       );
 
+      if (!resetSequenceActive) {
+        getNextAvailableBookingNumber({
+          brandId: BRAND_ID,
+          supabaseClient: supabase,
+        }).then(({ sequence }) => {
+          if (sequence != null) setNextBookingSequence(sequence);
+        });
+      }
+
       const localAutocompleteOptions = mergeAutocompleteOptions(
         getDefaultAutocompleteOptions(),
         getAutocompleteOptionsFromBookings(customers)
@@ -1151,56 +1149,10 @@ const chooseLocationSuggestion = (suggestion) => {
 
 const todayRaw = new Date();
 
-const runningNumber = String(nextBookingSequence).padStart(4, "0");
-
-const generatedBookingNumber = `BK-${todayRaw.getFullYear()}${String(
-  todayRaw.getMonth() + 1
-).padStart(2, "0")}${String(
-  todayRaw.getDate()
-).padStart(2, "0")}-${runningNumber}`;
-
-
-const getUniqueBookingNumber = (baseBookingNumber, items) => {
-  const usedNumbers = new Set(
-    items
-      .map((item) => item?.bookingNumber)
-      .filter(Boolean)
-  );
-
-  if (!usedNumbers.has(baseBookingNumber)) {
-    return baseBookingNumber;
-  }
-
-  let duplicateIndex = 1;
-  let candidate = `${baseBookingNumber}-${duplicateIndex}`;
-
-  while (usedNumbers.has(candidate)) {
-    duplicateIndex += 1;
-    candidate = `${baseBookingNumber}-${duplicateIndex}`;
-  }
-
-  return candidate;
-};
-
-const getNextAvailableBaseSequence = (items, date = new Date()) => {
-  const datePrefix = `BK-${date.getFullYear()}${String(
-    date.getMonth() + 1
-  ).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}-`;
-
-  const usedSequences = new Set(
-    items
-      .map((item) => String(item?.bookingNumber || ""))
-      .filter((value) => new RegExp(`^${datePrefix}\\d{4}$`).test(value))
-      .map((value) => Number(value.slice(datePrefix.length)))
-      .filter((value) => Number.isFinite(value) && value >= 1 && value <= 9999)
-  );
-
-  for (let sequence = 1; sequence <= 9999; sequence += 1) {
-    if (!usedSequences.has(sequence)) return sequence;
-  }
-
-  return null;
-};
+const generatedBookingNumber = formatBookingNumber(
+  todayRaw,
+  nextBookingSequence
+);
 
 const hasSequenceOverride =
   typeof window !== "undefined" &&
@@ -2363,6 +2315,14 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         ? savedSequenceOverride
         : getNextBookingSequence(customers)
     );
+    if (!resetSequenceActive) {
+      getNextAvailableBookingNumber({
+        brandId: BRAND_ID,
+        supabaseClient: supabase,
+      }).then(({ sequence }) => {
+        if (sequence != null) setNextBookingSequence(sequence);
+      });
+    }
     window.history.replaceState({}, "", ROUTES.booking);
   };
 
@@ -2385,6 +2345,15 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         ? savedSequenceOverride
         : getNextBookingSequence(customers, now)
     );
+    if (!resetSequenceActive) {
+      getNextAvailableBookingNumber({
+        brandId: BRAND_ID,
+        supabaseClient: supabase,
+        date: now,
+      }).then(({ sequence }) => {
+        if (sequence != null) setNextBookingSequence(sequence);
+      });
+    }
     setLoadedBookingNumber("");
     setCustomBookingNumber(
       localStorage.getItem(BOOKING_NUMBER_MODE_KEY) === "custom"
@@ -2467,8 +2436,31 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
     setIsSaving(true);
 
+    let resolvedBookingNumber = bookingNumber;
+    const isAutomaticNewBooking =
+      !forceUpdate && !loadedBookingNumber && !customBookingNumber.trim();
+
+    if (isAutomaticNewBooking) {
+      const nextAvailable = await getNextAvailableBookingNumber({
+        brandId: BRAND_ID,
+        supabaseClient: supabase,
+        date: todayRaw,
+      });
+
+      if (nextAvailable.sequence == null) {
+        window.alert(
+          "เลขที่การจองถูกใช้งานครบ 0001 ถึง 9999 แล้ว กรุณาใช้เลขแบบกำหนดเอง"
+        );
+        setIsSaving(false);
+        return;
+      }
+
+      resolvedBookingNumber = nextAvailable.bookingNumber;
+      setNextBookingSequence(nextAvailable.sequence);
+    }
+
     let customer = {
-      bookingNumber,
+      bookingNumber: resolvedBookingNumber,
       customerName,
       phone,
       email,
@@ -2519,7 +2511,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       loadedBookingNumber,
       lastSavedBookingNumber,
       savedBookingNumberFromStorage,
-      forceUpdate ? bookingNumber : "",
+      forceUpdate ? resolvedBookingNumber : "",
     ].filter(Boolean);
     const existingIndex = oldData.findIndex((item) =>
       originalBookingNumbers.includes(item.bookingNumber)
@@ -2529,84 +2521,13 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
     const duplicateBookingIndex = oldData.findIndex(
       (item, index) =>
-        item.bookingNumber === bookingNumber && index !== existingIndex
+        item.bookingNumber === resolvedBookingNumber && index !== existingIndex
     );
 
     if (duplicateBookingIndex !== -1) {
-      const isAutomaticBookingNumber =
-        !loadedBookingNumber && !customBookingNumber.trim();
-      const isResetSequence =
-        localStorage.getItem(RESET_BOOKING_SEQUENCE_ACTIVE_KEY) === "true";
-
-      if (isAutomaticBookingNumber && !isResetSequence) {
-        const nextAvailableSequence = getNextAvailableBaseSequence(oldData);
-
-        if (nextAvailableSequence == null) {
-          window.alert(
-            "เลขที่การจองของวันนี้ถูกใช้งานครบ 0001 ถึง 9999 แล้ว กรุณาใช้เลขแบบกำหนดเอง"
-          );
-          setIsSaving(false);
-          return;
-        }
-
-        const nextRunningNumber = String(nextAvailableSequence).padStart(
-          4,
-          "0"
-        );
-        const nextBaseBookingNumber = `BK-${todayRaw.getFullYear()}${String(
-          todayRaw.getMonth() + 1
-        ).padStart(2, "0")}${String(todayRaw.getDate()).padStart(
-          2,
-          "0"
-        )}-${nextRunningNumber}`;
-
-        localStorage.setItem(
-          NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY,
-          String(nextAvailableSequence)
-        );
-        setNextBookingSequence(nextAvailableSequence);
-
-        window.alert(
-          `พบเลขที่การจองซ้ำในฐานข้อมูล: ${bookingNumber}\nระบบเลื่อนไปใช้เลขฐานถัดไป ${nextBaseBookingNumber} กรุณากดบันทึกอีกครั้ง`
-        );
-
-        setIsSaving(false);
-        return;
-      }
-
-      if (isAutomaticBookingNumber && isResetSequence) {
-        const resetUniqueBookingNumber = getUniqueBookingNumber(
-          bookingNumber,
-          oldData
-        );
-
-        window.alert(
-          `พบเลขที่การจองซ้ำในรอบรีเซ็ต: ${bookingNumber}\nระบบจะบันทึกด้วยเลข ${resetUniqueBookingNumber} เพื่อป้องกันข้อมูลซ้ำ`
-        );
-
-        customer = {
-          ...customer,
-          bookingNumber: resetUniqueBookingNumber,
-        };
-
-        setCustomBookingNumber(resetUniqueBookingNumber);
-      } else {
-        const uniqueBookingNumber = getUniqueBookingNumber(
-          bookingNumber,
-          oldData
-        );
-
-        window.alert(
-          `พบเลขที่การจองซ้ำในฐานข้อมูล: ${bookingNumber}\nระบบจะบันทึกด้วยเลข ${uniqueBookingNumber} เพื่อป้องกันข้อมูลซ้ำ`
-        );
-
-        customer = {
-          ...customer,
-          bookingNumber: uniqueBookingNumber,
-        };
-
-        setCustomBookingNumber(uniqueBookingNumber);
-      }
+      alert(`พบเลขที่การจองซ้ำในฐานข้อมูล: ${resolvedBookingNumber}`);
+      setIsSaving(false);
+      return;
     }
 
     if (existingIndex !== -1 && !forceUpdate) {
@@ -2661,23 +2582,20 @@ const formattedEventDate = formatThaiDateInput(eventDate);
           .select()
           .single();
       };
-      const getAvailableBookingNumber = async (baseBookingNumber) => {
-        const { data: bookingRows, error: bookingRowsError } = await supabase
-          .from("bookings")
-          .select("booking_number");
+      const getAvailableBookingNumber = async () => {
+        const latestBookings = oldData.filter(
+          (_, index) => index !== customerIndex
+        );
+        const nextAvailable = await getNextAvailableBookingNumber({
+          brandId: BRAND_ID,
+          supabaseClient: supabase,
+          date: todayRaw,
+          extraItems: latestBookings,
+        });
 
-        if (bookingRowsError) {
-          throw bookingRowsError;
-        }
+        if (nextAvailable.sequence == null) return "";
 
-        const latestBookings = [
-          ...oldData.filter((_, index) => index !== customerIndex),
-          ...(Array.isArray(bookingRows) ? bookingRows : []).map((row) => ({
-            bookingNumber: row.booking_number,
-          })),
-        ];
-
-        return getUniqueBookingNumber(baseBookingNumber, latestBookings);
+        return nextAvailable.bookingNumber;
       };
 
       let { error } = await saveBookingToSupabase(customer);
@@ -2690,16 +2608,16 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         duplicateRetryCount < 10
       ) {
         duplicateRetryCount += 1;
-        const uniqueBookingNumber = await getAvailableBookingNumber(
-          customer.bookingNumber
-        );
+        const uniqueBookingNumber = await getAvailableBookingNumber();
+
+        if (!uniqueBookingNumber) break;
 
         customer = {
           ...customer,
           bookingNumber: uniqueBookingNumber,
         };
         oldData[customerIndex] = customer;
-        setCustomBookingNumber(uniqueBookingNumber);
+        setNextBookingSequence(Number(uniqueBookingNumber.slice(-4)));
 
         ({ error } = await saveBookingToSupabase(customer));
       }
@@ -2725,28 +2643,15 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         }
       }
 
+      localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(oldData));
       localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
       setCustomerCount(oldData.length);
 
-      const resetSequenceActive =
-        localStorage.getItem(RESET_BOOKING_SEQUENCE_ACTIVE_KEY) === "true";
+      localStorage.removeItem(NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY);
+      localStorage.removeItem(RESET_BOOKING_SEQUENCE_ACTIVE_KEY);
 
-      if (resetSequenceActive && existingIndex === -1) {
-        const nextResetSequence =
-          nextBookingSequence >= 9999 ? 1 : nextBookingSequence + 1;
-
-        localStorage.setItem(
-          NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY,
-          String(nextResetSequence)
-        );
-        setNextBookingSequence(nextResetSequence);
-      } else {
-        localStorage.removeItem(NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY);
-        localStorage.removeItem(RESET_BOOKING_SEQUENCE_ACTIVE_KEY);
-
-        const nextSequence = getNextBookingSequence(oldData);
-        setNextBookingSequence(nextSequence);
-      }
+      const nextSequence = getNextBookingSequence(oldData);
+      if (nextSequence != null) setNextBookingSequence(nextSequence);
 
       setLastSavedBookingNumber(customer.bookingNumber);
       setLoadedBookingNumber(customer.bookingNumber);
