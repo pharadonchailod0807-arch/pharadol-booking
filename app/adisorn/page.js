@@ -230,6 +230,59 @@ const packageDescriptions = {
   "แพ็กเกจวิดีโอ 1 Plus": "ช่างวิดีโอ 1 คน + ผู้ช่วย 1 คน",
   "แพ็กเกจวิดีโอ 2 Plus": "ช่างวิดีโอ 2 คน + ผู้ช่วย 1 คน",
   "แพ็กเกจวิดีโอ 3 Plus": "ช่างวิดีโอ 3 คน + ผู้ช่วย 1 คน",
+  "QR Code": {
+    title: "ADISORN WEDDING STUDIO บริการเสริมสแกนคิวอาร์รับรูป",
+    details: [
+      "แขกร่วมงานและญาติผู้ใหญ่สามารถรับรูปได้ทันทีหลังถ่ายเสร็จ ทั้งดาวน์โหลดจากตัวโปรแกรม หรือส่งเข้า LINE",
+      "สีสันสดใส และสามารถเลือกโทนภาพเองได้",
+      "ทีมงานใช้โปรแกรมคุณภาพ หลังจบงานยังสามารถดาวน์โหลดรูปได้",
+    ],
+    periodsTitle: "ช่วงเวลาใช้งาน",
+    periods: [
+      "พิธีรับไหว้",
+      "ช่วงหลั่งน้ำพระพุทธมนต์",
+      "ถ่ายรูปหน้า Backdrop",
+    ],
+  },
+  "Video Guestbook": {
+    quote: "\"บางความทรงจำ...ไม่อาจบันทึกได้ด้วยภาพเพียงอย่างเดียว\"",
+    description:
+      "รอยยิ้ม น้ำเสียง และความรู้สึกจากคนที่คุณรัก\nคือของขวัญที่มีค่าที่สุดในวันสำคัญ",
+    itemsTitle: "รายการอุปกรณ์และบริการ",
+    items: [
+      "เครื่องโทรศัพท์บันทึกวิดีโอ 1 เครื่อง",
+      "เปลี่ยนภาพหน้าจอ Standby เฉพาะตัวงานลูกค้า",
+      "ตกแต่งจุดวางอุปกรณ์และป้ายการใช้งานเพื่อความสวยงาม",
+      "มีทีม Staff 1 คน คอยแนะนำการใช้งาน",
+      "VDO Reels คัดไฮไลท์แขกในงาน ตัดต่อวิดีโออวยพร ส่งภายใน 7 วัน",
+    ],
+  },
+};
+
+const getServiceDescriptionText = (description) => {
+  if (!description) return "";
+  if (typeof description === "string") return description;
+
+  const lines = [];
+
+  if (description.title) lines.push(description.title);
+  if (description.quote) lines.push(description.quote);
+  if (description.description) {
+    lines.push(...String(description.description).split("\n"));
+  }
+  if (Array.isArray(description.details)) {
+    lines.push(...description.details.map((item) => `- ${item}`));
+  }
+  if (description.periodsTitle) lines.push(description.periodsTitle);
+  if (Array.isArray(description.periods)) {
+    lines.push(...description.periods.map((item) => `- ${item}`));
+  }
+  if (description.itemsTitle) lines.push(description.itemsTitle);
+  if (Array.isArray(description.items)) {
+    lines.push(...description.items.map((item) => `- ${item}`));
+  }
+
+  return lines.filter(Boolean).join("\n");
 };
 
 const personnelServices = [
@@ -277,6 +330,7 @@ const [isSendOptionsOpen, setIsSendOptionsOpen] = useState(false);
 const [emailPreview, setEmailPreview] = useState(null);
 const [emailSentInfo, setEmailSentInfo] = useState(null);
 const [emailSendMessage, setEmailSendMessage] = useState("");
+const [emailSendStatus, setEmailSendStatus] = useState("idle");
 const [isSendingEmail, setIsSendingEmail] = useState(false);
 const [isPreparingAttachment, setIsPreparingAttachment] = useState(false);
 const [isViewMode, setIsViewMode] = useState(false);
@@ -318,6 +372,83 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
       : "border-zinc-200 bg-white"
   } ${extraClasses || "px-5 py-4"}`;
 };
+
+const emailSendMessageClass =
+  {
+    loading: "border-blue-200 bg-blue-50 text-blue-700",
+    success: "border-green-200 bg-green-50 text-green-700",
+    error: "border-red-200 bg-red-50 text-red-700",
+  }[emailSendStatus] || "border-zinc-200 bg-zinc-50 text-zinc-700";
+
+const renderServiceDescription = (description, options = {}) => {
+  if (!description) return null;
+
+  const compact = options.compact || false;
+
+  if (typeof description === "string") {
+    return (
+      <p className={compact ? "mt-0.5 text-[10px] text-zinc-500" : "mt-1 whitespace-pre-line text-sm text-zinc-500"}>
+        {description}
+      </p>
+    );
+  }
+
+  return (
+    <div className={compact ? "mt-1 space-y-1 text-[10px] leading-relaxed text-zinc-500" : "mt-2 space-y-3 text-sm leading-6 text-zinc-600"}>
+      {description.title && (
+        <p className={compact ? "font-semibold text-zinc-700" : "font-semibold text-zinc-800"}>
+          {description.title}
+        </p>
+      )}
+      {description.quote && (
+        <div className="mx-auto max-w-xl text-center">
+          <p className={compact ? "text-[11px] font-bold text-zinc-800" : "text-base font-bold text-zinc-900"}>
+            {description.quote}
+          </p>
+          {description.description && (
+            <p className={compact ? "mt-1 whitespace-pre-line text-[10px] text-zinc-500" : "mt-2 whitespace-pre-line text-sm text-zinc-500"}>
+              {description.description}
+            </p>
+          )}
+        </div>
+      )}
+      {Array.isArray(description.details) && description.details.length > 0 && (
+        <ul className="space-y-1">
+          {description.details.map((item) => (
+            <li key={item}>• {item}</li>
+          ))}
+        </ul>
+      )}
+      {Array.isArray(description.periods) && description.periods.length > 0 && (
+        <div>
+          {description.periodsTitle && (
+            <p className="font-semibold text-zinc-700">{description.periodsTitle}</p>
+          )}
+          <ul className="mt-1 space-y-1">
+            {description.periods.map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {Array.isArray(description.items) && description.items.length > 0 && (
+        <div>
+          {description.itemsTitle && (
+            <p className="font-semibold text-zinc-700">{description.itemsTitle}</p>
+          )}
+          <ul className="mt-1 space-y-1">
+            {description.items.map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const isPackageServiceName = (serviceName) =>
+  packageServiceOptions.includes(serviceName);
 
 const customerNameSuggestions = getAutocompleteSuggestions(
   autocompleteOptions,
@@ -3043,12 +3174,30 @@ const downloadJPG = async () => {
 
 const openCustomerSendOptions = () => {
   setEmailSendMessage("");
+  setEmailSendStatus("idle");
   setEmailSentInfo(null);
   setIsSendOptionsOpen(true);
 };
 
 const getBookingEmailSubject = () =>
   `เอกสารยืนยันการจอง ${bookingNumber} | Adisorn Wedding Studio`;
+
+const getBookingEmailServiceDetails = () => {
+  const detailItems = serviceItems
+    .filter((item) => ["QR Code", "Video Guestbook"].includes(item.name))
+    .map((item) => {
+      const detail = getServiceDescriptionText(item.description);
+
+      if (!detail) return "";
+
+      return [`บริการ: ${item.name}`, detail].join("\n");
+    })
+    .filter(Boolean);
+
+  if (detailItems.length === 0) return [];
+
+  return ["", "รายละเอียดบริการเพิ่มเติม", ...detailItems];
+};
 
 const getBookingEmailBody = () =>
   [
@@ -3062,6 +3211,7 @@ const getBookingEmailBody = () =>
     `• เลขที่ใบจอง : ${bookingNumber || "-"}`,
     `• วันที่จัดงาน : ${formattedEventDate || eventDate || "-"}`,
     `• ประเภทงาน : ${service || "-"}`,
+    ...getBookingEmailServiceDetails(),
     "",
     "หากมีการเปลี่ยนแปลงรายละเอียดงาน หรือต้องการสอบถามข้อมูลเพิ่มเติม สามารถติดต่อทีมงานได้ตลอดเวลา",
     "",
@@ -3111,6 +3261,7 @@ const sendBookingEmail = async () => {
     pdfAttachment,
   });
   setEmailSendMessage("");
+  setEmailSendStatus("idle");
   setIsPreparingAttachment(false);
 };
 
@@ -3180,6 +3331,7 @@ const confirmSendBookingEmail = async () => {
   if (!emailPreview) return;
 
   setIsSendingEmail(true);
+  setEmailSendStatus("loading");
   setEmailSendMessage("กำลังอัปโหลด PDF ไป Google Drive...");
 
   try {
@@ -3189,6 +3341,7 @@ const confirmSendBookingEmail = async () => {
 
     try {
       driveFile = await uploadBookingPdfToDrive(emailPreview.pdfAttachment);
+      setEmailSendStatus("loading");
       setEmailSendMessage("อัปโหลด PDF ไป Google Drive สำเร็จ กำลังส่งอีเมล...");
     } catch (driveError) {
       driveUploadError = getReadableErrorMessage(
@@ -3196,6 +3349,7 @@ const confirmSendBookingEmail = async () => {
         "อัปโหลด PDF ไป Google Drive ไม่สำเร็จ"
       );
       console.error("Cannot upload booking PDF to Drive:", driveError);
+      setEmailSendStatus("loading");
       setEmailSendMessage("อัปโหลด Drive ไม่สำเร็จ กำลังส่งอีเมลต่อ...");
     }
 
@@ -3244,6 +3398,7 @@ const confirmSendBookingEmail = async () => {
       driveUploadError,
     });
 
+    setEmailSendStatus("success");
     setEmailSendMessage(
       driveUploadError
         ? `ส่งอีเมลสำเร็จ แต่ยังอัปโหลด Drive ไม่สำเร็จ: ${driveUploadError}`
@@ -3251,6 +3406,7 @@ const confirmSendBookingEmail = async () => {
     );
     setEmailPreview(null);
   } catch (error) {
+    setEmailSendStatus("error");
     setEmailSendMessage(
       getReadableErrorMessage(error, "ส่งอีเมลผ่าน Gmail ไม่สำเร็จ")
     );
@@ -3601,9 +3757,9 @@ const confirmSendBookingEmail = async () => {
                           : ""}
                       </p>
                       {item.description && (
-                        <p className="text-xs text-zinc-500 mt-0.5">
-                          {item.description}
-                        </p>
+                        <div className="text-xs text-zinc-500 mt-0.5">
+                          {renderServiceDescription(item.description, { compact: true })}
+                        </div>
                       )}
                       <p className="text-sm text-zinc-500">
                         {personnelServices.includes(item.name) ? (
@@ -4471,9 +4627,7 @@ const confirmSendBookingEmail = async () => {
                               {item.name}
                             </p>
                             {item.description && (
-                              <p className="mt-0.5 text-[10px] text-zinc-500">
-                                {item.description}
-                              </p>
+                              renderServiceDescription(item.description, { compact: true })
                             )}
                           </div>
                           {isPersonnel && (
@@ -4487,7 +4641,7 @@ const confirmSendBookingEmail = async () => {
                         <span className={`inline-flex w-24 items-center justify-center rounded-full bg-zinc-100 font-semibold text-zinc-700 ${isDenseDocument ? "py-0.5 text-xs" : "py-1 text-sm"}`}>
                           {isPersonnel
                             ? `${item.quantity || 1} คน`
-                            : item.description
+                            : isPackageServiceName(item.name)
                               ? "1 แพ็กเกจ"
                               : "1 รายการ"}
                         </span>
@@ -5077,11 +5231,9 @@ const confirmSendBookingEmail = async () => {
             {packageDescriptions[selectedServiceName] && (
               <div className="mb-4 rounded-2xl border bg-zinc-50 px-4 py-3">
                 <p className="text-sm font-semibold text-zinc-700">
-                  รายละเอียดแพ็กเกจ
+                  รายละเอียดบริการ
                 </p>
-                <p className="mt-1 text-sm text-zinc-500">
-                  {packageDescriptions[selectedServiceName]}
-                </p>
+                {renderServiceDescription(packageDescriptions[selectedServiceName])}
               </div>
             )}
 
@@ -5117,7 +5269,7 @@ const confirmSendBookingEmail = async () => {
             <label className="block font-semibold mb-2">
               {personnelServices.includes(selectedServiceName)
                 ? "ราคาต่อคน"
-                : packageDescriptions[selectedServiceName]
+                : isPackageServiceName(selectedServiceName)
                   ? "ราคาแพ็กเกจ"
                   : "ราคา"}
             </label>
@@ -5127,7 +5279,7 @@ const confirmSendBookingEmail = async () => {
               placeholder={
                 personnelServices.includes(selectedServiceName)
                   ? "กรอกราคาต่อคน"
-                  : packageDescriptions[selectedServiceName]
+                  : isPackageServiceName(selectedServiceName)
                     ? "กรอกราคาแพ็กเกจ"
                     : "กรอกราคา"
               }
@@ -5207,7 +5359,7 @@ const confirmSendBookingEmail = async () => {
             </div>
 
             {emailSendMessage && (
-              <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+              <div className={`mt-4 rounded-xl border px-4 py-3 text-sm font-semibold ${emailSendMessageClass}`}>
                 {emailSendMessage}
               </div>
             )}
@@ -5263,10 +5415,33 @@ const confirmSendBookingEmail = async () => {
                 <pre className="max-h-[52vh] overflow-auto whitespace-pre-wrap break-words rounded-xl border border-zinc-200 bg-white p-4 font-sans text-sm leading-7 text-zinc-800 md:max-h-[420px]">
                   {emailPreview.body}
                 </pre>
+                {serviceItems.some((item) =>
+                  ["QR Code", "Video Guestbook"].includes(item.name)
+                ) && (
+                  <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-zinc-700">
+                      รายละเอียดบริการในอีเมล
+                    </p>
+                    <div className="mt-3 space-y-4">
+                      {serviceItems
+                        .filter((item) =>
+                          ["QR Code", "Video Guestbook"].includes(item.name)
+                        )
+                        .map((item) => (
+                          <div key={item.id} className="rounded-lg bg-zinc-50 p-3">
+                            <p className="text-sm font-bold text-zinc-900">
+                              {item.name}
+                            </p>
+                            {renderServiceDescription(item.description)}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {emailSendMessage && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                <div className={`rounded-xl border px-4 py-3 text-sm font-semibold ${emailSendMessageClass}`}>
                   {emailSendMessage}
                 </div>
               )}

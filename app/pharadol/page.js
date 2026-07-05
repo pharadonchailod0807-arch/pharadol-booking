@@ -277,6 +277,7 @@ const [isSendOptionsOpen, setIsSendOptionsOpen] = useState(false);
 const [emailPreview, setEmailPreview] = useState(null);
 const [emailSentInfo, setEmailSentInfo] = useState(null);
 const [emailSendMessage, setEmailSendMessage] = useState("");
+const [emailSendStatus, setEmailSendStatus] = useState("idle");
 const [isSendingEmail, setIsSendingEmail] = useState(false);
 const [isPreparingAttachment, setIsPreparingAttachment] = useState(false);
 const [isViewMode, setIsViewMode] = useState(false);
@@ -318,6 +319,13 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
       : "border-zinc-200 bg-white"
   } ${extraClasses || "px-5 py-4"}`;
 };
+
+const emailSendMessageClass =
+  {
+    loading: "border-blue-200 bg-blue-50 text-blue-700",
+    success: "border-green-200 bg-green-50 text-green-700",
+    error: "border-red-200 bg-red-50 text-red-700",
+  }[emailSendStatus] || "border-zinc-200 bg-zinc-50 text-zinc-700";
 
 const customerNameSuggestions = getAutocompleteSuggestions(
   autocompleteOptions,
@@ -3043,6 +3051,7 @@ const downloadJPG = async () => {
 
 const openCustomerSendOptions = () => {
   setEmailSendMessage("");
+  setEmailSendStatus("idle");
   setEmailSentInfo(null);
   setIsSendOptionsOpen(true);
 };
@@ -3111,6 +3120,7 @@ const sendBookingEmail = async () => {
     pdfAttachment,
   });
   setEmailSendMessage("");
+  setEmailSendStatus("idle");
   setIsPreparingAttachment(false);
 };
 
@@ -3180,6 +3190,7 @@ const confirmSendBookingEmail = async () => {
   if (!emailPreview) return;
 
   setIsSendingEmail(true);
+  setEmailSendStatus("loading");
   setEmailSendMessage("กำลังอัปโหลด PDF ไป Google Drive...");
 
   try {
@@ -3189,6 +3200,7 @@ const confirmSendBookingEmail = async () => {
 
     try {
       driveFile = await uploadBookingPdfToDrive(emailPreview.pdfAttachment);
+      setEmailSendStatus("loading");
       setEmailSendMessage("อัปโหลด PDF ไป Google Drive สำเร็จ กำลังส่งอีเมล...");
     } catch (driveError) {
       driveUploadError = getReadableErrorMessage(
@@ -3196,6 +3208,7 @@ const confirmSendBookingEmail = async () => {
         "อัปโหลด PDF ไป Google Drive ไม่สำเร็จ"
       );
       console.error("Cannot upload booking PDF to Drive:", driveError);
+      setEmailSendStatus("loading");
       setEmailSendMessage("อัปโหลด Drive ไม่สำเร็จ กำลังส่งอีเมลต่อ...");
     }
 
@@ -3244,6 +3257,7 @@ const confirmSendBookingEmail = async () => {
       driveUploadError,
     });
 
+    setEmailSendStatus("success");
     setEmailSendMessage(
       driveUploadError
         ? `ส่งอีเมลสำเร็จ แต่ยังอัปโหลด Drive ไม่สำเร็จ: ${driveUploadError}`
@@ -3251,6 +3265,7 @@ const confirmSendBookingEmail = async () => {
     );
     setEmailPreview(null);
   } catch (error) {
+    setEmailSendStatus("error");
     setEmailSendMessage(
       getReadableErrorMessage(error, "ส่งอีเมลผ่าน Gmail ไม่สำเร็จ")
     );
@@ -5218,7 +5233,7 @@ const confirmSendBookingEmail = async () => {
             </div>
 
             {emailSendMessage && (
-              <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700">
+              <div className={`mt-4 rounded-xl border px-4 py-3 text-sm font-semibold ${emailSendMessageClass}`}>
                 {emailSendMessage}
               </div>
             )}
@@ -5277,7 +5292,7 @@ const confirmSendBookingEmail = async () => {
               </div>
 
               {emailSendMessage && (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                <div className={`rounded-xl border px-4 py-3 text-sm font-semibold ${emailSendMessageClass}`}>
                   {emailSendMessage}
                 </div>
               )}
