@@ -55,6 +55,17 @@ const SECURITY_PIN_KEY = "pharadol_securityPin";
 const SECURITY_UNLOCKED_KEY = "pharadol_securityUnlocked";
 const AUTO_LOCK_MINUTES = 15;
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const DEFAULT_CALENDAR_COLOR = "#111827";
+const CALENDAR_COLOR_OPTIONS = [
+  { label: "ฟ้า", value: "#3B82F6" },
+  { label: "เขียว", value: "#10B981" },
+  { label: "แดง/ชมพู", value: "#EF4444" },
+  { label: "ส้ม", value: "#F97316" },
+  { label: "ม่วง", value: "#8B5CF6" },
+  { label: "เหลืองทอง", value: "#F59E0B" },
+  { label: "เทาเข้ม", value: "#374151" },
+  { label: "ดำ", value: "#111827" },
+];
 
 const readArrayFromStorage = (...keys) => {
   for (const key of keys) {
@@ -245,6 +256,7 @@ const [paymentMethod, setPaymentMethod] = useState("โอนเงิน");
 const [paymentStatus, setPaymentStatus] = useState("มัดจำ");
 const [paymentProgress, setPaymentProgress] = useState("ยังไม่ชำระ");
 const [jobStatus, setJobStatus] = useState("รอยืนยัน");
+const [calendarColor, setCalendarColor] = useState(DEFAULT_CALENDAR_COLOR);
 const [lastSavedBookingNumber, setLastSavedBookingNumber] = useState("");
 const [paymentNote, setPaymentNote] = useState("");
 const [paymentTransactions, setPaymentTransactions] = useState([]);
@@ -623,6 +635,7 @@ const chooseLocationSuggestion = (suggestion) => {
           setPaymentStatus(draft.paymentStatus || "มัดจำ");
           setPaymentProgress(draft.paymentProgress || "ยังไม่ชำระ");
           setJobStatus(draft.jobStatus || "รอยืนยัน");
+          setCalendarColor(draft.calendarColor || DEFAULT_CALENDAR_COLOR);
           setPaymentNote(draft.paymentNote || "");
           setPaymentTransactions(
             Array.isArray(draft.paymentTransactions)
@@ -708,6 +721,7 @@ const chooseLocationSuggestion = (suggestion) => {
             paymentStatus,
             paymentProgress,
             jobStatus,
+            calendarColor,
             paymentNote,
             paymentTransactions,
             slipImage,
@@ -753,6 +767,7 @@ const chooseLocationSuggestion = (suggestion) => {
     paymentStatus,
     paymentProgress,
     jobStatus,
+    calendarColor,
     paymentNote,
     paymentTransactions,
     slipImage,
@@ -843,6 +858,7 @@ const chooseLocationSuggestion = (suggestion) => {
             setPaymentStatus(booking.paymentStatus || "มัดจำ");
             setPaymentProgress(booking.paymentProgress || "ยังไม่ชำระ");
             setJobStatus(booking.jobStatus || "รอยืนยัน");
+            setCalendarColor(booking.calendarColor || DEFAULT_CALENDAR_COLOR);
             setPaymentNote(booking.paymentNote || "");
             setPaymentTransactions(
               Array.isArray(booking.paymentTransactions)
@@ -2279,6 +2295,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     setPaymentNote("");
     setPaymentTransactions([]);
     setJobStatus("รอยืนยัน");
+    setCalendarColor(DEFAULT_CALENDAR_COLOR);
     setLastSavedBookingNumber("");
     setIsBookingSaved(false);
     setIsEditingBooking(false);
@@ -2492,6 +2509,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       paymentStatus,
       paymentProgress,
       jobStatus,
+      calendarColor,
       remainingPayment: previewRemainingPayment,
       paymentNote,
       paymentTransactions,
@@ -3608,6 +3626,39 @@ const confirmSendBookingEmail = async () => {
             }
             className={editableInputClass("eventDate", eventDate)}
           />
+
+          <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3">
+            <label className="block text-sm font-semibold text-zinc-700">
+              สีงานในปฏิทิน
+            </label>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {CALENDAR_COLOR_OPTIONS.map((option) => {
+                const isSelected = calendarColor === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() =>
+                      updateEditableField("calendarColor", setCalendarColor, option.value)
+                    }
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition ${
+                      isSelected
+                        ? "border-zinc-900 ring-2 ring-zinc-200"
+                        : "border-white ring-1 ring-zinc-200"
+                    }`}
+                    style={{ backgroundColor: option.value }}
+                    aria-label={`เลือกสี${option.label}`}
+                    title={option.label}
+                  >
+                    {isSelected && (
+                      <span className="text-xs font-bold text-white">✓</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>

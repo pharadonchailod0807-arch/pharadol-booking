@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WEEK_DAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+const DEFAULT_EVENT_COLOR = "#111827";
 const BRAND_CONFIG = {
   pharadol: {
     name: "PHARADOL PRODUCTION",
@@ -83,6 +84,21 @@ const buildCalendarCells = (visibleDate) => {
     date.setDate(start.getDate() + index);
     return date;
   });
+};
+
+const getEventColor = (event) => {
+  const color = String(event?.calendarColor || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : DEFAULT_EVENT_COLOR;
+};
+
+const getReadableTextColor = (backgroundColor) => {
+  const hex = backgroundColor.replace("#", "");
+  const red = parseInt(hex.slice(0, 2), 16);
+  const green = parseInt(hex.slice(2, 4), 16);
+  const blue = parseInt(hex.slice(4, 6), 16);
+  const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+
+  return luminance > 0.62 ? "#111827" : "#ffffff";
 };
 
 export default function BrandCalendarPage({ brandId }) {
@@ -241,12 +257,12 @@ export default function BrandCalendarPage({ brandId }) {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-3 text-zinc-900 md:p-6 xl:p-8">
-      <div className="mx-auto max-w-[1840px]">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold md:text-4xl">ปฏิทินงาน</h1>
-            <p className="mt-2 text-zinc-500">
+    <main className="min-h-screen bg-zinc-100 p-2 text-zinc-900 sm:p-4 md:p-6 xl:p-8">
+      <div className="mx-auto max-w-[1680px]">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 md:mb-5">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold md:text-3xl">ปฏิทินงาน</h1>
+            <p className="mt-1 text-sm text-zinc-500 md:text-base">
               แสดงงานจากใบจองของ {brand.name} ในรูปแบบปฏิทินจริง
             </p>
             <p className="mt-1 text-sm text-zinc-400">
@@ -257,118 +273,126 @@ export default function BrandCalendarPage({ brandId }) {
           <button
             type="button"
             onClick={() => router.push(brand.dashboardPath)}
-            className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 md:px-5 md:py-3 md:text-base"
           >
             กลับเมนูหลัก
           </button>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_440px]">
-          <section className="overflow-hidden rounded-3xl bg-white shadow-xl">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 p-4 md:p-5">
-              <div>
-                <p className="text-sm font-semibold text-zinc-500">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
+          <section className="overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 ring-zinc-200/70">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 p-3 md:p-4">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-zinc-500 md:text-sm">
                   {monthEvents.length} งานในเดือนนี้
                 </p>
-                <h2 className="mt-1 text-2xl font-bold">
+                <h2 className="mt-0.5 text-lg font-bold md:text-2xl">
                   {formatThaiMonth(visibleDate)}
                 </h2>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => goToMonth(-1)}
-                  className="rounded-xl border border-zinc-200 px-4 py-2 font-semibold hover:bg-zinc-100"
+                  className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-zinc-100 sm:px-3 md:text-sm"
                 >
                   ก่อนหน้า
                 </button>
                 <button
                   type="button"
                   onClick={goToday}
-                  className="rounded-xl bg-zinc-900 px-4 py-2 font-semibold text-white hover:bg-zinc-700"
+                  className="rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700 sm:px-3 md:text-sm"
                 >
                   วันนี้
                 </button>
                 <button
                   type="button"
                   onClick={() => goToMonth(1)}
-                  className="rounded-xl border border-zinc-200 px-4 py-2 font-semibold hover:bg-zinc-100"
+                  className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-zinc-100 sm:px-3 md:text-sm"
                 >
                   ถัดไป
                 </button>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <div className="min-w-[1080px]">
-                <div className="grid grid-cols-7 border-b border-zinc-100 bg-zinc-50 text-center text-sm font-bold text-zinc-500">
-                  {WEEK_DAYS.map((day) => (
-                    <div key={day} className="py-4">
-                      {day}
-                    </div>
-                  ))}
-                </div>
+            <div className="w-full overflow-x-hidden">
+              <div className="grid grid-cols-7 border-b border-zinc-100 bg-zinc-50 text-center text-[11px] font-semibold text-zinc-500 md:text-sm">
+                {WEEK_DAYS.map((day) => (
+                  <div key={day} className="py-2 md:py-3">
+                    {day}
+                  </div>
+                ))}
+              </div>
 
-                <div className="grid grid-cols-7">
-                  {calendarCells.map((date) => {
-                    const dayEvents = events.filter((event) => isSameDay(event.date, date));
-                    const isCurrentMonth = date.getMonth() === visibleDate.getMonth();
-                    const isSelected = isSameDay(date, selectedDate);
-                    const isToday = isSameDay(date, new Date());
+              <div className="grid grid-cols-7">
+                {calendarCells.map((date) => {
+                  const dayEvents = events.filter((event) => isSameDay(event.date, date));
+                  const isCurrentMonth = date.getMonth() === visibleDate.getMonth();
+                  const isSelected = isSameDay(date, selectedDate);
+                  const isToday = isSameDay(date, new Date());
 
-                    return (
-                      <button
-                        key={date.toISOString()}
-                        type="button"
-                        onClick={() => setSelectedDate(date)}
-                        className={`min-h-[168px] border-b border-r border-zinc-100 p-4 text-left transition hover:bg-blue-50 2xl:min-h-[190px] ${
-                          isSelected ? "bg-blue-50 ring-2 ring-inset ring-blue-500" : "bg-white"
-                        } ${isCurrentMonth ? "" : "text-zinc-300"}`}
-                      >
-                        <div className="mb-3 flex items-center justify-between">
-                          <span
-                            className={`flex h-8 w-8 items-center justify-center rounded-full text-base font-bold ${
-                              isToday
-                                ? "bg-zinc-900 text-white"
-                                : isSelected
-                                  ? "bg-blue-600 text-white"
-                                  : "text-zinc-700"
-                            }`}
-                          >
-                            {date.getDate()}
+                  return (
+                    <button
+                      key={date.toISOString()}
+                      type="button"
+                      onClick={() => setSelectedDate(date)}
+                      className={`min-h-[76px] min-w-0 border-b border-r border-zinc-100 p-1 text-left transition hover:bg-blue-50 sm:min-h-[88px] sm:p-1.5 md:min-h-[118px] md:p-2.5 xl:min-h-[126px] ${
+                        isSelected ? "bg-blue-50 ring-1 ring-inset ring-blue-500" : "bg-white"
+                      } ${isCurrentMonth ? "" : "text-zinc-300"}`}
+                    >
+                      <div className="mb-1 flex items-center justify-between gap-1 md:mb-2">
+                        <span
+                          className={`flex h-5 w-5 items-center justify-center rounded-full text-[13px] font-semibold md:h-7 md:w-7 md:text-sm ${
+                            isToday
+                              ? "bg-zinc-900 text-white"
+                              : isSelected
+                                ? "bg-blue-600 text-white"
+                                : "text-zinc-700"
+                          }`}
+                        >
+                          {date.getDate()}
+                        </span>
+                        {dayEvents.length > 0 && (
+                          <span className="hidden rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-600 sm:inline-flex">
+                            {dayEvents.length}
                           </span>
-                          {dayEvents.length > 0 && (
-                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
-                              {dayEvents.length}
-                            </span>
-                          )}
-                        </div>
+                        )}
+                      </div>
 
-                        <div className="space-y-1.5">
-                          {dayEvents.slice(0, 4).map((event) => (
+                      <div className="space-y-0.5 md:space-y-1">
+                        {dayEvents.slice(0, 3).map((event) => {
+                          const eventColor = getEventColor(event);
+                          const textColor = getReadableTextColor(eventColor);
+
+                          return (
                             <div
                               key={`${event.bookingNumber}-${event.startTime}-${event.customerName}`}
-                              className="truncate rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-semibold text-white"
+                              className="h-[18px] truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-[15px] md:h-[23px] md:px-2 md:py-1 md:text-xs md:leading-[15px]"
+                              style={{
+                                backgroundColor: eventColor,
+                                color: textColor,
+                              }}
+                              title={`${event.startTime || "--:--"} ${event.customerName || event.service || "งาน"}`}
                             >
                               {event.startTime || "--:--"} {event.customerName || event.service || "งาน"}
                             </div>
-                          ))}
-                          {dayEvents.length > 4 && (
-                            <p className="text-xs font-semibold text-zinc-400">
-                              +{dayEvents.length - 4} งาน
-                            </p>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                          );
+                        })}
+                        {dayEvents.length > 3 && (
+                          <p className="truncate text-[10px] font-semibold text-zinc-400 md:text-xs">
+                            +{dayEvents.length - 3} เพิ่มเติม
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </section>
 
-          <aside className="rounded-3xl bg-white p-5 shadow-xl xl:sticky xl:top-6 xl:max-h-[calc(100vh-48px)] xl:overflow-auto">
+          <aside className="rounded-[22px] bg-white p-4 shadow-sm ring-1 ring-zinc-200/70 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-auto md:p-5">
             <div className="mb-4">
               <p className="text-sm font-semibold text-zinc-500">
                 รายการวันที่เลือก
@@ -398,7 +422,13 @@ export default function BrandCalendarPage({ brandId }) {
                           {event.bookingNumber || "-"} · {event.jobStatus || "รอยืนยัน"}
                         </p>
                       </div>
-                      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                      <span
+                        className="rounded-full px-3 py-1 text-xs font-bold"
+                        style={{
+                          backgroundColor: getEventColor(event),
+                          color: getReadableTextColor(getEventColor(event)),
+                        }}
+                      >
                         {event.startTime || "-"} - {event.endTime || "-"}
                       </span>
                     </div>
