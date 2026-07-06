@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Barcode from "react-barcode";
 import { supabase } from "@/lib/supabase";
@@ -391,6 +391,9 @@ const [draftStatus, setDraftStatus] = useState("");
 const [isDraftReady, setIsDraftReady] = useState(false);
 const [isAuthorized, setIsAuthorized] = useState(false);
 const [editedFields, setEditedFields] = useState({});
+const saveLockRef = useRef(false);
+const emailSendLockRef = useRef(false);
+const attachmentLockRef = useRef(false);
 
 const markFieldEdited = (fieldName) => {
   setEditedFields((currentFields) =>
@@ -2630,7 +2633,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 // PDF
 // =========================
   const saveCustomer = async ({ forceUpdate = false } = {}) => {
-  if (isSaving) return;
+  if (isSaving || saveLockRef.current) return;
 
   if (isBookingSaved && !forceUpdate) {
     window.alert("ใบจองนี้บันทึกเรียบร้อยแล้ว ไม่สามารถบันทึกซ้ำได้");
@@ -2644,6 +2647,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
   if (!validateBooking()) return;
 
+    saveLockRef.current = true;
     setIsSaving(true);
 
     let resolvedBookingNumber = bookingNumber;
@@ -2892,6 +2896,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       console.error("Cannot save booking", error);
       alert("ไม่สามารถบันทึกข้อมูลได้ พื้นที่จัดเก็บอาจไม่เพียงพอ กรุณาลดขนาดรูปสลิปหรือลบข้อมูลเก่าบางส่วน");
     } finally {
+      saveLockRef.current = false;
       setIsSaving(false);
     }
   };
@@ -3379,6 +3384,8 @@ const getBookingEmailBody = () =>
   ].join("\n");
 
 const sendBookingEmail = async () => {
+  if (isPreparingAttachment || isSendingEmail || attachmentLockRef.current) return;
+
   const customerEmail = email.trim();
 
   if (!customerEmail) {
@@ -3392,6 +3399,7 @@ const sendBookingEmail = async () => {
   }
 
   setIsSendOptionsOpen(false);
+  attachmentLockRef.current = true;
   setIsPreparingAttachment(true);
 
   let pdfAttachment;
@@ -3401,6 +3409,7 @@ const sendBookingEmail = async () => {
   } catch (error) {
     console.error("Cannot create booking PDF attachment", error);
     window.alert(error.message || "ไม่สามารถสร้างไฟล์ PDF แนบอีเมลได้");
+    attachmentLockRef.current = false;
     setIsPreparingAttachment(false);
     return;
   }
@@ -3416,10 +3425,13 @@ const sendBookingEmail = async () => {
   });
   setEmailSendMessage("");
   setEmailSendStatus("idle");
+  attachmentLockRef.current = false;
   setIsPreparingAttachment(false);
 };
 
 const sendBookingSms = async () => {
+  if (isPreparingAttachment || attachmentLockRef.current) return;
+
   const customerPhone = phone.trim().replace(/[^\d+]/g, "");
 
   if (!customerPhone) {
@@ -3441,6 +3453,7 @@ const sendBookingSms = async () => {
   setIsSendOptionsOpen(false);
 
   try {
+    attachmentLockRef.current = true;
     setIsPreparingAttachment(true);
     const pdfAttachment = await createBookingPdfAttachment();
     const pdfFile =
@@ -3473,6 +3486,7 @@ const sendBookingSms = async () => {
     console.error("Cannot create booking PDF for SMS", error);
     window.alert(error.message || "ไม่สามารถสร้างไฟล์ PDF สำหรับ SMS ได้");
   } finally {
+    attachmentLockRef.current = false;
     setIsPreparingAttachment(false);
   }
 
@@ -3483,7 +3497,9 @@ const sendBookingSms = async () => {
 
 const confirmSendBookingEmail = async () => {
   if (!emailPreview) return;
+  if (isSendingEmail || emailSendLockRef.current) return;
 
+  emailSendLockRef.current = true;
   setIsSendingEmail(true);
   setEmailSendStatus("loading");
   setEmailSendMessage("กำลังอัปโหลด PDF ไป Google Drive...");
@@ -3533,13 +3549,6 @@ const confirmSendBookingEmail = async () => {
       );
     }
 
-    console.log("Gmail send debug:", {
-      messageId: result?.messageId || "",
-      threadId: result?.threadId || "",
-      driveFileId: driveFile?.id || "",
-      driveUploadError,
-    });
-
     setEmailSentInfo({
       to: emailPreview.to,
       subject: emailPreview.subject,
@@ -3565,6 +3574,7 @@ const confirmSendBookingEmail = async () => {
       getReadableErrorMessage(error, "ส่งอีเมลผ่าน Gmail ไม่สำเร็จ")
     );
   } finally {
+    emailSendLockRef.current = false;
     setIsSendingEmail(false);
   }
 };

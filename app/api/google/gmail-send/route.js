@@ -255,12 +255,6 @@ export async function POST(request) {
     const messageId = sentMessage.data.id || "";
     const threadId = sentMessage.data.threadId || "";
 
-    console.log("Gmail message sent:", {
-      brandId,
-      messageId,
-      threadId,
-    });
-
     return Response.json({
       success: true,
       messageId,
