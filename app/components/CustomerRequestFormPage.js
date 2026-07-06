@@ -13,13 +13,15 @@ const ALLOWED_FILE_TYPES = new Set([
 const BRAND_CONFIG = {
   pharadol: {
     name: "Pharadol Production",
-    logo: "/pharadol-logo.jpeg",
+    logo: "/customer-form/pharadol-logo-black.png",
     accent: "#143321",
+    logoDark: true,
   },
   adisorn: {
     name: "Adisorn Wedding Studio",
     logo: "/adisorn-logo.png",
     accent: "#5b3117",
+    logoDark: false,
   },
 };
 
@@ -90,7 +92,10 @@ export default function CustomerRequestFormPage({ brand }) {
     }
 
     return {
-      slipUrl: result.driveViewUrl || result.driveDownloadUrl || "",
+      slipUrl:
+        file.type === "application/pdf"
+          ? result.driveViewUrl || result.driveDownloadUrl || ""
+          : result.driveDownloadUrl || result.driveViewUrl || "",
       slipFileName: file.name,
       slipFileType: file.type,
     };
@@ -114,6 +119,33 @@ export default function CustomerRequestFormPage({ brand }) {
 
     return result.request;
   };
+
+  const renderLogo = (priority = false) =>
+    config.logoDark ? (
+      <div className="flex w-full justify-center">
+        <div className="rounded-[22px] bg-black px-5 py-4 shadow-[0_16px_42px_rgba(15,15,15,0.16)] sm:px-6 sm:py-5">
+          <Image
+            src={config.logo}
+            alt={config.name}
+            width={220}
+            height={220}
+            priority={priority}
+            className="h-auto w-[170px] object-contain sm:w-[220px]"
+          />
+        </div>
+      </div>
+    ) : (
+      <div className="relative h-24 w-24 overflow-hidden rounded-full border border-zinc-200 bg-white shadow-sm">
+        <Image
+          src={config.logo}
+          alt={config.name}
+          fill
+          sizes="96px"
+          priority={priority}
+          className="object-contain"
+        />
+      </div>
+    );
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -154,9 +186,7 @@ export default function CustomerRequestFormPage({ brand }) {
     return (
       <main className="min-h-screen bg-[#f8f7f4] px-4 py-8 text-zinc-950">
         <section className="mx-auto flex min-h-[calc(100vh-64px)] max-w-2xl flex-col items-center justify-center text-center">
-          <div className="relative h-24 w-24 overflow-hidden rounded-full border border-zinc-200 bg-white shadow-sm">
-            <Image src={config.logo} alt={config.name} fill sizes="96px" className="object-contain" />
-          </div>
+          {renderLogo()}
           <h1 className="mt-8 text-3xl font-bold leading-tight sm:text-4xl">
             ส่งข้อมูลเรียบร้อยแล้ว
           </h1>
@@ -177,9 +207,7 @@ export default function CustomerRequestFormPage({ brand }) {
     <main className="min-h-screen bg-[#f8f7f4] px-4 py-6 text-zinc-950 sm:py-10">
       <section className="mx-auto max-w-2xl">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="relative h-24 w-24 overflow-hidden rounded-full border border-zinc-200 bg-white shadow-sm">
-            <Image src={config.logo} alt={config.name} fill sizes="96px" className="object-contain" priority />
-          </div>
+          {renderLogo(true)}
           <p className="mt-4 text-xs font-bold uppercase tracking-[0.26em] text-zinc-400">
             {config.name}
           </p>

@@ -26,6 +26,9 @@ const normalizeDateValue = (value) => {
   return String(value).slice(0, 10);
 };
 
+const getFirstValue = (...values) =>
+  values.find((value) => String(value || "").trim()) || "";
+
 export const normalizeCustomerRequest = (request) => ({
   id: request?.id || "",
   brand: request?.brand || "",
@@ -35,9 +38,28 @@ export const normalizeCustomerRequest = (request) => ({
   eventLocation: request?.eventLocation || request?.event_location || "",
   eventDate: normalizeDateValue(request?.eventDate || request?.event_date),
   note: request?.note || request?.detail || "",
-  slipUrl: request?.slipUrl || request?.slip_url || "",
-  slipFileName: request?.slipFileName || request?.slip_file_name || "",
-  slipFileType: request?.slipFileType || request?.slip_file_type || "",
+  slipUrl: getFirstValue(
+    request?.slipUrl,
+    request?.slip_url,
+    request?.slipFile,
+    request?.slip_file,
+    request?.paymentSlip,
+    request?.payment_slip,
+    request?.paymentSlipUrl,
+    request?.payment_slip_url
+  ),
+  slipFileName: getFirstValue(
+    request?.slipFileName,
+    request?.slip_file_name,
+    request?.paymentSlipFileName,
+    request?.payment_slip_file_name
+  ),
+  slipFileType: getFirstValue(
+    request?.slipFileType,
+    request?.slip_file_type,
+    request?.paymentSlipFileType,
+    request?.payment_slip_file_type
+  ),
   status: request?.status || "new",
   source: request?.source || "customer_form",
   createdAt: request?.createdAt || request?.created_at || new Date().toISOString(),
@@ -113,11 +135,18 @@ export const deleteLocalCustomerRequest = (brand, id) => {
 
 export const getCustomerRequestPrefill = (request) => ({
   requestId: request.id,
+  sourceRequestId: request.id,
   brand: request.brand,
   customerName: request.customerName,
   phone: request.phone,
   email: request.email,
   location: request.eventLocation,
+  eventLocation: request.eventLocation,
   eventDate: request.eventDate,
+  note: request.note,
   paymentNote: request.note,
+  slipUrl: request.slipUrl,
+  slipImage: request.slipUrl,
+  slipFileName: request.slipFileName,
+  slipFileType: request.slipFileType,
 });

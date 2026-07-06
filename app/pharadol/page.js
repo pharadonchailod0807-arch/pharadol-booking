@@ -163,6 +163,24 @@ const getReadableErrorMessage = (value, fallback) => {
   }
 };
 
+const isPdfSlipFile = (url, fileType = "", fileName = "") =>
+  String(fileType || "").toLowerCase().includes("pdf") ||
+  String(fileName || "").toLowerCase().endsWith(".pdf") ||
+  String(url || "").toLowerCase().includes(".pdf");
+
+const isImageSlipFile = (url, fileType = "", fileName = "") => {
+  const normalizedType = String(fileType || "").toLowerCase();
+  const normalizedName = String(fileName || url || "").toLowerCase();
+
+  return (
+    !url ||
+    normalizedType.startsWith("image/") ||
+    String(url).startsWith("data:image/") ||
+    /\.(jpe?g|png|webp)$/i.test(normalizedName) ||
+    (!normalizedType && !isPdfSlipFile(url, fileType, fileName))
+  );
+};
+
 export default function BookingSystem() {
   const router = useRouter();
 
@@ -254,6 +272,8 @@ const [discountPercent, setDiscountPercent] = useState("");
 const [discountAmount, setDiscountAmount] = useState("");
 
 const [slipImage, setSlipImage] = useState("");
+const [slipFileName, setSlipFileName] = useState("");
+const [slipFileType, setSlipFileType] = useState("");
 const [paymentDate, setPaymentDate] = useState("");
 const [paymentTime, setPaymentTime] = useState("");
 const [paymentAmount, setPaymentAmount] = useState("");
@@ -329,6 +349,10 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
       : "border-zinc-200 bg-white"
   } ${extraClasses || "px-5 py-4"}`;
 };
+
+const slipIsPdf = Boolean(slipImage) && isPdfSlipFile(slipImage, slipFileType, slipFileName);
+const slipIsImage = Boolean(slipImage) && isImageSlipFile(slipImage, slipFileType, slipFileName);
+const slipDisplayName = slipFileName || (slipIsPdf ? "ไฟล์สลิป PDF" : "หลักฐานการโอน");
 
 const emailSendMessageClass =
   {
@@ -631,6 +655,9 @@ const chooseLocationSuggestion = (suggestion) => {
             setLocation(prefill.location || "");
             setEventDate(prefill.eventDate || "");
             setPaymentNote(prefill.paymentNote || "");
+            setSlipImage(prefill.slipUrl || prefill.slipImage || "");
+            setSlipFileName(prefill.slipFileName || "");
+            setSlipFileType(prefill.slipFileType || "");
             setPendingCustomerRequestId(prefill.requestId || "");
             localStorage.removeItem(PENDING_BOOKING_PREFILL_KEY);
             localStorage.removeItem(BOOKING_DRAFT_KEY);
@@ -676,6 +703,8 @@ const chooseLocationSuggestion = (suggestion) => {
               : []
           );
           setSlipImage(draft.slipImage || "");
+          setSlipFileName(draft.slipFileName || "");
+          setSlipFileType(draft.slipFileType || "");
           setDraftStatus("กู้คืนร่างล่าสุดแล้ว");
         }
       } catch (error) {
@@ -758,6 +787,8 @@ const chooseLocationSuggestion = (suggestion) => {
             paymentNote,
             paymentTransactions,
             slipImage,
+            slipFileName,
+            slipFileType,
             savedAt: new Date().toISOString(),
           })
         );
@@ -804,6 +835,8 @@ const chooseLocationSuggestion = (suggestion) => {
     paymentNote,
     paymentTransactions,
     slipImage,
+    slipFileName,
+    slipFileType,
   ]);
 
   useEffect(() => {
@@ -880,6 +913,8 @@ const chooseLocationSuggestion = (suggestion) => {
                 : String(booking.discountAmount)
             );
             setSlipImage(booking.slipImage || "");
+            setSlipFileName(booking.slipFileName || "");
+            setSlipFileType(booking.slipFileType || "");
             setPaymentDate(booking.paymentDate || "");
             setPaymentTime(booking.paymentTime || "");
             setPaymentAmount(
@@ -2319,6 +2354,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     setDiscountPercent("");
     setDiscountAmount("");
     setSlipImage("");
+    setSlipFileName("");
+    setSlipFileType("");
     setPaymentDate("");
     setPaymentTime("");
     setPaymentAmount("");
@@ -2420,6 +2457,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     setBookingDate(now.toLocaleString("th-TH"));
     setToday(now.toLocaleDateString("th-TH"));
     setSlipImage("");
+    setSlipFileName("");
+    setSlipFileType("");
     setPaymentDate("");
     setPaymentTime("");
     setPaymentAmount("");
@@ -2467,6 +2506,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         const context = canvas.getContext("2d");
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
         setSlipImage(canvas.toDataURL("image/jpeg", 0.62));
+        setSlipFileName(file.name);
+        setSlipFileType(file.type || "image/jpeg");
       };
       image.src = reader.result;
     };
@@ -2537,6 +2578,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       totalDiscount,
       finalPrice,
       slipImage,
+      slipFileName,
+      slipFileType,
       paymentDate,
       paymentTime,
       paymentAmount,
@@ -4126,12 +4169,38 @@ const confirmSendBookingEmail = async () => {
               className={editableInputClass("slipImage", slipImage, "px-4 py-3")}
             />
 
-            {slipImage && (
-              <img
-                src={slipImage}
-                alt="Slip Preview"
-                className="w-full rounded-2xl border mt-3"
-              />
+            {slipImage && slipIsImage && (
+              <div className="mt-3">
+                <img
+                  src={slipImage}
+                  alt="Slip Preview"
+                  className="w-full rounded-2xl border"
+                />
+                {!String(slipImage).startsWith("data:") && (
+                  <a
+                    href={slipImage}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                  >
+                    ดูสลิปเต็ม
+                  </a>
+                )}
+              </div>
+            )}
+
+            {slipImage && slipIsPdf && (
+              <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <p className="text-sm font-bold text-zinc-900">{slipDisplayName}</p>
+                <a
+                  href={slipImage}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
+                >
+                  เปิดไฟล์สลิป
+                </a>
+              </div>
             )}
           </div>
         </div>
@@ -4931,12 +5000,37 @@ const confirmSendBookingEmail = async () => {
           </div>
 
           <div className="flex-1 min-h-0 rounded-2xl border border-zinc-200 bg-zinc-50 p-5 flex items-center justify-center overflow-hidden">
-            {slipImage ? (
-              <img
-                src={slipImage}
-                alt="หลักฐานการโอนงาน"
-                className="max-w-full max-h-full object-contain rounded-xl"
-              />
+            {slipImage && slipIsImage ? (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+                <img
+                  src={slipImage}
+                  alt="หลักฐานการโอนงาน"
+                  className="max-h-full max-w-full object-contain rounded-xl"
+                />
+                {!String(slipImage).startsWith("data:") && (
+                  <a
+                    href={slipImage}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="no-print rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
+                  >
+                    ดูสลิปเต็ม
+                  </a>
+                )}
+              </div>
+            ) : slipImage && slipIsPdf ? (
+              <div className="text-center">
+                <p className="text-lg font-bold text-zinc-900">{slipDisplayName}</p>
+                <p className="mt-2 text-sm text-zinc-500">ไฟล์หลักฐานการโอนเป็น PDF</p>
+                <a
+                  href={slipImage}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
+                >
+                  เปิดไฟล์สลิป
+                </a>
+              </div>
             ) : (
               <div className="text-center text-zinc-400">
                 <p className="text-xl font-semibold">ยังไม่ได้แนบหลักฐานการโอน</p>

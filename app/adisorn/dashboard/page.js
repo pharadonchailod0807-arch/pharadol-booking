@@ -7,7 +7,6 @@ import {
   emptyDashboardCounts,
 } from "@/app/lib/dashboardCounts";
 import {
-  CUSTOMER_FORM_LINKS,
   CUSTOMER_REQUESTS_EVENT,
   countNewCustomerRequests,
   loadCustomerRequests,
@@ -165,7 +164,6 @@ export default function Dashboard() {
   const [dashboardTheme, setDashboardTheme] = useState("clean");
   const [showWelcome, setShowWelcome] = useState(null);
   const [newCustomerRequestCount, setNewCustomerRequestCount] = useState(0);
-  const [copyMessage, setCopyMessage] = useState("");
 
   useEffect(() => {
     const loadDashboardData = (savedUser) => {
@@ -340,17 +338,6 @@ export default function Dashboard() {
   const logout = () => {
     sessionStorage.clear();
     window.location.replace("/login");
-  };
-
-  const copyCustomerFormLink = async () => {
-    try {
-      await navigator.clipboard.writeText(CUSTOMER_FORM_LINKS.adisorn);
-      setCopyMessage("คัดลอกลิงก์แล้ว");
-      window.setTimeout(() => setCopyMessage(""), 1800);
-    } catch {
-      setCopyMessage("คัดลอกลิงก์ไม่สำเร็จ");
-      window.setTimeout(() => setCopyMessage(""), 1800);
-    }
   };
 
   if (!isAuthorized || !currentUser || showWelcome === null) {
@@ -960,33 +947,6 @@ export default function Dashboard() {
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-        </section>
-
-        <section className={isNeonTheme ? "mt-4 rounded-[22px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.24)]" : "mt-4 rounded-[22px] border border-white/80 bg-white/74 p-4 shadow-[0_18px_46px_rgba(15,23,42,0.08)] backdrop-blur-xl"}>
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className={isNeonTheme ? "font-semibold text-white" : "font-semibold text-zinc-950"}>
-                ลิงก์ฟอร์มลูกค้า
-              </p>
-              <p className={isNeonTheme ? "mt-1 break-all text-sm text-white/48" : "mt-1 break-all text-sm text-zinc-500"}>
-                {CUSTOMER_FORM_LINKS.adisorn}
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              {copyMessage && (
-                <span className={isNeonTheme ? "text-sm font-semibold text-emerald-300" : "text-sm font-semibold text-emerald-700"}>
-                  {copyMessage}
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={copyCustomerFormLink}
-                className={isNeonTheme ? "rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#111317] transition hover:bg-white/90" : "rounded-full bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800"}
-              >
-                คัดลอกลิงก์ฟอร์มลูกค้า
-              </button>
             </div>
           </div>
         </section>
