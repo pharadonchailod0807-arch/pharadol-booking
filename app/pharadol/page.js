@@ -2867,6 +2867,42 @@ const isCanvasMostlyBlank = (canvas) => {
   return totalPixels > 0 && contentPixels / totalPixels < 0.02;
 };
 
+const getBookingPageNumberBrandLabel = () =>
+  BRAND_ID === "adisorn" ? "ADISORN WEDDING STUDIO" : "PHARADOL PRODUCTION";
+
+const applyBookingPageNumbers = (pages) => {
+  const totalPages = pages.length;
+  const brandLabel = getBookingPageNumberBrandLabel();
+
+  pages.forEach((page, index) => {
+    page.querySelectorAll(".pdf-page-number").forEach((element) => {
+      element.remove();
+    });
+
+    if (!page.style.position) {
+      page.style.position = "relative";
+    }
+
+    const pageNumber = document.createElement("div");
+    pageNumber.className = "pdf-page-number";
+    pageNumber.textContent = `${brandLabel} | หน้า ${index + 1}/${totalPages}`;
+    Object.assign(pageNumber.style, {
+      position: "absolute",
+      right: "32px",
+      bottom: "20px",
+      color: "rgba(156, 163, 175, 0.58)",
+      fontSize: "8px",
+      fontWeight: "400",
+      lineHeight: "1",
+      letterSpacing: "0",
+      pointerEvents: "none",
+      zIndex: "20",
+    });
+
+    page.appendChild(pageNumber);
+  });
+};
+
 const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
   const html2canvas = (await import("html2canvas-pro")).default;
   const pages = Array.from(document.querySelectorAll(".print-area"));
@@ -2874,6 +2910,8 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
   if (pages.length === 0) {
     throw new Error("ไม่พบหน้าเอกสารสำหรับสร้างไฟล์");
   }
+
+  applyBookingPageNumbers(pages);
 
   await new Promise((resolve) => requestAnimationFrame(resolve));
   await waitForCaptureImages(document);
