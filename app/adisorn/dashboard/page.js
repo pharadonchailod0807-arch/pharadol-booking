@@ -6,6 +6,16 @@ import Image from "next/image";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const CLOSED_STATUSES = new Set(["completed", "finished", "closed", "done"]);
 const DASHBOARD_THEME_KEY = "adisorn_dashboard_theme";
+const BOOKING_DRAFT_KEY = "adisorn_bookingDraft";
+
+const readArray = (key) => {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+};
 
 const isClosedJob = (item) => {
   const status = String(item?.status || item?.jobStatus || item?.bookingStatus || "")
@@ -13,6 +23,38 @@ const isClosedJob = (item) => {
     .toLowerCase();
 
   return CLOSED_STATUSES.has(status);
+};
+
+const hasOutstandingPayment = (item) => {
+  const finalPrice = Number(item?.finalPrice || 0);
+  const paidAmount = Number(item?.totalPaid ?? item?.paymentAmount ?? 0);
+  const remainingPayment = Number(
+    item?.remainingPayment ?? Math.max(finalPrice - paidAmount, 0)
+  );
+  const paymentProgress = String(item?.paymentProgress || "").trim();
+
+  return (
+    finalPrice > 0 &&
+    remainingPayment > 0 &&
+    paymentProgress !== "ชำระครบแล้ว"
+  );
+};
+
+const isActionableEmail = (item) =>
+  ["draft", "pending", "queued", "error", "failed"].includes(
+    String(item?.status || "").trim().toLowerCase()
+  );
+
+const DashboardBadge = ({ count }) => {
+  const numericCount = Number(count || 0);
+
+  if (numericCount <= 0) return null;
+
+  return (
+    <span className="absolute right-4 top-4 z-20 flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white shadow-md">
+      {numericCount > 99 ? "99+" : numericCount}
+    </span>
+  );
 };
 
 const Icon = ({ name, className = "h-6 w-6" }) => {
@@ -138,6 +180,10 @@ export default function Dashboard() {
   const [trashCount, setTrashCount] = useState(0);
   const [todayJobs, setTodayJobs] = useState(0);
   const [upcomingJobs, setUpcomingJobs] = useState(0);
+  const [monthJobs, setMonthJobs] = useState(0);
+  const [draftBookingCount, setDraftBookingCount] = useState(0);
+  const [pendingPaymentCount, setPendingPaymentCount] = useState(0);
+  const [emailAttentionCount, setEmailAttentionCount] = useState(0);
   const [alerts, setAlerts] = useState([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [dashboardTheme, setDashboardTheme] = useState("clean");
@@ -153,29 +199,28 @@ export default function Dashboard() {
 
       setCurrentUser(parsedUser);
 
-      const customers = JSON.parse(
-        localStorage.getItem("adisorn_customers") || "[]"
+      const safeCustomers = readArray("adisorn_customers");
+      const safeArchives = readArray("adisorn_archives");
+      const safeTrash = readArray("adisorn_trash");
+      const emailHistory = readArray("adisorn_email_history").filter(
+        (item) => !item.brandId || item.brandId === "adisorn"
       );
-      const archives = JSON.parse(
-        localStorage.getItem("adisorn_archives") || "[]"
-      );
-      const trash = JSON.parse(
-        localStorage.getItem("adisorn_trash") || "[]"
-      );
-
-      const safeCustomers = Array.isArray(customers) ? customers : [];
-      const safeArchives = Array.isArray(archives) ? archives : [];
-      const safeTrash = Array.isArray(trash) ? trash : [];
 
       setCustomerCount(safeCustomers.length);
       setArchiveCount(safeArchives.length + safeCustomers.filter(isClosedJob).length);
       setTrashCount(safeTrash.length);
+      setDraftBookingCount(localStorage.getItem(BOOKING_DRAFT_KEY) ? 1 : 0);
+      setPendingPaymentCount(safeCustomers.filter(hasOutstandingPayment).length);
+      setEmailAttentionCount(emailHistory.filter(isActionableEmail).length);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
 
       let todayCount = 0;
       let upcomingCount = 0;
+      let monthCount = 0;
       const upcomingAlerts = [];
 
       safeCustomers.forEach((item) => {
@@ -189,6 +234,12 @@ export default function Dashboard() {
         );
 
         if (diffDays === 0) todayCount += 1;
+        if (
+          eventDate.getFullYear() === currentYear &&
+          eventDate.getMonth() === currentMonth
+        ) {
+          monthCount += 1;
+        }
 
         if (diffDays > 0 && diffDays <= 7) {
           upcomingCount += 1;
@@ -202,6 +253,7 @@ export default function Dashboard() {
 
       setTodayJobs(todayCount);
       setUpcomingJobs(upcomingCount);
+      setMonthJobs(monthCount);
       setAlerts(
         upcomingAlerts.sort((a, b) => a.diffDays - b.diffDays)
       );
@@ -270,7 +322,9 @@ export default function Dashboard() {
         event.key === "central_admin_users" ||
         event.key === "adisorn_customers" ||
         event.key === "adisorn_archives" ||
-        event.key === "adisorn_trash"
+        event.key === "adisorn_trash" ||
+        event.key === "adisorn_email_history" ||
+        event.key === BOOKING_DRAFT_KEY
       ) {
         verifyAccess();
       }
@@ -517,16 +571,16 @@ export default function Dashboard() {
   ];
 
   const actionCards = [
-    ["/adisorn/booking", "document", "ระบบสร้างใบจอง", "สร้างใบจองใหม่"],
-    ["/adisorn/customers", "customers", "ข้อมูลลูกค้า", "รายชื่อลูกค้าทั้งหมด"],
-    ["/adisorn/archives", "archive", "คลังข้อมูล", "ข้อมูลที่จัดเก็บแล้ว"],
-    ["/adisorn/calendar", "calendar", "ปฏิทินงาน", "ตารางงานทั้งหมด"],
-    ["/adisorn/trash", "trash", "ถังขยะ", "รายการที่ถูกลบ"],
-    ["/adisorn/income", "income", "รายได้", "รายได้ทั้งหมด"],
-    ["/adisorn/reports", "reports", "รายงาน", "สถิติและรายงานธุรกิจ"],
-    ["/adisorn/notifications", "bell", "แจ้งเตือน", "งานใกล้ถึงกำหนด"],
-    ["/adisorn/settings", "settings", "ตั้งค่าระบบ", "จัดการข้อมูลระบบ"],
-    ["/adisorn/mail", "mail", "ระบบส่งอีเมล", "ระบบส่งอีเมล"],
+    ["/adisorn/booking", "document", "ระบบสร้างใบจอง", "สร้างใบจองใหม่", draftBookingCount],
+    ["/adisorn/customers", "customers", "ข้อมูลลูกค้า", "รายชื่อลูกค้าทั้งหมด", customerCount],
+    ["/adisorn/archives", "archive", "คลังข้อมูล", "ข้อมูลที่จัดเก็บแล้ว", archiveCount],
+    ["/adisorn/calendar", "calendar", "ปฏิทินงาน", "ตารางงานทั้งหมด", monthJobs],
+    ["/adisorn/trash", "trash", "ถังขยะ", "รายการที่ถูกลบ", trashCount],
+    ["/adisorn/income", "income", "รายได้", "รายได้ทั้งหมด", pendingPaymentCount],
+    ["/adisorn/reports", "reports", "รายงาน", "สถิติและรายงานธุรกิจ", 0],
+    ["/adisorn/notifications", "bell", "แจ้งเตือน", "งานใกล้ถึงกำหนด", upcomingJobs],
+    ["/adisorn/settings", "settings", "ตั้งค่าระบบ", "จัดการข้อมูลระบบ", 0],
+    ["/adisorn/mail", "mail", "ระบบส่งอีเมล", "ระบบส่งอีเมล", emailAttentionCount],
   ];
 
   const actionCardImages = {
@@ -602,7 +656,7 @@ export default function Dashboard() {
             </div>
 
             <nav className="grid gap-3 sm:grid-cols-2 xl:block xl:space-y-3">
-              {actionCards.map(([href, icon, title]) => {
+              {actionCards.map(([href, icon, title, , badgeCount]) => {
                 const active = icon === "document";
 
                 return (
@@ -610,12 +664,13 @@ export default function Dashboard() {
                     key={href}
                     type="button"
                     onClick={() => (window.location.href = href)}
-                    className={`flex w-full items-center gap-4 rounded-2xl px-4 py-4 text-left text-sm font-semibold transition ${
+                    className={`relative flex w-full items-center gap-4 rounded-2xl px-4 py-4 pr-12 text-left text-sm font-semibold transition ${
                       active
                         ? "border border-sky-200/35 bg-white/14 text-white shadow-[0_0_28px_rgba(56,189,248,0.22)]"
                         : "text-white/72 hover:bg-white/10 hover:text-white"
                     }`}
                   >
+                    <DashboardBadge count={badgeCount} />
                     <Icon name={icon} className="h-6 w-6" />
                     <span>{title}</span>
                   </button>
@@ -679,13 +734,14 @@ export default function Dashboard() {
             </header>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {actionCards.slice(0, 8).map(([href, icon, title, description]) => (
+              {actionCards.slice(0, 8).map(([href, icon, title, description, badgeCount]) => (
                 <button
                   key={href}
                   type="button"
                   onClick={() => (window.location.href = href)}
                   className="group relative min-h-[260px] overflow-hidden rounded-[24px] border border-white/20 bg-white/[0.085] p-8 text-left shadow-[0_22px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-white/38"
                 >
+                  <DashboardBadge count={badgeCount} />
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.18),transparent_26%)] opacity-80" />
                   <span className="relative block h-28 w-28">
                     <Image
@@ -710,13 +766,14 @@ export default function Dashboard() {
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
-              {actionCards.slice(8).map(([href, icon, title, description]) => (
+              {actionCards.slice(8).map(([href, icon, title, description, badgeCount]) => (
                 <button
                   key={href}
                   type="button"
                   onClick={() => (window.location.href = href)}
-                  className="group flex min-h-[150px] items-center gap-8 rounded-[24px] border border-white/20 bg-white/[0.08] p-8 text-left shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-300 hover:-translate-y-1"
+                  className="group relative flex min-h-[150px] items-center gap-8 rounded-[24px] border border-white/20 bg-white/[0.08] p-8 text-left shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-300 hover:-translate-y-1"
                 >
+                  <DashboardBadge count={badgeCount} />
                   <span className="relative block h-28 w-28 shrink-0">
                     <Image
                       src={auroraIconImages[icon]}
@@ -830,12 +887,13 @@ export default function Dashboard() {
         </div>
 
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 md:grid-cols-3">
-          {actionCards.map(([href, icon, title, description]) => (
+          {actionCards.map(([href, icon, title, description, badgeCount]) => (
             <div
               key={href}
               onClick={() => (window.location.href = href)}
-              className="cursor-pointer rounded-3xl bg-white p-10 text-center shadow-xl transition hover:scale-105"
+              className="relative cursor-pointer rounded-3xl bg-white p-10 text-center shadow-xl transition hover:scale-105"
             >
+              <DashboardBadge count={badgeCount} />
               <div className="mb-4 text-7xl">{actionCardEmojis[icon]}</div>
               <h2 className="text-2xl font-bold">{title}</h2>
               <p className="mt-3 text-zinc-500">{description}</p>
@@ -940,7 +998,7 @@ export default function Dashboard() {
         </section>
 
         <div className={isNeonTheme ? "mx-auto mt-6 grid max-w-[1640px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" : "mx-auto mt-6 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"}>
-          {actionCards.map(([href, icon, title, description]) => {
+          {actionCards.map(([href, icon, title, description, badgeCount]) => {
             if (isNeonTheme) {
               const cardImage = actionCardImages[icon];
               return (
@@ -950,6 +1008,7 @@ export default function Dashboard() {
                   onClick={() => (window.location.href = href)}
                   className="group relative block aspect-[431/475] w-full appearance-none overflow-hidden rounded-[20px] p-0 text-left shadow-[0_28px_80px_rgba(0,0,0,0.55)] transition duration-300 hover:-translate-y-1"
                 >
+                  <DashboardBadge count={badgeCount} />
                   <Image
                     src={cardImage}
                     alt=""
@@ -969,8 +1028,9 @@ export default function Dashboard() {
                 key={href}
                 type="button"
                 onClick={() => (window.location.href = href)}
-                className="group flex min-h-[210px] flex-col justify-between rounded-[28px] border border-white/85 bg-white/74 p-5 text-left shadow-[0_22px_60px_rgba(15,23,42,0.09)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white"
+                className="group relative flex min-h-[210px] flex-col justify-between rounded-[28px] border border-white/85 bg-white/74 p-5 text-left shadow-[0_22px_60px_rgba(15,23,42,0.09)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white"
               >
+                <DashboardBadge count={badgeCount} />
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 transition group-hover:border-zinc-300 group-hover:bg-zinc-950 group-hover:text-white">
                   <Icon name={icon} className="h-7 w-7" />
                 </span>
