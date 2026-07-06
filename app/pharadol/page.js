@@ -1124,8 +1124,137 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       videoServices.includes(item.name)
   );
 
-  const shouldShowPackagePage =
+  const getServiceItemName = (item) =>
+    String(item?.name || item?.title || "").trim();
+
+  const hasQrCodePackage = serviceItems.some(
+    (item) => getServiceItemName(item) === "QR Code"
+  );
+
+  const hasVideoGuestbookPackage = serviceItems.some(
+    (item) => getServiceItemName(item) === "Video Guestbook"
+  );
+
+  const shouldShowPrimaryPackagePage =
     hasPhotographyPackage || hasVideoPackage;
+
+  const shouldShowAddOnPackagePage =
+    hasQrCodePackage || hasVideoGuestbookPackage;
+
+  const shouldShowPackagePage =
+    shouldShowPrimaryPackagePage || shouldShowAddOnPackagePage;
+
+  const renderQrCodePackageSection = () => (
+    <section className="rounded-2xl border border-zinc-200 overflow-hidden flex flex-col shrink-0 bg-white">
+      <div className="package-section-header bg-zinc-900 text-white px-5 py-3 shrink-0">
+        <h3 className="text-lg font-bold tracking-wide">
+          QR CODE PACKAGE
+        </h3>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-5 text-[10px] leading-relaxed text-zinc-700">
+        <div>
+          <p className="font-bold text-sm text-zinc-900 mb-1">
+            1. รับรูปได้ทันที
+          </p>
+          <p>
+            แขกร่วมงานและญาติผู้ใหญ่สามารถรับรูปได้ทันทีหลังถ่ายเสร็จ
+            ทั้งดาวน์โหลดจากตัวโปรแกรม หรือส่งเข้า LINE
+          </p>
+        </div>
+
+        <div>
+          <p className="font-bold text-sm text-zinc-900 mb-1">
+            2. โทนสีและภาพ
+          </p>
+          <p>
+            สีสันสดใส และสามารถเลือกโทนภาพเองได้
+          </p>
+        </div>
+
+        <div>
+          <p className="font-bold text-sm text-zinc-900 mb-1">
+            3. ระบบคุณภาพ
+          </p>
+          <p>
+            ทีมงานใช้โปรแกรมคุณภาพ หลังจบงานยังสามารถดาวน์โหลดรูปได้
+          </p>
+        </div>
+
+        <div>
+          <p className="font-bold text-sm text-zinc-900 mb-1">
+            4. ช่วงเวลาใช้งาน
+          </p>
+          <ul className="space-y-0.5">
+            <li>- พิธีรับไหว้</li>
+            <li>- ช่วงหลั่งน้ำพระพุทธมนต์</li>
+            <li>- ถ่ายรูปหน้า Backdrop</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+
+  const renderVideoGuestbookPackageSection = () => (
+    <section className="rounded-2xl border border-zinc-200 overflow-hidden flex flex-col shrink-0 bg-white">
+      <div className="package-section-header bg-zinc-900 text-white px-5 py-3 shrink-0">
+        <h3 className="text-lg font-bold tracking-wide">
+          VIDEO GUESTBOOK PACKAGE
+        </h3>
+      </div>
+
+      <div className="p-5 text-[10px] leading-relaxed text-zinc-700">
+        <div className="mx-auto mb-4 max-w-xl text-center">
+          <p className="text-sm font-bold leading-snug text-zinc-900">
+            "บางความทรงจำ...ไม่อาจบันทึกได้ด้วยภาพเพียงอย่างเดียว"
+          </p>
+          <p className="mt-2 whitespace-pre-line text-[10px] leading-relaxed text-zinc-600">
+            รอยยิ้ม น้ำเสียง และความรู้สึกจากคนที่คุณรัก{"\n"}
+            คือของขวัญที่มีค่าที่สุดในวันสำคัญ
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+          <div>
+            <p className="font-bold text-sm text-zinc-900 mb-1">
+              1. อุปกรณ์
+            </p>
+            <p>เครื่องโทรศัพท์บันทึกวิดีโอ 1 เครื่อง</p>
+          </div>
+
+          <div>
+            <p className="font-bold text-sm text-zinc-900 mb-1">
+              2. หน้าจอเฉพาะงาน
+            </p>
+            <p>เปลี่ยนภาพหน้าจอ Standby เฉพาะตัวงานลูกค้า</p>
+          </div>
+
+          <div>
+            <p className="font-bold text-sm text-zinc-900 mb-1">
+              3. การตกแต่ง
+            </p>
+            <p>ตกแต่งจุดวางอุปกรณ์และป้ายการใช้งานเพื่อความสวยงาม</p>
+          </div>
+
+          <div>
+            <p className="font-bold text-sm text-zinc-900 mb-1">
+              4. ทีมงานดูแล
+            </p>
+            <p>มีทีม Staff 1 คน คอยแนะนำการใช้งาน</p>
+          </div>
+
+          <div className="col-span-2">
+            <p className="font-bold text-sm text-zinc-900 mb-1">
+              5. วิดีโอไฮไลท์
+            </p>
+            <p>
+              VDO Reels คัดไฮไลท์แขกในงาน ตัดต่อวิดีโออวยพร ส่งภายใน 7 วัน
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 
   const openServiceModal = () => {
     setSelectedServiceName("");
@@ -4688,7 +4817,7 @@ const confirmSendBookingEmail = async () => {
           </div>
         </div>
 
-        {shouldShowPackagePage && (
+        {shouldShowPrimaryPackagePage && (
         <div
           className="print-area package-page bg-white w-[210mm] h-[297mm] mx-auto shadow-2xl p-8 flex flex-col overflow-hidden mt-10"
         >
@@ -4911,6 +5040,114 @@ const confirmSendBookingEmail = async () => {
               </div>
             </section>
             )}
+          </div>
+
+          <div className="mt-4 text-[10px] leading-relaxed text-zinc-600 shrink-0">
+            <p className="mb-1 font-bold text-zinc-900">
+              หมายเหตุ
+            </p>
+            <p>
+              • รายละเอียด ระยะเวลา และรูปแบบการส่งงานอาจปรับเปลี่ยนตามลักษณะงาน
+              ปริมาณไฟล์ และความหนาแน่นของคิวงาน โดยทางสตูดิโอจะแจ้งให้ลูกค้าทราบตามความเหมาะสม
+            </p>
+          </div>
+        </div>
+        )}
+
+        {shouldShowAddOnPackagePage && (
+        <div
+          className="print-area package-page bg-white w-[210mm] h-[297mm] mx-auto shadow-2xl p-8 flex flex-col overflow-hidden mt-10"
+        >
+          <div className="-mt-4 -translate-y-3 flex justify-between items-center pb-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <img
+                src="/pharadol-logo.png"
+                alt="logo"
+                className="w-36 h-36 -ml-6 rounded-full object-cover"
+              />
+
+              <div className="-ml-3">
+                <p className="mt-0 mb-0.5 text-xs font-semibold tracking-[0.18em] text-zinc-700 leading-none">
+                  FILM &amp; STILL
+                </p>
+                <h1 className="mb-0.5 text-xl font-bold leading-none whitespace-nowrap">
+                  PHARADOL PRODUCTION
+                </h1>
+                <p className="mt-1 text-zinc-600 text-[8px] leading-tight whitespace-nowrap">
+                  988, 1 ถ.มิตรภาพ ต.ในเมือง อ.เมืองนครราชสีมา จ.นครราชสีมา 30000
+                </p>
+                <p className="mt-0.5 text-zinc-600 text-[8px] leading-tight whitespace-nowrap">
+                  pharadol.production@gmail.com&nbsp;&nbsp;|&nbsp;&nbsp;โทร. 0910649380
+                </p>
+              </div>
+            </div>
+
+            <div className="ml-auto flex w-[220px] flex-col items-end">
+              <div className="flex w-full justify-end overflow-hidden">
+                <Barcode
+                  value={bookingNumber}
+                  width={Math.max(
+                    0.55,
+                    Math.min(0.9, 13 / Math.max(bookingNumber.length, 1))
+                  )}
+                  height={32}
+                  margin={0}
+                  displayValue={false}
+                />
+              </div>
+
+              <p className="mt-2 w-full whitespace-nowrap text-right text-[16px] font-black tracking-normal">
+                {bookingNumber}
+              </p>
+
+              <p className="mt-1 w-full whitespace-nowrap text-right text-[11px] text-black">
+                วันที่จอง : {bookingDate}
+              </p>
+            </div>
+          </div>
+
+          <div className="-translate-y-8 border-t border-black shrink-0" />
+
+          <div className="text-center py-4 shrink-0">
+            <h2 className="text-3xl font-bold">สิ่งที่ลูกค้าจะได้รับ</h2>
+          </div>
+
+          <div className="grid grid-cols-4 gap-3 rounded-xl border border-zinc-200 px-4 py-3 mb-4 text-[10px] shrink-0">
+            <div>
+              <p className="text-zinc-500">ชื่อลูกค้า</p>
+              <p className="font-semibold text-zinc-900">{customerName || "-"}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">ประเภทงาน</p>
+              <p className="font-semibold text-zinc-900">{service || "-"}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">วันที่งาน</p>
+              <p className="font-semibold text-zinc-900">{formattedEventDate}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">เวลางาน</p>
+              <p className="font-semibold text-zinc-900">
+                {startTime && endTime ? `${startTime}–${endTime} น.` : "-"}
+              </p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-zinc-500">สถานที่</p>
+              <p className="font-semibold text-zinc-900">{location || "-"}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">เบอร์โทรศัพท์</p>
+              <p className="font-semibold text-zinc-900">{phone || "-"}</p>
+            </div>
+            <div>
+              <p className="text-zinc-500">เลขที่การจอง</p>
+              <p className="font-semibold text-zinc-900">{bookingNumber}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 flex-1 min-h-0 justify-start">
+            {hasQrCodePackage && renderQrCodePackageSection()}
+            {hasVideoGuestbookPackage && renderVideoGuestbookPackageSection()}
           </div>
 
           <div className="mt-4 text-[10px] leading-relaxed text-zinc-600 shrink-0">
