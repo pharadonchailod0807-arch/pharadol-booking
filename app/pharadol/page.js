@@ -19,6 +19,10 @@ import {
   mergeAutocompleteOptions,
   saveAutocompleteHistory,
 } from "@/lib/booking-autocomplete";
+import {
+  getPendingBookingPrefillKey,
+  updateLocalCustomerRequest,
+} from "@/app/lib/customerRequests";
 
 const BRAND_ID = "pharadol";
 const BRAND_BASE_PATH = "/pharadol";
@@ -49,6 +53,7 @@ const NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY =
 const RESET_BOOKING_SEQUENCE_ACTIVE_KEY =
   "pharadol_resetBookingSequenceActive";
 const BOOKING_DRAFT_KEY = "pharadol_bookingDraft";
+const PENDING_BOOKING_PREFILL_KEY = getPendingBookingPrefillKey(BRAND_ID);
 const PAYMENT_RECEIPTS_KEY = "pharadol_paymentReceipts";
 const ARCHIVES_KEY = "pharadol_archives";
 const SECURITY_PIN_KEY = "pharadol_securityPin";
@@ -289,6 +294,7 @@ const [nextBookingSequence, setNextBookingSequence] = useState(1);
 const [isSaving, setIsSaving] = useState(false);
 const [isBookingSaved, setIsBookingSaved] = useState(false);
 const [isEditingBooking, setIsEditingBooking] = useState(false);
+const [pendingCustomerRequestId, setPendingCustomerRequestId] = useState("");
 const [isExporting, setIsExporting] = useState(false);
 const [draftStatus, setDraftStatus] = useState("");
 const [isDraftReady, setIsDraftReady] = useState(false);
@@ -613,6 +619,30 @@ const chooseLocationSuggestion = (suggestion) => {
       }
 
       try {
+        const rawPrefill = localStorage.getItem(PENDING_BOOKING_PREFILL_KEY);
+
+        if (rawPrefill) {
+          const prefill = JSON.parse(rawPrefill);
+
+          if (prefill?.brand === BRAND_ID) {
+            setCustomerName(prefill.customerName || "");
+            setPhone(prefill.phone || "");
+            setEmail(prefill.email || "");
+            setLocation(prefill.location || "");
+            setEventDate(prefill.eventDate || "");
+            setPaymentNote(prefill.paymentNote || "");
+            setPendingCustomerRequestId(prefill.requestId || "");
+            localStorage.removeItem(PENDING_BOOKING_PREFILL_KEY);
+            localStorage.removeItem(BOOKING_DRAFT_KEY);
+            setDraftStatus("เติมข้อมูลจากคำขอลูกค้าแล้ว");
+            setEditedFields({});
+            setIsDraftReady(true);
+            return;
+          }
+
+          localStorage.removeItem(PENDING_BOOKING_PREFILL_KEY);
+        }
+
         const rawDraft = localStorage.getItem(BOOKING_DRAFT_KEY);
 
         if (rawDraft) {
@@ -1225,7 +1255,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       <div className="p-5 text-[10px] leading-relaxed text-zinc-700">
         <div className="mx-auto mb-4 max-w-xl text-center">
           <p className="text-sm font-bold leading-snug text-zinc-900">
-            "บางความทรงจำ...ไม่อาจบันทึกได้ด้วยภาพเพียงอย่างเดียว"
+            &quot;บางความทรงจำ...ไม่อาจบันทึกได้ด้วยภาพเพียงอย่างเดียว&quot;
           </p>
           <p className="mt-2 whitespace-pre-line text-[10px] leading-relaxed text-zinc-600">
             รอยยิ้ม น้ำเสียง และความรู้สึกจากคนที่คุณรัก{"\n"}
@@ -2300,6 +2330,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     setJobStatus("รอยืนยัน");
     setCalendarColor(DEFAULT_CALENDAR_COLOR);
     setLastSavedBookingNumber("");
+    setPendingCustomerRequestId("");
     setIsBookingSaved(false);
     setIsEditingBooking(false);
     setLoadedBookingNumber("");
@@ -2688,6 +2719,28 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       setEditedFields({});
       localStorage.removeItem(BOOKING_DRAFT_KEY);
       setDraftStatus("");
+
+      if (pendingCustomerRequestId && existingIndex === -1) {
+        try {
+          updateLocalCustomerRequest(BRAND_ID, pendingCustomerRequestId, {
+            status: "converted",
+            bookingId: customer.bookingNumber,
+          });
+          await fetch("/api/customer-requests", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: pendingCustomerRequestId,
+              brand: BRAND_ID,
+              status: "converted",
+              bookingId: customer.bookingNumber,
+            }),
+          });
+          setPendingCustomerRequestId("");
+        } catch (requestUpdateError) {
+          console.error("Cannot mark customer request converted", requestUpdateError);
+        }
+      }
 
       if (existingIndex === -1) {
         setCustomBookingNumber("");
