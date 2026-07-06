@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import {
+  calculateDashboardCounts,
+  emptyDashboardCounts,
+} from "@/app/lib/dashboardCounts";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
-const CLOSED_STATUSES = new Set(["completed", "finished", "closed", "done"]);
 const DASHBOARD_THEME_KEY = "pharadol_dashboard_theme";
 const BOOKING_DRAFT_KEY = "pharadol_bookingDraft";
 
@@ -17,35 +20,9 @@ const readArray = (key) => {
   }
 };
 
-const isClosedJob = (item) => {
-  const status = String(item?.status || item?.jobStatus || item?.bookingStatus || "")
-    .trim()
-    .toLowerCase();
+const DashboardBadge = ({ count, ready }) => {
+  if (!ready) return null;
 
-  return CLOSED_STATUSES.has(status);
-};
-
-const hasOutstandingPayment = (item) => {
-  const finalPrice = Number(item?.finalPrice || 0);
-  const paidAmount = Number(item?.totalPaid ?? item?.paymentAmount ?? 0);
-  const remainingPayment = Number(
-    item?.remainingPayment ?? Math.max(finalPrice - paidAmount, 0)
-  );
-  const paymentProgress = String(item?.paymentProgress || "").trim();
-
-  return (
-    finalPrice > 0 &&
-    remainingPayment > 0 &&
-    paymentProgress !== "ชำระครบแล้ว"
-  );
-};
-
-const isActionableEmail = (item) =>
-  ["draft", "pending", "queued", "error", "failed"].includes(
-    String(item?.status || "").trim().toLowerCase()
-  );
-
-const DashboardBadge = ({ count }) => {
   const numericCount = Number(count || 0);
 
   if (numericCount <= 0) return null;
@@ -175,22 +152,16 @@ const Icon = ({ name, className = "h-6 w-6" }) => {
 
 export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [customerCount, setCustomerCount] = useState(0);
-  const [archiveCount, setArchiveCount] = useState(0);
-  const [trashCount, setTrashCount] = useState(0);
-  const [todayJobs, setTodayJobs] = useState(0);
-  const [upcomingJobs, setUpcomingJobs] = useState(0);
-  const [monthJobs, setMonthJobs] = useState(0);
-  const [draftBookingCount, setDraftBookingCount] = useState(0);
-  const [pendingPaymentCount, setPendingPaymentCount] = useState(0);
-  const [emailAttentionCount, setEmailAttentionCount] = useState(0);
-  const [alerts, setAlerts] = useState([]);
+  const [dashboardCounts, setDashboardCounts] = useState(emptyDashboardCounts);
+  const [countsReady, setCountsReady] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [dashboardTheme, setDashboardTheme] = useState("clean");
   const [showWelcome, setShowWelcome] = useState(null);
 
   useEffect(() => {
     const loadDashboardData = (savedUser) => {
+      setCountsReady(false);
+
       const parsedUser = {
         ...savedUser,
         brandId: "pharadol",
@@ -202,61 +173,18 @@ export default function Dashboard() {
       const safeCustomers = readArray("pharadol_customers");
       const safeArchives = readArray("pharadol_archives");
       const safeTrash = readArray("pharadol_trash");
-      const emailHistory = readArray("pharadol_email_history").filter(
-        (item) => !item.brandId || item.brandId === "pharadol"
-      );
-
-      setCustomerCount(safeCustomers.length);
-      setArchiveCount(safeArchives.length + safeCustomers.filter(isClosedJob).length);
-      setTrashCount(safeTrash.length);
-      setDraftBookingCount(localStorage.getItem(BOOKING_DRAFT_KEY) ? 1 : 0);
-      setPendingPaymentCount(safeCustomers.filter(hasOutstandingPayment).length);
-      setEmailAttentionCount(emailHistory.filter(isActionableEmail).length);
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const currentMonth = today.getMonth();
-      const currentYear = today.getFullYear();
-
-      let todayCount = 0;
-      let upcomingCount = 0;
-      let monthCount = 0;
-      const upcomingAlerts = [];
-
-      safeCustomers.forEach((item) => {
-        if (!item.eventDate) return;
-
-        const eventDate = new Date(item.eventDate);
-        eventDate.setHours(0, 0, 0, 0);
-
-        const diffDays = Math.floor(
-          (eventDate - today) / (1000 * 60 * 60 * 24)
-        );
-
-        if (diffDays === 0) todayCount += 1;
-        if (
-          eventDate.getFullYear() === currentYear &&
-          eventDate.getMonth() === currentMonth
-        ) {
-          monthCount += 1;
-        }
-
-        if (diffDays > 0 && diffDays <= 7) {
-          upcomingCount += 1;
-          upcomingAlerts.push({
-            customerName: item.customerName,
-            service: item.service,
-            diffDays,
-          });
-        }
+      const emailHistory = readArray("pharadol_email_history");
+      const nextCounts = calculateDashboardCounts({
+        brandId: "pharadol",
+        customers: safeCustomers,
+        archiveItems: safeArchives,
+        trashItems: safeTrash,
+        emailHistory,
+        hasBookingDraft: Boolean(localStorage.getItem(BOOKING_DRAFT_KEY)),
       });
 
-      setTodayJobs(todayCount);
-      setUpcomingJobs(upcomingCount);
-      setMonthJobs(monthCount);
-      setAlerts(
-        upcomingAlerts.sort((a, b) => a.diffDays - b.diffDays)
-      );
+      setDashboardCounts(nextCounts);
+      setCountsReady(true);
     };
 
     const verifyAccess = () => {
@@ -564,6 +492,17 @@ export default function Dashboard() {
   }
 
 
+  const customerCount = dashboardCounts.activeCustomers;
+  const archiveCount = dashboardCounts.archivedJobs;
+  const trashCount = dashboardCounts.trashItems;
+  const todayJobs = dashboardCounts.todayJobs;
+  const upcomingJobs = dashboardCounts.upcoming7Days;
+  const monthJobs = dashboardCounts.monthJobs;
+  const draftBookingCount = dashboardCounts.draftBookings;
+  const pendingPaymentCount = dashboardCounts.pendingPayments;
+  const emailAttentionCount = dashboardCounts.emailAttention;
+  const alerts = dashboardCounts.alerts;
+
   const statCards = [
     ["ลูกค้าปัจจุบัน", customerCount, "รายการ", "customers"],
     ["งานที่ปิดแล้ว", archiveCount, "รายการ", "archive"],
@@ -672,7 +611,7 @@ export default function Dashboard() {
                         : "text-white/72 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    <DashboardBadge count={badgeCount} />
+                    <DashboardBadge count={badgeCount} ready={countsReady} />
                     <Icon name={icon} className="h-6 w-6" />
                     <span>{title}</span>
                   </button>
@@ -719,7 +658,7 @@ export default function Dashboard() {
                   className="relative flex h-14 w-14 items-center justify-center rounded-full border border-white/18 bg-white/[0.08] text-white/78"
                 >
                   <Icon name="bell" className="h-6 w-6" />
-                  {upcomingJobs > 0 && (
+                  {countsReady && upcomingJobs > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-7 min-w-7 items-center justify-center rounded-full bg-violet-500 px-2 text-xs font-black">
                       {upcomingJobs}
                     </span>
@@ -743,7 +682,7 @@ export default function Dashboard() {
                   onClick={() => (window.location.href = href)}
                   className="group relative min-h-[190px] overflow-hidden rounded-[22px] border border-white/20 bg-white/[0.085] p-5 text-left shadow-[0_22px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-white/38 sm:min-h-[210px]"
                 >
-                  <DashboardBadge count={badgeCount} />
+                  <DashboardBadge count={badgeCount} ready={countsReady} />
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.18),transparent_26%)] opacity-80" />
                   <span className="relative block h-20 w-20 sm:h-24 sm:w-24">
                     <Image
@@ -775,7 +714,7 @@ export default function Dashboard() {
                   onClick={() => (window.location.href = href)}
                   className="group relative flex min-h-[128px] items-center gap-5 rounded-[22px] border border-white/20 bg-white/[0.08] p-5 pr-12 text-left shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-300 hover:-translate-y-1"
                 >
-                  <DashboardBadge count={badgeCount} />
+                  <DashboardBadge count={badgeCount} ready={countsReady} />
                   <span className="relative block h-28 w-28 shrink-0">
                     <Image
                       src={auroraIconImages[icon]}
@@ -895,7 +834,7 @@ export default function Dashboard() {
               onClick={() => (window.location.href = href)}
               className="relative cursor-pointer rounded-2xl bg-white p-5 text-center shadow-xl transition hover:scale-[1.02]"
             >
-              <DashboardBadge count={badgeCount} />
+              <DashboardBadge count={badgeCount} ready={countsReady} />
               <div className="mb-4 text-7xl">{actionCardEmojis[icon]}</div>
               <h2 className="text-2xl font-bold">{title}</h2>
               <p className="mt-3 text-zinc-500">{description}</p>
@@ -1010,7 +949,7 @@ export default function Dashboard() {
                   onClick={() => (window.location.href = href)}
                   className="group relative block aspect-[431/475] w-full appearance-none overflow-hidden rounded-[18px] p-0 text-left shadow-[0_24px_64px_rgba(0,0,0,0.48)] transition duration-300 hover:-translate-y-1"
                 >
-                  <DashboardBadge count={badgeCount} />
+                  <DashboardBadge count={badgeCount} ready={countsReady} />
                   <Image
                     src={cardImage}
                     alt=""
@@ -1032,7 +971,7 @@ export default function Dashboard() {
                 onClick={() => (window.location.href = href)}
                 className="group relative flex min-h-[168px] flex-col justify-between rounded-[22px] border border-white/85 bg-white/74 p-5 pr-12 text-left shadow-[0_18px_46px_rgba(15,23,42,0.08)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white"
               >
-                <DashboardBadge count={badgeCount} />
+                <DashboardBadge count={badgeCount} ready={countsReady} />
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 transition group-hover:border-zinc-300 group-hover:bg-zinc-950 group-hover:text-white">
                   <Icon name={icon} className="h-7 w-7" />
                 </span>
