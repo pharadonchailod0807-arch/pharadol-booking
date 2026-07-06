@@ -2888,8 +2888,8 @@ const applyBookingPageNumbers = (pages) => {
     pageNumber.textContent = `${brandLabel} | หน้า ${index + 1}/${totalPages}`;
     Object.assign(pageNumber.style, {
       position: "absolute",
-      right: "32px",
-      bottom: "20px",
+      right: "56px",
+      bottom: "56px",
       color: "rgba(156, 163, 175, 0.58)",
       fontSize: "8px",
       fontWeight: "400",
