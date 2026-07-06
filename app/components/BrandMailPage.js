@@ -540,20 +540,20 @@ export default function BrandMailPage({ brandId }) {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-4 text-zinc-900 md:p-6 xl:p-8">
-      <div className="mx-auto w-full max-w-[1840px]">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <main className="min-h-screen bg-zinc-100 p-3 text-zinc-900 sm:p-4 md:p-6 xl:p-8">
+      <div className="mx-auto w-full max-w-[1536px]">
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">อีเมล</h1>
+            <h1 className="text-2xl font-bold md:text-3xl">อีเมล</h1>
             <p className="mt-1 text-zinc-500">
               จัดการการส่งและประวัติอีเมลของพื้นที่งานนี้
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <button
               type="button"
               onClick={openNewMail}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-3xl font-semibold leading-none text-white hover:bg-blue-700"
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-3xl font-semibold leading-none text-white hover:bg-blue-700 sm:h-12 sm:w-12"
               aria-label="สร้างอีเมลใหม่"
             >
               +
@@ -561,14 +561,14 @@ export default function BrandMailPage({ brandId }) {
             <button
               type="button"
               onClick={() => router.push(brand.dashboardPath)}
-              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
+              className="min-h-11 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
             >
               กลับสู่หน้าหลัก
             </button>
           </div>
         </div>
 
-        <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(320px,440px)_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(300px,400px)_minmax(0,1fr)]">
           <section className="overflow-hidden rounded-2xl bg-white shadow-sm">
             <div className="border-b border-zinc-200 p-4">
               <div className="flex items-center justify-between gap-3">
@@ -637,7 +637,7 @@ export default function BrandMailPage({ brandId }) {
               />
             </div>
 
-            <div className="max-h-[52vh] divide-y divide-zinc-100 overflow-auto xl:max-h-[430px]">
+            <div className="max-h-[48vh] divide-y divide-zinc-100 overflow-auto xl:max-h-[430px]">
               {activeFolder === "sent" &&
                 filteredHistory.map((item) => (
                   <div
@@ -737,7 +737,7 @@ export default function BrandMailPage({ brandId }) {
                   {emailCustomers.length}
                 </span>
               </div>
-              <div className="max-h-[260px] space-y-2 overflow-auto">
+              <div className="max-h-[220px] space-y-2 overflow-auto">
                 {emailCustomers.map((customer) => (
                   <button
                     key={customer.bookingNumber || customer.email}
@@ -805,7 +805,7 @@ export default function BrandMailPage({ brandId }) {
                     onChange={(event) => setMessage(event.target.value)}
                     rows={17}
                     placeholder="เนื้อหาอีเมล"
-                    className="min-h-[300px] w-full resize-y px-4 py-4 leading-8 outline-none md:min-h-[430px] md:px-6 md:py-5"
+                    className="min-h-[280px] w-full resize-y px-4 py-4 leading-8 outline-none md:min-h-[420px] md:px-6 md:py-5"
                   />
                 </div>
                 <div className="mt-4 flex flex-wrap items-end justify-between gap-3">

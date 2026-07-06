@@ -1007,7 +1007,84 @@ export default function ArchivesPage() {
         </div>
 
         {activeTab === "bookings" ? (
-          <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
+          <>
+            <div className="grid gap-3 md:hidden">
+              {filteredBookings.length > 0 ? (
+                filteredBookings.map((booking, index) => {
+                  const jobStatus =
+                    booking.jobStatus || booking.status || "รอดำเนินการ";
+
+                  return (
+                    <article
+                      key={booking.bookingNumber || index}
+                      className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+                    >
+                      <p className="text-sm font-bold text-zinc-500">
+                        {booking.bookingNumber || "-"}
+                      </p>
+                      <h2 className="mt-1 break-words text-lg font-bold text-zinc-950">
+                        {booking.customerName || "-"}
+                      </h2>
+                      <div className="mt-3 grid gap-2 text-sm text-zinc-600">
+                        <p>
+                          <span className="font-semibold text-zinc-500">โทร:</span>{" "}
+                          {booking.phone || "-"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-zinc-500">งาน:</span>{" "}
+                          {booking.service || "-"}
+                        </p>
+                        <p>
+                          <span className="font-semibold text-zinc-500">วันที่:</span>{" "}
+                          {booking.formattedEventDate ||
+                            (booking.eventDate
+                              ? new Date(booking.eventDate).toLocaleDateString("th-TH")
+                              : "-")}
+                        </p>
+                      </div>
+                      <span
+                        className={`mt-4 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${getStatusClassName(
+                          jobStatus
+                        )}`}
+                      >
+                        {jobStatus}
+                      </span>
+                      <div className="mt-4 grid grid-cols-1 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openBooking(booking)}
+                          className="min-h-11 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white"
+                        >
+                          ดูใบจอง
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => restoreBooking(booking)}
+                            className="min-h-11 rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white"
+                          >
+                            คืนข้อมูล
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveToTrash(booking)}
+                            className="min-h-11 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white"
+                          >
+                            ถังขยะ
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <div className="rounded-2xl bg-white p-8 text-center text-zinc-500 shadow-sm">
+                  ไม่พบข้อมูลใบจองในคลัง
+                </div>
+              )}
+            </div>
+
+          <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
             <div className="min-w-[1250px]">
               <div className="grid grid-cols-[1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-4 bg-zinc-900 px-5 py-4 text-sm font-semibold tracking-wide text-zinc-100">
                 <div>เลขที่การจอง</div>
@@ -1084,8 +1161,75 @@ export default function ArchivesPage() {
               )}
             </div>
           </div>
+          </>
         ) : (
-          <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
+          <>
+            <div className="grid gap-3 md:hidden">
+              {filteredReceipts.length > 0 ? (
+                filteredReceipts.map((receipt, index) => (
+                  <article
+                    key={receipt.receiptNumber || index}
+                    className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+                  >
+                    <p className="text-sm font-bold text-emerald-700">
+                      {receipt.receiptNumber || "-"}
+                    </p>
+                    <h2 className="mt-1 break-words text-lg font-bold text-zinc-950">
+                      {receipt.customerName || "-"}
+                    </h2>
+                    <div className="mt-3 grid gap-2 text-sm text-zinc-600">
+                      <p>
+                        <span className="font-semibold text-zinc-500">ใบจอง:</span>{" "}
+                        {receipt.bookingNumber || "-"}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-zinc-500">งวด:</span>{" "}
+                        {receipt.installmentNumber || "-"}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-zinc-500">ยอด:</span>{" "}
+                        ฿ {formatMoney(receipt.installmentAmount)}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-zinc-500">บันทึก:</span>{" "}
+                        {formatSavedDate(receipt.savedAt)}
+                      </p>
+                    </div>
+                    <div className="mt-4 grid grid-cols-1 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedReceipt(receipt)}
+                        className="min-h-11 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700"
+                      >
+                        ดูรายละเอียด
+                      </button>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => downloadReceipt(receipt)}
+                          className="min-h-11 rounded-xl bg-zinc-900 px-3 py-2 text-sm font-semibold text-white"
+                        >
+                          ดาวน์โหลด
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteReceipt(receipt)}
+                          className="min-h-11 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white"
+                        >
+                          ลบ
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="rounded-2xl bg-white p-8 text-center text-zinc-500 shadow-sm">
+                  ยังไม่มีใบรับชำระเงินในคลัง
+                </div>
+              )}
+            </div>
+
+          <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
             <div className="min-w-[1180px]">
               <div className="grid grid-cols-[1.25fr_1fr_0.7fr_0.8fr_0.9fr_320px] gap-4 bg-zinc-900 px-5 py-4 text-sm font-semibold tracking-wide text-zinc-100">
                 <div>เลขที่ใบรับชำระ</div>
@@ -1162,6 +1306,7 @@ export default function ArchivesPage() {
               )}
             </div>
           </div>
+          </>
         )}
       </div>
 

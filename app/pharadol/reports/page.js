@@ -166,11 +166,11 @@ export default function ReportsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-8">
+    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold md:text-4xl">แจ้งเตือน</h1>
+            <h1 className="text-2xl font-bold md:text-3xl">แจ้งเตือน</h1>
             <p className="mt-1 text-zinc-500">รายการแจ้งเตือนล่าสุด</p>
           </div>
 
@@ -209,7 +209,39 @@ export default function ReportsPage() {
           </select>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
+        <div className="grid gap-3 md:hidden">
+          {filteredNotifications.length > 0 ? (
+            filteredNotifications.map((notification) => (
+              <article
+                key={notification.id}
+                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+              >
+                <p className="text-sm font-semibold text-zinc-500">
+                  {new Date(notification.date).toLocaleDateString("th-TH")}
+                </p>
+                <p className="mt-2 font-semibold text-zinc-950">
+                  {notification.message}
+                </p>
+                <p className="mt-1 text-sm text-zinc-500">
+                  สถานะ: {notification.status}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => moveToTrash(notification)}
+                  className="mt-4 min-h-11 w-full rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  ลบ
+                </button>
+              </article>
+            ))
+          ) : (
+            <div className="rounded-2xl bg-white p-8 text-center text-zinc-500 shadow-sm">
+              ไม่พบแจ้งเตือนตามตัวกรอง
+            </div>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
           <div className="min-w-[680px]">
             <div className="grid grid-cols-[auto_1fr_auto] gap-4 bg-zinc-900 px-5 py-4 font-semibold text-white">
               <div>วันที่</div>

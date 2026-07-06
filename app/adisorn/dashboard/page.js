@@ -631,11 +631,11 @@ export default function Dashboard() {
     const totalBookings = customerCount + archiveCount;
 
     return (
-      <main className="min-h-screen overflow-hidden bg-[#061327] p-6 text-white">
+      <main className="min-h-screen overflow-hidden bg-[#061327] p-3 text-white sm:p-4 md:p-6">
         <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(45,156,255,0.28),transparent_30%),radial-gradient(circle_at_80%_20%,rgba(128,91,255,0.22),transparent_28%),linear-gradient(135deg,#081b35_0%,#061123_48%,#030816_100%)]" />
         <div className="pointer-events-none fixed inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px)] [background-size:46px_46px]" />
 
-        <section className="relative mx-auto grid min-h-[calc(100vh-48px)] max-w-[1760px] grid-cols-1 gap-5 rounded-[28px] border border-white/20 bg-white/[0.035] p-4 shadow-[0_35px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl md:p-6 xl:grid-cols-[250px_1fr] xl:gap-8 xl:rounded-[34px] xl:p-8">
+        <section className="relative mx-auto grid min-h-[calc(100vh-32px)] max-w-[1536px] grid-cols-1 gap-4 rounded-[24px] border border-white/20 bg-white/[0.035] p-3 shadow-[0_35px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:p-4 md:p-5 xl:grid-cols-[240px_1fr] xl:gap-6 xl:rounded-[30px] xl:p-6">
           <aside className="flex min-h-full flex-col rounded-[24px] border border-sky-200/20 bg-sky-200/[0.08] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] xl:rounded-[30px]">
             <div className="mb-10 flex items-center gap-4 px-2">
               <div className="relative h-14 w-14">
@@ -696,9 +696,9 @@ export default function Dashboard() {
           </aside>
 
           <div className="min-w-0">
-            <header className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <header className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h1 className="text-4xl font-black tracking-tight">
+                <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
                   ภาพรวมระบบ
                 </h1>
                 <p className="mt-2 text-white/55">
@@ -733,17 +733,17 @@ export default function Dashboard() {
               </div>
             </header>
 
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {actionCards.slice(0, 8).map(([href, icon, title, description, badgeCount]) => (
                 <button
                   key={href}
                   type="button"
                   onClick={() => (window.location.href = href)}
-                  className="group relative min-h-[260px] overflow-hidden rounded-[24px] border border-white/20 bg-white/[0.085] p-8 text-left shadow-[0_22px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-white/38"
+                  className="group relative min-h-[190px] overflow-hidden rounded-[22px] border border-white/20 bg-white/[0.085] p-5 text-left shadow-[0_22px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:border-white/38 sm:min-h-[210px]"
                 >
                   <DashboardBadge count={badgeCount} />
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,rgba(255,255,255,0.18),transparent_26%)] opacity-80" />
-                  <span className="relative block h-28 w-28">
+                  <span className="relative block h-20 w-20 sm:h-24 sm:w-24">
                     <Image
                       src={auroraIconImages[icon]}
                       alt=""
@@ -752,7 +752,7 @@ export default function Dashboard() {
                       className="object-contain mix-blend-screen drop-shadow-[0_0_24px_rgba(96,165,250,0.42)]"
                     />
                   </span>
-                  <span className="relative mt-8 block text-2xl font-black">
+                  <span className="relative mt-5 block text-xl font-black">
                     {title}
                   </span>
                   <span className="relative mt-2 block text-base text-white/62">
@@ -765,13 +765,13 @@ export default function Dashboard() {
               ))}
             </div>
 
-            <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
               {actionCards.slice(8).map(([href, icon, title, description, badgeCount]) => (
                 <button
                   key={href}
                   type="button"
                   onClick={() => (window.location.href = href)}
-                  className="group relative flex min-h-[150px] items-center gap-8 rounded-[24px] border border-white/20 bg-white/[0.08] p-8 text-left shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-300 hover:-translate-y-1"
+                  className="group relative flex min-h-[128px] items-center gap-5 rounded-[22px] border border-white/20 bg-white/[0.08] p-5 pr-12 text-left shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-xl transition duration-300 hover:-translate-y-1"
                 >
                   <DashboardBadge count={badgeCount} />
                   <span className="relative block h-28 w-28 shrink-0">
@@ -832,10 +832,10 @@ export default function Dashboard() {
 
   if (isClassicTheme) {
     return (
-      <div className="min-h-screen bg-zinc-100 p-10 text-zinc-950">
-        <div className="mb-10 flex items-center justify-between">
+      <div className="min-h-screen bg-zinc-100 p-4 text-zinc-950 md:p-6 xl:p-8">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold">
+            <h1 className="text-2xl font-bold sm:text-3xl">
               {currentUser.brandName || "Adisorn Wedding Studio"}
             </h1>
             <p className="mt-2 text-zinc-500">ระบบจัดการงานและข้อมูลลูกค้า</p>
@@ -849,11 +849,11 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div className="mx-auto mb-10 grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-5">
+        <div className="mx-auto mb-6 grid max-w-7xl grid-cols-2 gap-3 lg:grid-cols-5">
           {statCards.map(([label, value, unit]) => (
             <div
               key={label}
-              className="rounded-3xl bg-white p-6 text-center shadow-xl"
+              className="rounded-2xl bg-white p-4 text-center shadow-xl"
             >
               <p className="text-zinc-500">{label}</p>
               <h2 className="mt-2 text-4xl font-bold">{value}</h2>
@@ -886,12 +886,12 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 md:grid-cols-3">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {actionCards.map(([href, icon, title, description, badgeCount]) => (
             <div
               key={href}
               onClick={() => (window.location.href = href)}
-              className="relative cursor-pointer rounded-3xl bg-white p-10 text-center shadow-xl transition hover:scale-105"
+              className="relative cursor-pointer rounded-2xl bg-white p-5 text-center shadow-xl transition hover:scale-[1.02]"
             >
               <DashboardBadge count={badgeCount} />
               <div className="mb-4 text-7xl">{actionCardEmojis[icon]}</div>
@@ -913,7 +913,7 @@ export default function Dashboard() {
           : "radial-gradient(circle at 12% 0%, rgba(255,255,255,0.92), transparent 30%), radial-gradient(circle at 86% 8%, rgba(226,232,240,0.88), transparent 28%), linear-gradient(180deg, #f8fafc 0%, #eef2f7 48%, #f7f7f5 100%)",
       }}
     >
-      <section className={`mx-auto px-4 pb-6 pt-6 text-center sm:px-6 md:px-8 ${isNeonTheme ? "max-w-[1840px]" : "max-w-[1680px]"}`}>
+      <section className={`mx-auto px-4 pb-4 pt-5 text-center sm:px-6 md:px-8 ${isNeonTheme ? "max-w-[1536px]" : "max-w-[1536px]"}`}>
         <div className="mb-6 flex flex-col items-stretch gap-3 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div
             className={
@@ -938,7 +938,7 @@ export default function Dashboard() {
         <p className={isNeonTheme ? "text-sm font-semibold text-white/45" : "text-xs font-bold uppercase tracking-[0.32em] text-zinc-400"}>
           Dashboard
         </p>
-        <h1 className={isNeonTheme ? "mt-2 break-words text-3xl font-semibold sm:text-4xl md:text-6xl" : "mx-auto mt-3 max-w-5xl break-words text-3xl font-semibold leading-tight text-zinc-950 sm:text-4xl md:text-6xl"}>
+        <h1 className={isNeonTheme ? "mt-2 break-words text-3xl font-semibold sm:text-4xl md:text-5xl" : "mx-auto mt-3 max-w-5xl break-words text-3xl font-semibold leading-tight text-zinc-950 sm:text-4xl md:text-5xl"}>
           {currentUser.brandName || "Adisorn Wedding Studio"}
         </h1>
         <p className={isNeonTheme ? "mx-auto mt-4 max-w-2xl text-lg font-medium leading-8 text-white/50" : "mx-auto mt-4 max-w-2xl text-base font-medium leading-8 text-zinc-500 md:text-lg"}>
@@ -946,18 +946,18 @@ export default function Dashboard() {
         </p>
       </section>
 
-      <section className={`mx-auto px-4 pb-10 sm:px-6 md:px-8 ${isNeonTheme ? "max-w-[1840px]" : "max-w-[1680px]"}`}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      <section className={`mx-auto px-4 pb-8 sm:px-6 md:px-8 ${isNeonTheme ? "max-w-[1536px]" : "max-w-[1536px]"}`}>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-5">
           {statCards.map(([label, value, unit, icon]) => (
             <article
               key={label}
-              className={isNeonTheme ? "rounded-[22px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.24)]" : "rounded-[24px] border border-white/80 bg-white/70 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl"}
+              className={isNeonTheme ? "rounded-[20px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.24)]" : "rounded-[20px] border border-white/80 bg-white/70 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-xl"}
             >
               <div className={isNeonTheme ? "mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white" : "mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm"}>
                 <Icon name={icon} className="h-5 w-5" />
               </div>
               <p className={isNeonTheme ? "text-center text-sm font-semibold text-white/48" : "text-center text-sm font-semibold text-zinc-500"}>{label}</p>
-              <h2 className={isNeonTheme ? "mt-2 text-center text-3xl font-semibold md:text-4xl" : "mt-2 text-center text-3xl font-semibold text-zinc-950 md:text-4xl"}>{value}</h2>
+              <h2 className={isNeonTheme ? "mt-2 text-center text-2xl font-semibold md:text-3xl" : "mt-2 text-center text-2xl font-semibold text-zinc-950 md:text-3xl"}>{value}</h2>
               <p className={isNeonTheme ? "mt-1 text-center text-sm font-medium text-white/42" : "mt-1 text-center text-sm font-medium text-zinc-400"}>{unit}</p>
             </article>
           ))}
@@ -997,7 +997,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <div className={isNeonTheme ? "mx-auto mt-6 grid max-w-[1640px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" : "mx-auto mt-6 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"}>
+        <div className={isNeonTheme ? "mx-auto mt-5 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" : "mx-auto mt-5 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"}>
           {actionCards.map(([href, icon, title, description, badgeCount]) => {
             if (isNeonTheme) {
               const cardImage = actionCardImages[icon];
@@ -1006,7 +1006,7 @@ export default function Dashboard() {
                   key={href}
                   type="button"
                   onClick={() => (window.location.href = href)}
-                  className="group relative block aspect-[431/475] w-full appearance-none overflow-hidden rounded-[20px] p-0 text-left shadow-[0_28px_80px_rgba(0,0,0,0.55)] transition duration-300 hover:-translate-y-1"
+                  className="group relative block aspect-[431/475] w-full appearance-none overflow-hidden rounded-[18px] p-0 text-left shadow-[0_24px_64px_rgba(0,0,0,0.48)] transition duration-300 hover:-translate-y-1"
                 >
                   <DashboardBadge count={badgeCount} />
                   <Image
@@ -1028,7 +1028,7 @@ export default function Dashboard() {
                 key={href}
                 type="button"
                 onClick={() => (window.location.href = href)}
-                className="group relative flex min-h-[210px] flex-col justify-between rounded-[28px] border border-white/85 bg-white/74 p-5 text-left shadow-[0_22px_60px_rgba(15,23,42,0.09)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white"
+                className="group relative flex min-h-[168px] flex-col justify-between rounded-[22px] border border-white/85 bg-white/74 p-5 pr-12 text-left shadow-[0_18px_46px_rgba(15,23,42,0.08)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white"
               >
                 <DashboardBadge count={badgeCount} />
                 <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 transition group-hover:border-zinc-300 group-hover:bg-zinc-950 group-hover:text-white">

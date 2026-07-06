@@ -257,15 +257,15 @@ export default function BrandCalendarPage({ brandId }) {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-2 text-zinc-900 sm:p-4 md:p-6 xl:p-8">
-      <div className="mx-auto max-w-[1680px]">
+    <main className="min-h-screen bg-zinc-100 p-3 text-zinc-900 sm:p-4 md:p-6 xl:p-8">
+      <div className="mx-auto max-w-[1536px]">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 md:mb-5">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold md:text-3xl">ปฏิทินงาน</h1>
-            <p className="mt-1 text-sm text-zinc-500 md:text-base">
+            <p className="mt-1 text-sm text-zinc-500">
               แสดงงานจากใบจองของ {brand.name} ในรูปแบบปฏิทินจริง
             </p>
-            <p className="mt-1 text-sm text-zinc-400">
+            <p className="mt-1 text-xs text-zinc-400 sm:text-sm">
               {loadMessage} · Google Calendar จะต่อได้หลังเพิ่ม Calendar scope/token
             </p>
           </div>
@@ -295,21 +295,21 @@ export default function BrandCalendarPage({ brandId }) {
                 <button
                   type="button"
                   onClick={() => goToMonth(-1)}
-                  className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-zinc-100 sm:px-3 md:text-sm"
+                  className="min-h-9 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-zinc-100 sm:px-3 md:text-sm"
                 >
                   ก่อนหน้า
                 </button>
                 <button
                   type="button"
                   onClick={goToday}
-                  className="rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700 sm:px-3 md:text-sm"
+                  className="min-h-9 rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700 sm:px-3 md:text-sm"
                 >
                   วันนี้
                 </button>
                 <button
                   type="button"
                   onClick={() => goToMonth(1)}
-                  className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-zinc-100 sm:px-3 md:text-sm"
+                  className="min-h-9 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold hover:bg-zinc-100 sm:px-3 md:text-sm"
                 >
                   ถัดไป
                 </button>
@@ -337,7 +337,7 @@ export default function BrandCalendarPage({ brandId }) {
                       key={date.toISOString()}
                       type="button"
                       onClick={() => setSelectedDate(date)}
-                      className={`min-h-[76px] min-w-0 border-b border-r border-zinc-100 p-1 text-left transition hover:bg-blue-50 sm:min-h-[88px] sm:p-1.5 md:min-h-[118px] md:p-2.5 xl:min-h-[126px] ${
+                      className={`min-h-[72px] min-w-0 border-b border-r border-zinc-100 p-1 text-left transition hover:bg-blue-50 sm:min-h-[88px] sm:p-1.5 md:min-h-[112px] md:p-2 xl:min-h-[120px] ${
                         isSelected ? "bg-blue-50 ring-1 ring-inset ring-blue-500" : "bg-white"
                       } ${isCurrentMonth ? "" : "text-zinc-300"}`}
                     >
@@ -368,7 +368,7 @@ export default function BrandCalendarPage({ brandId }) {
                           return (
                             <div
                               key={`${event.bookingNumber}-${event.startTime}-${event.customerName}`}
-                              className="h-[18px] truncate rounded-md px-1.5 py-0.5 text-[10px] font-medium leading-[15px] md:h-[23px] md:px-2 md:py-1 md:text-xs md:leading-[15px]"
+                            className="h-[17px] truncate rounded-md px-1 py-0.5 text-[10px] font-medium leading-[14px] md:h-[23px] md:px-2 md:py-1 md:text-xs md:leading-[15px]"
                               style={{
                                 backgroundColor: eventColor,
                                 color: textColor,

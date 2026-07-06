@@ -235,11 +235,11 @@ export default function ReportsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-8">
+    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold md:text-4xl">รายงานและสถิติ</h1>
+            <h1 className="text-2xl font-bold md:text-3xl">รายงานและสถิติ</h1>
             <p className="mt-1 text-zinc-500">
               ภาพรวมลูกค้า การชำระเงิน และสถานะงาน
             </p>
@@ -264,43 +264,43 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="mb-8 grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+        <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
             <p className="text-zinc-500">ลูกค้าทั้งหมด</p>
-            <p className="mt-2 text-3xl font-bold">{customers.length}</p>
+            <p className="mt-2 text-2xl font-bold md:text-3xl">{customers.length}</p>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
             <p className="text-orange-600">งานด่วนภายใน 3 วัน</p>
-            <p className="mt-2 text-3xl font-bold text-orange-600">
+            <p className="mt-2 text-2xl font-bold text-orange-600 md:text-3xl">
               {urgentCount}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
             <p className="text-red-600">ยังไม่มัดจำ</p>
-            <p className="mt-2 text-3xl font-bold text-red-600">
+            <p className="mt-2 text-2xl font-bold text-red-600 md:text-3xl">
               {unpaidCount}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
             <p className="text-blue-600">กำลังคัด/ตัดต่อ</p>
-            <p className="mt-2 text-3xl font-bold text-blue-600">
+            <p className="mt-2 text-2xl font-bold text-blue-600 md:text-3xl">
               {editingJobs}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
             <p className="text-zinc-500">ยอดงานรวม</p>
-            <p className="mt-2 text-2xl font-bold">
+            <p className="mt-2 text-xl font-bold md:text-2xl">
               ฿ {totalRevenue.toLocaleString()}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
             <p className="text-red-600">ยอดค้างชำระ</p>
-            <p className="mt-2 text-2xl font-bold text-red-600">
+            <p className="mt-2 text-xl font-bold text-red-600 md:text-2xl">
               ฿ {totalOutstanding.toLocaleString()}
             </p>
           </div>
@@ -360,7 +360,70 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
+        <div className="grid gap-3 md:hidden">
+          {filteredCustomers.length > 0 ? (
+            filteredCustomers.map((customer, index) => (
+              <article
+                key={customer.bookingNumber || index}
+                className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-zinc-500">
+                      {customer.bookingNumber || "-"}
+                    </p>
+                    <h2 className="mt-1 break-words text-lg font-bold text-zinc-950">
+                      {customer.customerName || "-"}
+                    </h2>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {customer.phone || "-"}
+                    </p>
+                  </div>
+                  <p className="shrink-0 rounded-full bg-zinc-100 px-3 py-1 text-sm font-bold text-zinc-700">
+                    ฿ {Number(customer.finalPrice || 0).toLocaleString()}
+                  </p>
+                </div>
+                <div className="mt-3 grid gap-2 text-sm text-zinc-600">
+                  <p>
+                    <span className="font-semibold text-zinc-500">งาน:</span>{" "}
+                    {customer.service || "-"}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-zinc-500">ชำระ:</span>{" "}
+                    {getPaymentCategory(customer)}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-zinc-500">สถานะงาน:</span>{" "}
+                    {customer.jobStatus || "-"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem(
+                      "adisorn_selectedBooking",
+                      JSON.stringify(customer)
+                    );
+                    localStorage.setItem(
+                      "adisorn_currentBooking",
+                      JSON.stringify(customer)
+                    );
+                    router.push("/adisorn?view=customer", { scroll: false });
+                  }}
+                  className="mt-4 min-h-11 w-full rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  ดูใบจอง
+                </button>
+              </article>
+            ))
+          ) : (
+            <div className="rounded-2xl bg-white p-8 text-center text-zinc-500 shadow-sm">
+              ไม่พบข้อมูลตามตัวกรอง
+            </div>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
           <div className="min-w-[1040px]">
           <div className="grid grid-cols-[1fr_1.2fr_1fr_1fr_1fr_1fr_auto] gap-4 bg-zinc-900 px-5 py-4 font-semibold text-white">
             <div>เลขที่จอง</div>

@@ -698,9 +698,116 @@ export default function CustomersPage() {
           </div>
         </div>
 
+        <div className="grid gap-3 md:hidden">
+          {filteredCustomers.length > 0 ? (
+            filteredCustomers.map((customer, index) => {
+              const jobStatus =
+                customer.jobStatus || customer.status || "รอดำเนินการ";
+              const isSelected = selectedBookingNumbers.includes(
+                customer.bookingNumber
+              );
 
+              return (
+                <article
+                  key={customer.bookingNumber || index}
+                  className={`rounded-2xl border bg-white p-4 shadow-sm ${
+                    isSelected ? "border-blue-300 ring-2 ring-blue-100" : "border-zinc-200"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <label className="flex min-w-0 items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() =>
+                          toggleBookingSelection(customer.bookingNumber)
+                        }
+                        aria-label={`เลือกใบจอง ${customer.bookingNumber || ""}`}
+                        className="mt-1 h-5 w-5 cursor-pointer accent-black"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold text-zinc-900">
+                          {customer.bookingNumber || "-"}
+                        </span>
+                        <span className="mt-1 block break-words text-lg font-bold text-zinc-950">
+                          {customer.customerName || "-"}
+                        </span>
+                      </span>
+                    </label>
+                  </div>
 
-        <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
+                  <div className="mt-3 grid gap-2 text-sm text-zinc-600">
+                    <p>
+                      <span className="font-semibold text-zinc-500">โทร:</span>{" "}
+                      {customer.phone || "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-zinc-500">งาน:</span>{" "}
+                      {customer.service || "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-zinc-500">วันที่:</span>{" "}
+                      {customer.formattedEventDate ||
+                        (customer.eventDate
+                          ? new Date(customer.eventDate).toLocaleDateString("th-TH")
+                          : "-")}
+                    </p>
+                  </div>
+
+                  <select
+                    value={jobStatus}
+                    onChange={(event) =>
+                      updateJobStatus(customer, event.target.value)
+                    }
+                    className={`mt-4 w-full rounded-xl border-0 px-3 py-2.5 text-sm font-semibold outline-none ring-1 ring-inset ring-black/10 ${getStatusClassName(
+                      jobStatus
+                    )}`}
+                  >
+                    <option value="รอดำเนินการ">รอดำเนินการ</option>
+                    <option value="กำลังดำเนินการ">กำลังดำเนินการ</option>
+                    <option value="กำลังถ่ายทำ">กำลังถ่ายทำ</option>
+                    <option value="กำลังตัดต่อ">กำลังตัดต่อ</option>
+                    <option value="ส่งมอบแล้ว">ส่งมอบแล้ว</option>
+                    <option value="เสร็จสิ้น">เสร็จสิ้น</option>
+                    <option value="ยกเลิกงาน">ยกเลิกงาน</option>
+                  </select>
+
+                  <div className="mt-4 grid grid-cols-1 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openBooking(customer)}
+                      className="min-h-11 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                    >
+                      ดูใบจอง
+                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => moveToArchive(customer)}
+                        className="min-h-11 rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-600"
+                      >
+                        จัดเก็บ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveToTrash(customer)}
+                        className="min-h-11 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                      >
+                        ถังขยะ
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })
+          ) : (
+            <div className="rounded-2xl bg-white p-8 text-center text-zinc-500 shadow-sm">
+              ไม่พบข้อมูลลูกค้า
+            </div>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
           <div className="min-w-[980px] lg:min-w-[1250px]">
             <div className="grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-3 bg-zinc-900 px-4 py-4 text-sm font-semibold text-white lg:grid-cols-[56px_1.1fr_1fr_1fr_1fr_0.9fr_430px] lg:gap-4 lg:px-5">
               <div className="flex items-center justify-center">
