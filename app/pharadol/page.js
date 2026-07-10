@@ -461,16 +461,24 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
   } ${extraClasses || "px-5 py-4"}`;
 };
 
-const actionPrimaryButtonClass =
-  "flex min-h-[56px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+const actionDownloadButtonClass =
+  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-zinc-950 bg-zinc-950 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(24,24,27,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-[0_16px_34px_rgba(24,24,27,0.22)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+const actionSaveButtonClass =
+  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-emerald-700 bg-emerald-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(4,120,87,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-800 hover:shadow-[0_16px_34px_rgba(4,120,87,0.26)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+const actionCreateButtonClass =
+  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-blue-700 bg-blue-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(29,78,216,0.20)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-[0_16px_34px_rgba(29,78,216,0.24)] sm:min-w-[170px]";
+const actionSendButtonClass =
+  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-teal-800 hover:shadow-[0_16px_34px_rgba(15,118,110,0.24)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+const actionEditButtonClass =
+  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-orange-600 bg-orange-600 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(234,88,12,0.20)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-orange-700 hover:shadow-[0_16px_34px_rgba(234,88,12,0.24)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
 const actionSecondaryButtonClass =
-  "flex min-h-[56px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-zinc-300 bg-white px-6 py-4 text-base font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
 const actionDangerButtonClass =
-  "flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:border-red-300 hover:bg-red-100";
+  "flex min-h-[52px] items-center justify-center gap-2 rounded-[22px] border border-red-300 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 shadow-sm transition-all duration-200 hover:bg-red-100";
 const actionMenuButtonClass =
-  "flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] border border-zinc-200 bg-white px-4 py-2.5 text-sm font-bold text-zinc-700 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950";
+  "flex min-h-[52px] items-center justify-center gap-2 rounded-[22px] border border-zinc-300 bg-white px-5 py-3 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500 hover:bg-zinc-50";
 const actionMenuSmallButtonClass =
-  "flex min-h-[46px] items-center justify-center gap-2 rounded-[18px] border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950";
+  "flex min-h-[50px] items-center justify-center gap-2 rounded-[22px] border border-zinc-300 bg-white px-5 py-2.5 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500 hover:bg-zinc-50";
 
 const slipIsPdf = Boolean(slipImage) && isPdfSlipFile(slipImage, slipFileType, slipFileName);
 const slipIsImage = Boolean(slipImage) && isImageSlipFile(slipImage, slipFileType, slipFileName);
@@ -4515,33 +4523,37 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={() => setIsMoreMenuOpen((current) => !current)}
-              className="rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-bold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
+              className={`rounded-[22px] border bg-white px-5 py-3 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:border-zinc-500 hover:bg-zinc-50 ${
+                isMoreMenuOpen
+                  ? "border-zinc-900 ring-1 ring-zinc-900"
+                  : "border-zinc-300"
+              }`}
             >
               {isMoreMenuOpen ? "ซ่อนเมนูเพิ่มเติม" : "เมนูเพิ่มเติม"}
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <div className="relative min-w-[170px] flex-1">
               <button
                 type="button"
                 onClick={() => setIsDownloadMenuOpen((current) => !current)}
                 disabled={isExporting}
-                className={`${actionPrimaryButtonClass} w-full`}
+                className={`${actionDownloadButtonClass} w-full`}
               >
                 <span className="text-lg">↓</span>
                 <span>{isExporting ? "กำลังสร้างไฟล์..." : "ดาวน์โหลด"}</span>
               </button>
 
               {isDownloadMenuOpen && (
-                <div className="absolute left-0 top-full z-[70] mt-2 w-full min-w-[170px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
+                <div className="absolute left-0 top-full z-[70] mt-2 w-full min-w-[170px] overflow-hidden rounded-[18px] border border-zinc-300 bg-white shadow-[0_16px_34px_rgba(24,24,27,0.12)]">
                   <button
                     type="button"
                     onClick={() => {
                       setIsDownloadMenuOpen(false);
                       downloadPDF();
                     }}
-                    className="block w-full px-4 py-3 text-left font-semibold text-zinc-800 hover:bg-zinc-100"
+                    className="block w-full px-5 py-3 text-left text-sm font-extrabold text-zinc-900 transition hover:bg-zinc-50"
                   >
                     PDF
                   </button>
@@ -4552,7 +4564,7 @@ const confirmSendBookingEmail = async () => {
                       setIsDownloadMenuOpen(false);
                       downloadJPG();
                     }}
-                    className="block w-full border-t border-zinc-200 px-4 py-3 text-left font-semibold text-zinc-800 hover:bg-zinc-100"
+                    className="block w-full border-t border-zinc-200 px-5 py-3 text-left text-sm font-extrabold text-zinc-900 transition hover:bg-zinc-50"
                   >
                     JPG
                   </button>
@@ -4573,7 +4585,7 @@ const confirmSendBookingEmail = async () => {
                 (isBookingSaved && !isEditingBooking) ||
                 (isBookingSaved && isEditingBooking && !hasEditedFields)
               }
-              className={actionPrimaryButtonClass}
+              className={actionSaveButtonClass}
             >
               <span className="text-lg">✓</span>
               <span>
@@ -4592,7 +4604,7 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={createNewBooking}
-              className={actionSecondaryButtonClass}
+              className={actionCreateButtonClass}
             >
               <span className="text-lg">＋</span>
               <span>สร้างใบจองใหม่</span>
@@ -4601,7 +4613,7 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={openCustomerSendOptions}
-              className={actionSecondaryButtonClass}
+              className={actionSendButtonClass}
             >
               <span className="text-lg">@</span>
               <span>ส่งข้อมูลลูกค้า</span>
@@ -4619,7 +4631,7 @@ const confirmSendBookingEmail = async () => {
                 setIsEditingBooking(true);
               }}
               disabled={isSaving || isEditingBooking}
-              className={actionSecondaryButtonClass}
+              className={actionEditButtonClass}
             >
               <span className="text-lg">✎</span>
               <span>{isEditingBooking ? "กำลังแก้ไข" : "แก้ไขใบจอง"}</span>
@@ -4635,8 +4647,8 @@ const confirmSendBookingEmail = async () => {
           </div>
 
           {isMoreMenuOpen && (
-            <div className="mt-3 space-y-3 border-t border-zinc-200/80 pt-3">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-4 space-y-4 border-t border-zinc-200/80 pt-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.booking)}
@@ -4674,7 +4686,7 @@ const confirmSendBookingEmail = async () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.archives)}
@@ -4712,7 +4724,7 @@ const confirmSendBookingEmail = async () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.settings)}
@@ -4750,7 +4762,7 @@ const confirmSendBookingEmail = async () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <button
                   type="button"
                   onClick={openCustomerSendOptions}
@@ -4779,7 +4791,7 @@ const confirmSendBookingEmail = async () => {
                     document.cookie = "activeBrand=; path=/; max-age=0; SameSite=Lax";
                     goTo("/login");
                   }}
-                  className="flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-red-700"
+                  className="flex min-h-[52px] items-center justify-center gap-2 rounded-[22px] border border-red-600 bg-red-600 px-5 py-3 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(220,38,38,0.20)] transition-all duration-200 hover:bg-red-700"
                 >
                   <span>↪</span>
                   <span>ออกจากระบบ</span>
@@ -4806,7 +4818,7 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={() => goTo(ROUTES.customers)}
-              className="rounded-2xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
+              className="rounded-[22px] border border-zinc-300 bg-white px-6 py-4 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:border-zinc-500 hover:bg-zinc-50"
             >
               ← กลับหน้าข้อมูลลูกค้า
             </button>
@@ -4820,7 +4832,7 @@ const confirmSendBookingEmail = async () => {
                   setIsEditingBooking(true);
                   window.history.replaceState({}, "", ROUTES.home);
                 }}
-                className="rounded-2xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
+                className="rounded-[22px] border border-orange-600 bg-orange-600 px-6 py-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(234,88,12,0.20)] transition-all duration-200 hover:bg-orange-700"
               >
                 ✏️ แก้ไขใบจอง
               </button>
@@ -4829,7 +4841,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={openCustomerSendOptions}
                 disabled={isPreparingAttachment}
-                className="rounded-2xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isPreparingAttachment ? "กำลังเตรียมไฟล์..." : "ส่งให้ลูกค้า"}
               </button>
@@ -4839,20 +4851,20 @@ const confirmSendBookingEmail = async () => {
                   type="button"
                   onClick={() => setIsDownloadMenuOpen((current) => !current)}
                   disabled={isExporting}
-                  className="rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-[22px] border border-zinc-950 bg-zinc-950 px-6 py-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(24,24,27,0.18)] transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isExporting ? "กำลังสร้างไฟล์..." : "ดาวน์โหลด"}
                 </button>
 
                 {isDownloadMenuOpen && (
-                  <div className="absolute right-0 top-full z-[70] mt-2 w-40 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
+                  <div className="absolute right-0 top-full z-[70] mt-2 w-40 overflow-hidden rounded-[18px] border border-zinc-300 bg-white shadow-[0_16px_34px_rgba(24,24,27,0.12)]">
                     <button
                       type="button"
                       onClick={() => {
                         setIsDownloadMenuOpen(false);
                         downloadPDF();
                       }}
-                      className="block w-full px-4 py-3 text-left font-semibold text-zinc-800 hover:bg-zinc-100"
+                      className="block w-full px-5 py-3 text-left text-sm font-extrabold text-zinc-900 transition hover:bg-zinc-50"
                     >
                       PDF
                     </button>
@@ -4863,7 +4875,7 @@ const confirmSendBookingEmail = async () => {
                         setIsDownloadMenuOpen(false);
                         downloadJPG();
                       }}
-                      className="block w-full border-t border-zinc-200 px-4 py-3 text-left font-semibold text-zinc-800 hover:bg-zinc-100"
+                      className="block w-full border-t border-zinc-200 px-5 py-3 text-left text-sm font-extrabold text-zinc-900 transition hover:bg-zinc-50"
                     >
                       JPG
                     </button>
@@ -5911,7 +5923,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={sendBookingEmail}
                 disabled={isPreparingAttachment}
-                className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700"
+                className="flex min-h-[60px] items-center justify-center gap-3 rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="text-lg">@</span>
                 <span>
@@ -5925,7 +5937,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={sendBookingSms}
                 disabled={isPreparingAttachment}
-                className="flex min-h-14 items-center justify-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 font-semibold text-white transition hover:bg-emerald-700"
+                className="flex min-h-[60px] items-center justify-center gap-3 rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="text-lg">SMS</span>
                 <span>
@@ -5943,7 +5955,7 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={() => setIsSendOptionsOpen(false)}
-              className="mt-4 w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+              className="mt-4 w-full rounded-[22px] border border-zinc-300 bg-white px-6 py-4 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:border-zinc-500 hover:bg-zinc-50"
             >
               ยกเลิก
             </button>
@@ -6005,7 +6017,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={() => setEmailPreview(null)}
                 disabled={isSendingEmail}
-                className="rounded-xl border border-zinc-300 bg-white px-5 py-3 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                className="rounded-[22px] border border-zinc-300 bg-white px-6 py-4 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:border-zinc-500 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 ยกเลิก
               </button>
@@ -6013,7 +6025,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={confirmSendBookingEmail}
                 disabled={isSendingEmail}
-                className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSendingEmail ? "กำลังส่งอีเมล..." : "ส่งอีเมลทันที"}
               </button>
@@ -6077,7 +6089,7 @@ const confirmSendBookingEmail = async () => {
               <button
                 type="button"
                 onClick={() => setEmailSentInfo(null)}
-                className="rounded-xl bg-sky-600 px-5 py-3 font-semibold text-white transition hover:bg-sky-700"
+                className="rounded-[22px] border border-zinc-300 bg-white px-6 py-4 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:border-zinc-500 hover:bg-zinc-50"
               >
                 เสร็จสิ้น
               </button>
