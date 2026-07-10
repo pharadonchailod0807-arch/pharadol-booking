@@ -34,7 +34,7 @@ const DashboardBadge = ({ count, ready }) => {
   if (numericCount <= 0) return null;
 
   return (
-    <span className="absolute right-4 top-4 z-20 flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white shadow-md">
+    <span className="absolute right-5 top-5 z-20 flex h-[24px] min-w-[24px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-black leading-none text-white shadow-[0_8px_18px_rgba(239,68,68,0.24)]">
       {numericCount > 99 ? "99+" : numericCount}
     </span>
   );
@@ -842,17 +842,24 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {actionCards.map(([href, icon, title, description, badgeCount]) => (
             <div
               key={href}
               onClick={() => (window.location.href = href)}
-              className="relative cursor-pointer rounded-2xl bg-white p-5 text-center shadow-xl transition hover:scale-[1.02]"
+              className="group relative flex min-h-[176px] cursor-pointer flex-col justify-between rounded-[28px] border border-zinc-200 bg-white/85 p-6 pr-12 text-left shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-[0_28px_80px_rgba(15,23,42,0.10)]"
             >
               <DashboardBadge count={badgeCount} ready={countsReady} />
-              <div className="mb-4 text-7xl">{actionCardEmojis[icon]}</div>
-              <h2 className="text-2xl font-bold">{title}</h2>
-              <p className="mt-3 text-zinc-500">{description}</p>
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-zinc-800 shadow-sm">
+                <Icon name={icon} className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-extrabold text-zinc-950">{title}</h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-500">{description}</p>
+              </div>
+              <span className="text-sm font-bold text-zinc-400 transition group-hover:text-zinc-900">
+                เปิดใช้งาน →
+              </span>
             </div>
           ))}
         </div>
@@ -953,7 +960,7 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <div className={isNeonTheme ? "mx-auto mt-5 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" : "mx-auto mt-5 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"}>
+        <div className={isNeonTheme ? "mx-auto mt-5 grid max-w-[1500px] grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" : "mx-auto mt-5 grid max-w-[1500px] grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4"}>
           {actionCards.map(([href, icon, title, description, badgeCount]) => {
             if (isNeonTheme) {
               const cardImage = actionCardImages[icon];
@@ -984,21 +991,21 @@ export default function Dashboard() {
                 key={href}
                 type="button"
                 onClick={() => (window.location.href = href)}
-                className="group relative flex min-h-[168px] flex-col justify-between rounded-[22px] border border-white/85 bg-white/74 p-5 pr-12 text-left shadow-[0_18px_46px_rgba(15,23,42,0.08)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white"
+                className="group relative flex min-h-[182px] flex-col justify-between rounded-[28px] border border-zinc-200 bg-white/85 p-6 pr-12 text-left shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:bg-white hover:shadow-[0_28px_80px_rgba(15,23,42,0.10)]"
               >
                 <DashboardBadge count={badgeCount} ready={countsReady} />
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-700 transition group-hover:border-zinc-300 group-hover:bg-zinc-950 group-hover:text-white">
-                  <Icon name={icon} className="h-7 w-7" />
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-zinc-800 shadow-sm transition group-hover:border-zinc-300 group-hover:shadow-md">
+                  <Icon name={icon} className="h-6 w-6" />
                 </span>
                 <span>
-                  <span className="block text-xl font-semibold text-zinc-950">
+                  <span className="block text-xl font-extrabold text-zinc-950">
                     {title}
                   </span>
                   <span className="mt-2 block text-sm leading-6 text-zinc-500">
                     {description}
                   </span>
                 </span>
-                <span className="text-sm font-semibold text-zinc-400 transition group-hover:text-zinc-950">
+                <span className="text-sm font-bold text-zinc-400 transition group-hover:text-zinc-950">
                   เปิดใช้งาน →
                 </span>
               </button>

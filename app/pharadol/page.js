@@ -461,6 +461,17 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
   } ${extraClasses || "px-5 py-4"}`;
 };
 
+const actionPrimaryButtonClass =
+  "flex min-h-[56px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-md disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+const actionSecondaryButtonClass =
+  "flex min-h-[56px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-md disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+const actionDangerButtonClass =
+  "flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-bold text-red-600 transition hover:border-red-300 hover:bg-red-100";
+const actionMenuButtonClass =
+  "flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] border border-zinc-200 bg-white px-4 py-2.5 text-sm font-bold text-zinc-700 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950";
+const actionMenuSmallButtonClass =
+  "flex min-h-[46px] items-center justify-center gap-2 rounded-[18px] border border-zinc-200 bg-white px-4 py-2 text-sm font-bold text-zinc-700 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950";
+
 const slipIsPdf = Boolean(slipImage) && isPdfSlipFile(slipImage, slipFileType, slipFileName);
 const slipIsImage = Boolean(slipImage) && isImageSlipFile(slipImage, slipFileType, slipFileName);
 const slipDisplayName = slipFileName || (slipIsPdf ? "ไฟล์สลิป PDF" : "หลักฐานการโอน");
@@ -4484,7 +4495,7 @@ const confirmSendBookingEmail = async () => {
       </div>
 
       <div
-        className={`no-print fixed top-0 right-0 z-40 border-b bg-white px-5 py-3 shadow-md transition-all duration-300 ${
+        className={`no-print fixed top-0 right-0 z-40 border-b border-zinc-200/70 bg-white/90 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-300 sm:px-5 ${
           isViewMode
             ? "hidden"
             : isSidebarCollapsed
@@ -4493,7 +4504,7 @@ const confirmSendBookingEmail = async () => {
         }`}
       >
         <div className="mx-auto max-w-[1180px]">
-          <div className="mb-3 flex items-center justify-between gap-4">
+          <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-bold text-zinc-900">เมนูจัดการ</h2>
               <p className="text-xs text-zinc-500">
@@ -4504,19 +4515,19 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={() => setIsMoreMenuOpen((current) => !current)}
-              className="rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+              className="rounded-2xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-bold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
             >
               {isMoreMenuOpen ? "ซ่อนเมนูเพิ่มเติม" : "เมนูเพิ่มเติม"}
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <div className="relative min-w-[170px] flex-1">
               <button
                 type="button"
                 onClick={() => setIsDownloadMenuOpen((current) => !current)}
                 disabled={isExporting}
-                className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-3 font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`${actionPrimaryButtonClass} w-full`}
               >
                 <span className="text-lg">↓</span>
                 <span>{isExporting ? "กำลังสร้างไฟล์..." : "ดาวน์โหลด"}</span>
@@ -4562,7 +4573,7 @@ const confirmSendBookingEmail = async () => {
                 (isBookingSaved && !isEditingBooking) ||
                 (isBookingSaved && isEditingBooking && !hasEditedFields)
               }
-              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className={actionPrimaryButtonClass}
             >
               <span className="text-lg">✓</span>
               <span>
@@ -4581,7 +4592,7 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={createNewBooking}
-              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-semibold text-white transition hover:bg-blue-800"
+              className={actionSecondaryButtonClass}
             >
               <span className="text-lg">＋</span>
               <span>สร้างใบจองใหม่</span>
@@ -4590,7 +4601,7 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={openCustomerSendOptions}
-              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-700"
+              className={actionSecondaryButtonClass}
             >
               <span className="text-lg">@</span>
               <span>ส่งข้อมูลลูกค้า</span>
@@ -4608,7 +4619,7 @@ const confirmSendBookingEmail = async () => {
                 setIsEditingBooking(true);
               }}
               disabled={isSaving || isEditingBooking}
-              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-3 font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+              className={actionSecondaryButtonClass}
             >
               <span className="text-lg">✎</span>
               <span>{isEditingBooking ? "กำลังแก้ไข" : "แก้ไขใบจอง"}</span>
@@ -4616,7 +4627,7 @@ const confirmSendBookingEmail = async () => {
 
             <button
               onClick={() => goTo(ROUTES.dashboard)}
-              className="flex min-h-14 min-w-[170px] flex-1 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-3 font-semibold text-white transition hover:bg-purple-700"
+              className={actionSecondaryButtonClass}
             >
               <span className="text-lg">⌂</span>
               <span>เมนูหลัก</span>
@@ -4624,12 +4635,12 @@ const confirmSendBookingEmail = async () => {
           </div>
 
           {isMoreMenuOpen && (
-            <div className="mt-3 space-y-3 border-t border-zinc-200 pt-3">
+            <div className="mt-3 space-y-3 border-t border-zinc-200/80 pt-3">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.booking)}
-                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuButtonClass}
                 >
                   <span>＋</span>
                   <span>สร้างใบจอง</span>
@@ -4638,7 +4649,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.customers)}
-                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuButtonClass}
                 >
                   <span>▣</span>
                   <span>ดูใบจอง</span>
@@ -4647,7 +4658,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.customers)}
-                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuButtonClass}
                 >
                   <span>◉</span>
                   <span>ข้อมูลลูกค้า</span>
@@ -4656,7 +4667,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.calendar)}
-                  className="flex min-h-12 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuButtonClass}
                 >
                   <span>▦</span>
                   <span>ปฏิทินงาน</span>
@@ -4667,7 +4678,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.archives)}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuSmallButtonClass}
                 >
                   <span>□</span>
                   <span>คลังข้อมูล</span>
@@ -4676,7 +4687,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.income)}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuSmallButtonClass}
                 >
                   <span>฿</span>
                   <span>รายได้</span>
@@ -4685,7 +4696,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.reports)}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuSmallButtonClass}
                 >
                   <span>▤</span>
                   <span>รายงาน</span>
@@ -4694,7 +4705,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.notifications)}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuSmallButtonClass}
                 >
                   <span>🔔</span>
                   <span>แจ้งเตือน</span>
@@ -4705,7 +4716,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.settings)}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-zinc-50 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuSmallButtonClass}
                 >
                   <span>⚙</span>
                   <span>ตั้งค่า</span>
@@ -4714,7 +4725,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                   onClick={duplicateBooking}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionMenuSmallButtonClass}
                 >
                   <span>⧉</span>
                   <span>คัดลอกใบจองเดิม</span>
@@ -4723,7 +4734,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                   onClick={() => clearForm()}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
+                  className={actionDangerButtonClass}
                 >
                   <span>⌫</span>
                   <span>ล้างแบบฟอร์ม</span>
@@ -4732,7 +4743,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                     onClick={() => goTo(ROUTES.trash)}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                  className={actionDangerButtonClass}
                 >
                   <span>⌫</span>
                   <span>ถังขยะ</span>
@@ -4743,7 +4754,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                   onClick={openCustomerSendOptions}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
+                  className={actionMenuSmallButtonClass}
                 >
                   <span>@</span>
                   <span>ส่งข้อมูลลูกค้า</span>
@@ -4752,7 +4763,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                   onClick={() => goTo(ROUTES.dashboard)}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700"
+                  className={actionMenuSmallButtonClass}
                 >
                   <span>⌂</span>
                   <span>เมนูหลัก</span>
@@ -4768,7 +4779,7 @@ const confirmSendBookingEmail = async () => {
                     document.cookie = "activeBrand=; path=/; max-age=0; SameSite=Lax";
                     goTo("/login");
                   }}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                  className="flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-red-700"
                 >
                   <span>↪</span>
                   <span>ออกจากระบบ</span>
@@ -4787,15 +4798,15 @@ const confirmSendBookingEmail = async () => {
         className={`print-container overflow-x-auto px-4 pb-10 transition-all duration-300 md:px-10 ${
           isViewMode
             ? "ml-0 pt-0"
-            : `${isSidebarCollapsed ? "ml-14" : "ml-0 md:ml-[380px]"} pt-[220px] md:pt-[190px]`
+            : `${isSidebarCollapsed ? "ml-14" : "ml-0 md:ml-[380px]"} pt-[520px] sm:pt-[360px] md:pt-[300px] xl:pt-[260px] 2xl:pt-[190px]`
         }`}
       >
         {isViewMode && (
-          <div className="no-print mx-auto mb-5 flex w-full min-w-[min(210mm,calc(100vw-32px))] max-w-[210mm] flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="no-print mx-auto mb-5 flex w-full min-w-[min(210mm,calc(100vw-32px))] max-w-[210mm] flex-col gap-3 rounded-[22px] border border-zinc-200 bg-white/90 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               onClick={() => goTo(ROUTES.customers)}
-              className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+              className="rounded-2xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
             >
               ← กลับหน้าข้อมูลลูกค้า
             </button>
@@ -4809,7 +4820,7 @@ const confirmSendBookingEmail = async () => {
                   setIsEditingBooking(true);
                   window.history.replaceState({}, "", ROUTES.home);
                 }}
-                className="rounded-xl bg-orange-500 px-5 py-3 font-semibold text-white transition hover:bg-orange-600"
+                className="rounded-2xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50"
               >
                 ✏️ แก้ไขใบจอง
               </button>
@@ -4818,7 +4829,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={openCustomerSendOptions}
                 disabled={isPreparingAttachment}
-                className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-2xl border border-zinc-200 bg-white px-5 py-3 text-sm font-bold text-zinc-800 shadow-sm transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isPreparingAttachment ? "กำลังเตรียมไฟล์..." : "ส่งให้ลูกค้า"}
               </button>
@@ -4828,7 +4839,7 @@ const confirmSendBookingEmail = async () => {
                   type="button"
                   onClick={() => setIsDownloadMenuOpen((current) => !current)}
                   disabled={isExporting}
-                  className="rounded-xl bg-black px-5 py-3 font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isExporting ? "กำลังสร้างไฟล์..." : "ดาวน์โหลด"}
                 </button>
