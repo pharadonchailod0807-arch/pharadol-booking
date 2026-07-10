@@ -39,6 +39,8 @@ export const normalizeCustomerRequest = (request) => ({
   eventDate: normalizeDateValue(request?.eventDate || request?.event_date),
   note: request?.note || request?.detail || "",
   slipUrl: getFirstValue(
+    request?.slipImage,
+    request?.slip_image,
     request?.slipUrl,
     request?.slip_url,
     request?.slipFile,
@@ -46,19 +48,31 @@ export const normalizeCustomerRequest = (request) => ({
     request?.paymentSlip,
     request?.payment_slip,
     request?.paymentSlipUrl,
-    request?.payment_slip_url
+    request?.payment_slip_url,
+    request?.paymentProofUrl,
+    request?.payment_proof_url,
+    request?.proofImageUrl,
+    request?.proof_image_url
   ),
   slipFileName: getFirstValue(
     request?.slipFileName,
     request?.slip_file_name,
     request?.paymentSlipFileName,
-    request?.payment_slip_file_name
+    request?.payment_slip_file_name,
+    request?.paymentProofFileName,
+    request?.payment_proof_file_name,
+    request?.proofImageFileName,
+    request?.proof_image_file_name
   ),
   slipFileType: getFirstValue(
     request?.slipFileType,
     request?.slip_file_type,
     request?.paymentSlipFileType,
-    request?.payment_slip_file_type
+    request?.payment_slip_file_type,
+    request?.paymentProofFileType,
+    request?.payment_proof_file_type,
+    request?.proofImageFileType,
+    request?.proof_image_file_type
   ),
   status: request?.status || "new",
   source: request?.source || "customer_form",
@@ -145,7 +159,6 @@ export const getCustomerRequestPrefill = (request) => ({
   eventDate: request.eventDate,
   note: request.note,
   paymentNote: request.note,
-  slipUrl: request.slipUrl,
   slipImage: request.slipUrl,
   slipFileName: request.slipFileName,
   slipFileType: request.slipFileType,

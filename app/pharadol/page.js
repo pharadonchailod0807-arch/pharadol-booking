@@ -204,6 +204,91 @@ function getDisplaySlipUrl(url = "") {
   return normalizedUrl;
 }
 
+const getFirstFilledValue = (...values) =>
+  values.find((value) => String(value || "").trim()) || "";
+
+const getNormalizedSlipImage = (source = {}) =>
+  getFirstFilledValue(
+    source.slipImage,
+    source.slip_image,
+    source.slipUrl,
+    source.slip_url,
+    source.paymentSlipUrl,
+    source.payment_slip_url,
+    source.paymentProofUrl,
+    source.payment_proof_url,
+    source.proofImageUrl,
+    source.proof_image_url,
+    source.slipFile,
+    source.slip_file,
+    source.paymentSlip,
+    source.payment_slip
+  );
+
+const getNormalizedSlipFileName = (source = {}) =>
+  getFirstFilledValue(
+    source.slipFileName,
+    source.slip_file_name,
+    source.paymentSlipFileName,
+    source.payment_slip_file_name,
+    source.paymentProofFileName,
+    source.payment_proof_file_name,
+    source.proofImageFileName,
+    source.proof_image_file_name
+  );
+
+const getNormalizedSlipFileType = (source = {}) =>
+  getFirstFilledValue(
+    source.slipFileType,
+    source.slip_file_type,
+    source.paymentSlipFileType,
+    source.payment_slip_file_type,
+    source.paymentProofFileType,
+    source.payment_proof_file_type,
+    source.proofImageFileType,
+    source.proof_image_file_type
+  );
+
+const getNormalizedSlipFields = (source = {}) => ({
+  slipImage: getNormalizedSlipImage(source),
+  slipFileName: getNormalizedSlipFileName(source),
+  slipFileType: getNormalizedSlipFileType(source),
+});
+
+const normalizePaymentTransactionSlip = (transaction = {}, fallback = {}) => {
+  const normalizedSlip = getNormalizedSlipFields(transaction);
+  const fallbackSlip = getNormalizedSlipFields(fallback);
+
+  return {
+    ...transaction,
+    slipImage: normalizedSlip.slipImage || fallbackSlip.slipImage,
+    slipFileName: normalizedSlip.slipFileName || fallbackSlip.slipFileName,
+    slipFileType: normalizedSlip.slipFileType || fallbackSlip.slipFileType,
+  };
+};
+
+async function imageUrlToDataUrl(url) {
+  if (!url) return "";
+  if (String(url).startsWith("data:")) return url;
+
+  try {
+    const response = await fetch(url, { mode: "cors" });
+    if (!response.ok) throw new Error("Cannot fetch image");
+
+    const blob = await response.blob();
+
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error("Cannot convert slip image to data url", error);
+    return "";
+  }
+}
+
 export default function BookingSystem() {
   const router = useRouter();
 
@@ -298,6 +383,8 @@ const [slipImage, setSlipImage] = useState("");
 const [slipFileName, setSlipFileName] = useState("");
 const [slipFileType, setSlipFileType] = useState("");
 const [slipPreviewFailed, setSlipPreviewFailed] = useState(false);
+const [slipPdfPreviewUrl, setSlipPdfPreviewUrl] = useState("");
+const [slipPdfPreviewFailed, setSlipPdfPreviewFailed] = useState(false);
 const [paymentDate, setPaymentDate] = useState("");
 const [paymentTime, setPaymentTime] = useState("");
 const [paymentAmount, setPaymentAmount] = useState("");
@@ -381,6 +468,8 @@ const slipPreviewUrl = getDisplaySlipUrl(slipImage);
 
 useEffect(() => {
   setSlipPreviewFailed(false);
+  setSlipPdfPreviewFailed(false);
+  setSlipPdfPreviewUrl("");
 }, [slipImage]);
 
 const emailSendMessageClass =
@@ -678,15 +767,16 @@ const chooseLocationSuggestion = (suggestion) => {
           const prefill = JSON.parse(rawPrefill);
 
           if (prefill?.brand === BRAND_ID) {
+            const prefillSlip = getNormalizedSlipFields(prefill);
             setCustomerName(prefill.customerName || "");
             setPhone(prefill.phone || "");
             setEmail(prefill.email || "");
             setLocation(prefill.location || "");
             setEventDate(prefill.eventDate || "");
             setPaymentNote(prefill.paymentNote || "");
-            setSlipImage(prefill.slipUrl || prefill.slipImage || "");
-            setSlipFileName(prefill.slipFileName || "");
-            setSlipFileType(prefill.slipFileType || "");
+            setSlipImage(prefillSlip.slipImage);
+            setSlipFileName(prefillSlip.slipFileName);
+            setSlipFileType(prefillSlip.slipFileType);
             setPendingCustomerRequestId(prefill.requestId || "");
             localStorage.removeItem(PENDING_BOOKING_PREFILL_KEY);
             localStorage.removeItem(BOOKING_DRAFT_KEY);
@@ -703,6 +793,7 @@ const chooseLocationSuggestion = (suggestion) => {
 
         if (rawDraft) {
           const draft = JSON.parse(rawDraft);
+          const draftSlip = getNormalizedSlipFields(draft);
 
           setCustomerName(draft.customerName || "");
           setPhone(draft.phone || "");
@@ -728,12 +819,14 @@ const chooseLocationSuggestion = (suggestion) => {
           setPaymentNote(draft.paymentNote || "");
           setPaymentTransactions(
             Array.isArray(draft.paymentTransactions)
-              ? draft.paymentTransactions
+              ? draft.paymentTransactions.map((transaction) =>
+                  normalizePaymentTransactionSlip(transaction)
+                )
               : []
           );
-          setSlipImage(draft.slipImage || "");
-          setSlipFileName(draft.slipFileName || "");
-          setSlipFileType(draft.slipFileType || "");
+          setSlipImage(draftSlip.slipImage);
+          setSlipFileName(draftSlip.slipFileName);
+          setSlipFileType(draftSlip.slipFileType);
           setDraftStatus("กู้คืนร่างล่าสุดแล้ว");
         }
       } catch (error) {
@@ -915,6 +1008,7 @@ const chooseLocationSuggestion = (suggestion) => {
         if (savedBooking) {
           try {
             const booking = JSON.parse(savedBooking);
+            const bookingSlip = getNormalizedSlipFields(booking);
             setEditedFields({});
             setLoadedBookingNumber(booking.bookingNumber || "");
             setIsBookingSaved(Boolean(booking.bookingNumber));
@@ -941,9 +1035,9 @@ const chooseLocationSuggestion = (suggestion) => {
                 ? ""
                 : String(booking.discountAmount)
             );
-            setSlipImage(booking.slipImage || "");
-            setSlipFileName(booking.slipFileName || "");
-            setSlipFileType(booking.slipFileType || "");
+            setSlipImage(bookingSlip.slipImage);
+            setSlipFileName(bookingSlip.slipFileName);
+            setSlipFileType(bookingSlip.slipFileType);
             setPaymentDate(booking.paymentDate || "");
             setPaymentTime(booking.paymentTime || "");
             setPaymentAmount(
@@ -959,19 +1053,23 @@ const chooseLocationSuggestion = (suggestion) => {
             setPaymentNote(booking.paymentNote || "");
             setPaymentTransactions(
               Array.isArray(booking.paymentTransactions)
-                ? booking.paymentTransactions
+                ? booking.paymentTransactions.map((transaction) =>
+                    normalizePaymentTransactionSlip(transaction, booking)
+                  )
                 : booking.paymentAmount
                   ? [
-                      {
-                        id: `${booking.bookingNumber || "booking"}-legacy`,
-                        date: booking.paymentDate || "",
-                        time: booking.paymentTime || "",
-                        amount: Number(booking.paymentAmount || 0),
-                        method: booking.paymentMethod || "โอนเงิน",
-                        status: booking.paymentStatus || "มัดจำ",
-                        note: booking.paymentNote || "",
-                        slipImage: booking.slipImage || "",
-                      },
+                      normalizePaymentTransactionSlip(
+                        {
+                          id: `${booking.bookingNumber || "booking"}-legacy`,
+                          date: booking.paymentDate || "",
+                          time: booking.paymentTime || "",
+                          amount: Number(booking.paymentAmount || 0),
+                          method: booking.paymentMethod || "โอนเงิน",
+                          status: booking.paymentStatus || "มัดจำ",
+                          note: booking.paymentNote || "",
+                        },
+                        booking
+                      ),
                     ]
                   : []
             );
@@ -1471,6 +1569,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         status: paymentStatus,
         note: paymentNote.trim(),
         slipImage,
+        slipFileName,
+        slipFileType,
       },
     ]);
     markFieldEdited("paymentTransactions");
@@ -1478,6 +1578,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     setPaymentAmount("");
     setPaymentNote("");
     setSlipImage("");
+    setSlipFileName("");
+    setSlipFileType("");
 
     const nextPaid = totalPaid + amount;
     setPaymentProgress(
@@ -1504,13 +1606,19 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
 
-  const downloadPaymentReceipt = (transaction, transactionIndex) => {
+  const downloadPaymentReceipt = async (transaction, transactionIndex) => {
     const receiptWindow = window.open("", "_blank", "width=900,height=1100");
 
     if (!receiptWindow) {
       alert("เบราว์เซอร์ปิดกั้นหน้าต่างเอกสาร กรุณาอนุญาต Pop-up แล้วลองใหม่");
       return;
     }
+
+    transaction = normalizePaymentTransactionSlip(transaction, {
+      slipImage,
+      slipFileName,
+      slipFileType,
+    });
 
     const installmentNumber = transactionIndex + 1;
     const cumulativePaid = paymentTransactions
@@ -1540,8 +1648,40 @@ const formattedEventDate = formatThaiDateInput(eventDate);
             transaction.status,
             Number(transaction.amount || 0)
           );
-    const slipSection = transaction.slipImage
-      ? `<div class="slip"><p class="label">หลักฐานการชำระเงิน</p><img src="${transaction.slipImage}" alt="Payment slip" /></div>`
+    const transactionSlipImage = transaction.slipImage || "";
+    const transactionSlipFileName = transaction.slipFileName || "";
+    const transactionSlipFileType = transaction.slipFileType || "";
+    const transactionSlipIsPdf =
+      Boolean(transactionSlipImage) &&
+      isPdfSlipFile(
+        transactionSlipImage,
+        transactionSlipFileType,
+        transactionSlipFileName
+      );
+    const transactionSlipIsImage =
+      Boolean(transactionSlipImage) &&
+      isImageSlipFile(
+        transactionSlipImage,
+        transactionSlipFileType,
+        transactionSlipFileName
+      );
+    const transactionSlipPreviewDataUrl = transactionSlipIsImage
+      ? await imageUrlToDataUrl(getDisplaySlipUrl(transactionSlipImage))
+      : "";
+    const slipSection = transactionSlipImage
+      ? transactionSlipIsPdf
+        ? `<div class="slip"><p class="label">หลักฐานการชำระเงิน</p><div class="slip-fallback"><strong>ไฟล์สลิป PDF</strong><span>${escapeReceiptText(
+            transactionSlipFileName || "แนบไฟล์ PDF แล้ว"
+          )}</span><a href="${escapeReceiptText(
+            transactionSlipImage
+          )}" target="_blank" rel="noreferrer">เปิดไฟล์สลิป</a></div></div>`
+        : transactionSlipPreviewDataUrl
+          ? `<div class="slip"><p class="label">หลักฐานการชำระเงิน</p><img src="${escapeReceiptText(
+              transactionSlipPreviewDataUrl
+            )}" alt="Payment slip" /></div>`
+          : `<div class="slip"><p class="label">หลักฐานการชำระเงิน</p><div class="slip-fallback"><strong>มีหลักฐานการโอนแล้ว</strong><span>ไม่สามารถแสดงตัวอย่างสลิปได้ กรุณากดดูไฟล์เต็ม</span><a href="${escapeReceiptText(
+              transactionSlipImage
+            )}" target="_blank" rel="noreferrer">ดูสลิปเต็ม</a></div></div>`
       : "";
 
     const receiptArchivePayload = {
@@ -1567,7 +1707,9 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       cumulativePaid,
       finalPrice,
       remainingAmount: receiptRemaining,
-      slipImage: transaction.slipImage || "",
+      slipImage: transactionSlipImage,
+      slipFileName: transactionSlipFileName,
+      slipFileType: transactionSlipFileType,
       savedAt: new Date().toISOString(),
     };
     const serializedReceiptArchivePayload = JSON.stringify(
@@ -1889,6 +2031,39 @@ const formattedEventDate = formatThaiDateInput(eventDate);
               border: 1px solid #d4d4d8;
               border-radius: 16px;
               object-fit: contain;
+            }
+            .slip-fallback {
+              display: flex;
+              min-height: 52mm;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+              border: 1px dashed #d4d4d8;
+              border-radius: 16px;
+              background: #fafafa;
+              color: #52525b;
+              text-align: center;
+              padding: 18px;
+            }
+            .slip-fallback strong {
+              color: #27272a;
+              font-size: 18px;
+            }
+            .slip-fallback span {
+              color: #71717a;
+              font-size: 13px;
+            }
+            .slip-fallback a {
+              display: inline-flex;
+              margin-top: 4px;
+              border-radius: 12px;
+              background: #18181b;
+              color: #ffffff;
+              padding: 10px 14px;
+              font-size: 13px;
+              font-weight: 800;
+              text-decoration: none;
             }
             .footer {
               margin-top: 16px;
@@ -2503,8 +2678,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+    if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+      alert("กรุณาเลือกไฟล์รูปภาพหรือ PDF เท่านั้น");
       event.target.value = "";
       return;
     }
@@ -2515,12 +2690,19 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 2 * 1024 * 1024 && file.type.startsWith("image/")) {
       alert("ไฟล์มีขนาดใหญ่กว่า 2 MB ระบบจะย่อรูปให้อัตโนมัติ");
     }
 
     const reader = new FileReader();
     reader.onload = () => {
+      if (file.type === "application/pdf") {
+        setSlipImage(String(reader.result || ""));
+        setSlipFileName(file.name);
+        setSlipFileType(file.type);
+        return;
+      }
+
       const image = new Image();
       image.onload = () => {
         const maxDimension = 1000;
@@ -2563,6 +2745,10 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
     saveLockRef.current = true;
     setIsSaving(true);
+    const currentSlip = { slipImage, slipFileName, slipFileType };
+    const normalizedPaymentTransactions = paymentTransactions.map((transaction) =>
+      normalizePaymentTransactionSlip(transaction, currentSlip)
+    );
 
     let resolvedBookingNumber = bookingNumber;
     const isAutomaticNewBooking =
@@ -2619,7 +2805,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       calendarColor,
       remainingPayment: previewRemainingPayment,
       paymentNote,
-      paymentTransactions,
+      paymentTransactions: normalizedPaymentTransactions,
       totalPaid: previewTotalPaid,
       brandId: BRAND_ID,
     };
@@ -3051,6 +3237,33 @@ const applyBookingPageNumbers = (pages) => {
   });
 };
 
+const waitForNextRender = () =>
+  new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+const prepareSlipPreviewForCapture = async () => {
+  if (!slipImage || !slipIsImage || !slipPreviewUrl || slipPreviewFailed) {
+    return async () => {};
+  }
+
+  const slipForPdf = await imageUrlToDataUrl(slipPreviewUrl);
+
+  if (slipForPdf) {
+    setSlipPdfPreviewUrl(slipForPdf);
+    setSlipPdfPreviewFailed(false);
+  } else {
+    setSlipPdfPreviewUrl("");
+    setSlipPdfPreviewFailed(true);
+  }
+
+  await waitForNextRender();
+
+  return async () => {
+    setSlipPdfPreviewUrl("");
+    setSlipPdfPreviewFailed(false);
+    await waitForNextRender();
+  };
+};
+
 const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
   const html2canvas = (await import("html2canvas-pro")).default;
   const pages = Array.from(document.querySelectorAll(".print-area"));
@@ -3059,64 +3272,70 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
     throw new Error("ไม่พบหน้าเอกสารสำหรับสร้างไฟล์");
   }
 
-  applyBookingPageNumbers(pages);
+  const cleanupSlipPreviewForCapture = await prepareSlipPreviewForCapture();
 
-  await new Promise((resolve) => requestAnimationFrame(resolve));
-  await waitForCaptureImages(document);
+  try {
+    applyBookingPageNumbers(pages);
 
-  const images = [];
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    await waitForCaptureImages(document);
 
-  for (let index = 0; index < pages.length; index += 1) {
-    const page = pages[index];
-    const pageRect = page.getBoundingClientRect();
-    const captureWidth = Math.ceil(pageRect.width || page.offsetWidth || 794);
-    const captureHeight = Math.ceil(pageRect.height || page.offsetHeight || 1123);
+    const images = [];
 
-    const canvas = await html2canvas(page, {
-      scale: 1.5,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: "#ffffff",
-      logging: false,
-      width: captureWidth,
-      height: captureHeight,
-      windowWidth: Math.max(document.documentElement.scrollWidth, captureWidth),
-      windowHeight: Math.max(document.documentElement.scrollHeight, captureHeight),
-      scrollX: -window.scrollX,
-      scrollY: -window.scrollY,
-      ignoreElements: (element) => element.classList?.contains("no-print"),
-      onclone: (clonedDocument) => {
-        const clonedPages = clonedDocument.querySelectorAll(".print-area");
-        const clonedPage = clonedPages[index];
+    for (let index = 0; index < pages.length; index += 1) {
+      const page = pages[index];
+      const pageRect = page.getBoundingClientRect();
+      const captureWidth = Math.ceil(pageRect.width || page.offsetWidth || 794);
+      const captureHeight = Math.ceil(pageRect.height || page.offsetHeight || 1123);
 
-        if (clonedPage instanceof HTMLElement) {
-          clonedPage.style.boxShadow = "none";
-          clonedPage.style.margin = "0";
-        }
-      },
-    });
+      const canvas = await html2canvas(page, {
+        scale: 1.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        width: captureWidth,
+        height: captureHeight,
+        windowWidth: Math.max(document.documentElement.scrollWidth, captureWidth),
+        windowHeight: Math.max(document.documentElement.scrollHeight, captureHeight),
+        scrollX: -window.scrollX,
+        scrollY: -window.scrollY,
+        ignoreElements: (element) => element.classList?.contains("no-print"),
+        onclone: (clonedDocument) => {
+          const clonedPages = clonedDocument.querySelectorAll(".print-area");
+          const clonedPage = clonedPages[index];
 
-    if (isCanvasMostlyBlank(canvas)) {
-      throw new Error(`สร้างไฟล์หน้า ${index + 1} แล้วได้หน้าว่าง กรุณาลองใหม่อีกครั้ง`);
+          if (clonedPage instanceof HTMLElement) {
+            clonedPage.style.boxShadow = "none";
+            clonedPage.style.margin = "0";
+          }
+        },
+      });
+
+      if (isCanvasMostlyBlank(canvas)) {
+        throw new Error(`สร้างไฟล์หน้า ${index + 1} แล้วได้หน้าว่าง กรุณาลองใหม่อีกครั้ง`);
+      }
+
+      const imageBlob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", jpegQuality)
+      );
+
+      if (!imageBlob) {
+        throw new Error(`ไม่สามารถสร้างไฟล์หน้า ${index + 1} ได้`);
+      }
+
+      images.push({
+        blob: imageBlob,
+        width: canvas.width,
+        height: canvas.height,
+        bytes: new Uint8Array(await imageBlob.arrayBuffer()),
+      });
     }
 
-    const imageBlob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", jpegQuality)
-    );
-
-    if (!imageBlob) {
-      throw new Error(`ไม่สามารถสร้างไฟล์หน้า ${index + 1} ได้`);
-    }
-
-    images.push({
-      blob: imageBlob,
-      width: canvas.width,
-      height: canvas.height,
-      bytes: new Uint8Array(await imageBlob.arrayBuffer()),
-    });
+    return images;
+  } finally {
+    await cleanupSlipPreviewForCapture();
   }
-
-  return images;
 };
 
 const createBookingPdfAttachment = async () => {
@@ -4190,7 +4409,7 @@ const confirmSendBookingEmail = async () => {
 
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               onChange={(event) => {
                 markFieldEdited("slipImage");
                 handleSlipUpload(event);
@@ -5055,10 +5274,14 @@ const confirmSendBookingEmail = async () => {
           </div>
 
           <div className="flex min-h-[260px] items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
-            {slipImage && slipIsImage && slipPreviewUrl && !slipPreviewFailed ? (
+            {slipImage &&
+            slipIsImage &&
+            (slipPdfPreviewUrl || slipPreviewUrl) &&
+            !slipPreviewFailed &&
+            !slipPdfPreviewFailed ? (
               <div className="flex w-full flex-col items-center justify-center gap-3">
                 <img
-                  src={slipPreviewUrl}
+                  src={slipPdfPreviewUrl || slipPreviewUrl}
                   alt="หลักฐานการโอนงาน"
                   onError={() => setSlipPreviewFailed(true)}
                   className="max-h-[300px] w-full rounded-xl object-contain md:max-h-[420px]"
@@ -5071,7 +5294,7 @@ const confirmSendBookingEmail = async () => {
                   ดูสลิปเต็ม
                 </button>
               </div>
-            ) : slipImage && slipIsImage && slipPreviewFailed ? (
+            ) : slipImage && slipIsImage && (slipPreviewFailed || slipPdfPreviewFailed) ? (
               <div className="flex min-h-[240px] w-full flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-zinc-200 bg-zinc-50 px-6 py-10 text-center">
                 <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-500">
                   มีไฟล์แนบ
