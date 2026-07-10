@@ -181,6 +181,29 @@ const isImageSlipFile = (url, fileType = "", fileName = "") => {
   );
 };
 
+function getGoogleDriveFileId(url = "") {
+  const normalizedUrl = String(url || "");
+
+  return (
+    normalizedUrl.match(/\/file\/d\/([^/]+)/)?.[1] ||
+    normalizedUrl.match(/[?&]id=([^&]+)/)?.[1] ||
+    ""
+  );
+}
+
+function getDisplaySlipUrl(url = "") {
+  const normalizedUrl = String(url || "").trim();
+  if (!normalizedUrl) return "";
+
+  const googleDriveFileId = getGoogleDriveFileId(normalizedUrl);
+
+  if (googleDriveFileId) {
+    return `https://drive.google.com/thumbnail?id=${googleDriveFileId}&sz=w1200`;
+  }
+
+  return normalizedUrl;
+}
+
 export default function BookingSystem() {
   const router = useRouter();
 
@@ -274,6 +297,7 @@ const [discountAmount, setDiscountAmount] = useState("");
 const [slipImage, setSlipImage] = useState("");
 const [slipFileName, setSlipFileName] = useState("");
 const [slipFileType, setSlipFileType] = useState("");
+const [slipPreviewFailed, setSlipPreviewFailed] = useState(false);
 const [paymentDate, setPaymentDate] = useState("");
 const [paymentTime, setPaymentTime] = useState("");
 const [paymentAmount, setPaymentAmount] = useState("");
@@ -353,6 +377,11 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
 const slipIsPdf = Boolean(slipImage) && isPdfSlipFile(slipImage, slipFileType, slipFileName);
 const slipIsImage = Boolean(slipImage) && isImageSlipFile(slipImage, slipFileType, slipFileName);
 const slipDisplayName = slipFileName || (slipIsPdf ? "ไฟล์สลิป PDF" : "หลักฐานการโอน");
+const slipPreviewUrl = getDisplaySlipUrl(slipImage);
+
+useEffect(() => {
+  setSlipPreviewFailed(false);
+}, [slipImage]);
 
 const emailSendMessageClass =
   {
@@ -4169,37 +4198,63 @@ const confirmSendBookingEmail = async () => {
               className={editableInputClass("slipImage", slipImage, "px-4 py-3")}
             />
 
-            {slipImage && slipIsImage && (
+            {slipImage && slipIsImage && slipPreviewUrl && !slipPreviewFailed && (
               <div className="mt-3">
                 <img
-                  src={slipImage}
-                  alt="Slip Preview"
-                  className="w-full rounded-2xl border"
+                  src={slipPreviewUrl}
+                  alt="หลักฐานการโอน"
+                  onError={() => setSlipPreviewFailed(true)}
+                  className="max-h-[300px] w-full rounded-2xl border object-contain md:max-h-[420px]"
                 />
-                {!String(slipImage).startsWith("data:") && (
-                  <a
-                    href={slipImage}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-3 inline-flex rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
-                  >
-                    ดูสลิปเต็ม
-                  </a>
-                )}
+                <button
+                  type="button"
+                  onClick={() => window.open(slipImage, "_blank", "noopener,noreferrer")}
+                  className="mt-3 inline-flex rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                >
+                  ดูสลิปเต็ม
+                </button>
+              </div>
+            )}
+
+            {slipImage && slipIsImage && slipPreviewFailed && (
+              <div className="mt-3 flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-6 py-10 text-center">
+                <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-500">
+                  มีไฟล์แนบ
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-zinc-800">
+                    มีหลักฐานการโอนแล้ว
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    ไม่สามารถแสดงตัวอย่างสลิปได้ กรุณากดดูไฟล์เต็ม
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.open(slipImage, "_blank", "noopener,noreferrer")}
+                  className="rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                >
+                  ดูสลิปเต็ม
+                </button>
               </div>
             )}
 
             {slipImage && slipIsPdf && (
-              <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                <p className="text-sm font-bold text-zinc-900">{slipDisplayName}</p>
-                <a
-                  href={slipImage}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
+              <div className="mt-3 flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-6 py-10 text-center">
+                <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-500">
+                  ไฟล์ PDF
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-zinc-800">ไฟล์สลิป PDF</p>
+                  <p className="mt-1 text-sm text-zinc-400">{slipDisplayName}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.open(slipImage, "_blank", "noopener,noreferrer")}
+                  className="rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
                 >
                   เปิดไฟล์สลิป
-                </a>
+                </button>
               </div>
             )}
           </div>
@@ -4999,37 +5054,62 @@ const confirmSendBookingEmail = async () => {
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 rounded-2xl border border-zinc-200 bg-zinc-50 p-5 flex items-center justify-center overflow-hidden">
-            {slipImage && slipIsImage ? (
-              <div className="flex h-full w-full flex-col items-center justify-center gap-3">
+          <div className="flex min-h-[260px] items-center justify-center overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
+            {slipImage && slipIsImage && slipPreviewUrl && !slipPreviewFailed ? (
+              <div className="flex w-full flex-col items-center justify-center gap-3">
                 <img
-                  src={slipImage}
+                  src={slipPreviewUrl}
                   alt="หลักฐานการโอนงาน"
-                  className="max-h-full max-w-full object-contain rounded-xl"
+                  onError={() => setSlipPreviewFailed(true)}
+                  className="max-h-[300px] w-full rounded-xl object-contain md:max-h-[420px]"
                 />
-                {!String(slipImage).startsWith("data:") && (
-                  <a
-                    href={slipImage}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="no-print rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
-                  >
-                    ดูสลิปเต็ม
-                  </a>
-                )}
+                <button
+                  type="button"
+                  onClick={() => window.open(slipImage, "_blank", "noopener,noreferrer")}
+                  className="no-print rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
+                >
+                  ดูสลิปเต็ม
+                </button>
+              </div>
+            ) : slipImage && slipIsImage && slipPreviewFailed ? (
+              <div className="flex min-h-[240px] w-full flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-zinc-200 bg-zinc-50 px-6 py-10 text-center">
+                <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-500">
+                  มีไฟล์แนบ
+                </div>
+
+                <div>
+                  <p className="text-lg font-bold text-zinc-800">
+                    มีหลักฐานการโอนแล้ว
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    ไม่สามารถแสดงตัวอย่างสลิปได้ กรุณากดดูไฟล์เต็ม
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => window.open(slipImage, "_blank", "noopener,noreferrer")}
+                  className="no-print rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                >
+                  ดูสลิปเต็ม
+                </button>
               </div>
             ) : slipImage && slipIsPdf ? (
-              <div className="text-center">
-                <p className="text-lg font-bold text-zinc-900">{slipDisplayName}</p>
-                <p className="mt-2 text-sm text-zinc-500">ไฟล์หลักฐานการโอนเป็น PDF</p>
-                <a
-                  href={slipImage}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 inline-flex rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
+              <div className="flex min-h-[240px] w-full flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-zinc-200 bg-zinc-50 px-6 py-10 text-center">
+                <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-500">
+                  ไฟล์ PDF
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-zinc-800">ไฟล์สลิป PDF</p>
+                  <p className="mt-1 text-sm text-zinc-400">{slipDisplayName}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => window.open(slipImage, "_blank", "noopener,noreferrer")}
+                  className="no-print rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
                 >
                   เปิดไฟล์สลิป
-                </a>
+                </button>
               </div>
             ) : (
               <div className="text-center text-zinc-400">
