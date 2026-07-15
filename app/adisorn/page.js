@@ -460,6 +460,9 @@ const getServiceDescriptionText = (description) => {
   return lines.filter(Boolean).join("\n");
 };
 
+const getInlineServiceDescription = (description) =>
+  typeof description === "string" ? description.trim() : "";
+
 const personnelServices = [
   "ช่างภาพหลัก",
   "ช่างภาพแคนดิด",
@@ -5228,6 +5231,7 @@ const confirmSendBookingEmail = async () => {
               ) : (
                 serviceItems.map((item, index) => {
                   const isPersonnel = personnelServices.includes(item.name);
+                  const inlineDescription = getInlineServiceDescription(item.description);
                   return (
                     <div
                       key={item.id}
@@ -5242,8 +5246,10 @@ const confirmSendBookingEmail = async () => {
                             <p className={`${isDenseDocument ? "text-base" : "text-lg"} font-semibold text-zinc-900`}>
                               {item.name}
                             </p>
-                            {item.description && (
-                              renderServiceDescription(item.description, { compact: true })
+                            {inlineDescription && (
+                              <p className="mt-0.5 text-[10px] text-zinc-500">
+                                {inlineDescription}
+                              </p>
                             )}
                           </div>
                           {isPersonnel && (
