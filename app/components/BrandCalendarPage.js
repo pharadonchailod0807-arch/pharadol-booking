@@ -112,6 +112,48 @@ export default function BrandCalendarPage({ brandId }) {
   const [visibleDate, setVisibleDate] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [loadMessage, setLoadMessage] = useState("");
+  const [isRefreshingBookings, setIsRefreshingBookings] = useState(false);
+
+  const loadBookings = async ({ manual = false } = {}) => {
+    if (manual) setIsRefreshingBookings(true);
+
+    const localBookings = readArray(customersKey).filter((item) => item.eventDate);
+    setBookings(localBookings);
+    setLoadMessage(
+      localBookings.length > 0
+        ? "ใช้ข้อมูลล่าสุดที่บันทึกไว้ในเครื่อง"
+        : "กำลังโหลดข้อมูล"
+    );
+
+    try {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("deleted", false)
+        .order("event_date", { ascending: true });
+
+      if (error) throw error;
+
+      const remoteBookings = (Array.isArray(data) ? data : [])
+        .map((row) => normalizeBookingRow(row, brandId))
+        .filter((item) => item.brandId === brandId && item.eventDate);
+
+      if (remoteBookings.length > 0) {
+        setBookings(remoteBookings);
+        localStorage.setItem(customersKey, JSON.stringify(remoteBookings));
+        setLoadMessage("ดึงข้อมูลจากฐานข้อมูลแล้ว");
+        setIsRefreshingBookings(false);
+        return;
+      }
+
+      setLoadMessage("ยังไม่พบข้อมูลจากฐานข้อมูล ใช้ข้อมูลในเครื่อง");
+    } catch (error) {
+      console.error("Cannot load calendar bookings", error);
+      setLoadMessage("โหลดฐานข้อมูลไม่ได้ ใช้ข้อมูลในเครื่องแทน");
+    }
+
+    setIsRefreshingBookings(false);
+  };
 
   useEffect(() => {
     const verifyAccess = () => {
@@ -160,50 +202,14 @@ export default function BrandCalendarPage({ brandId }) {
 
     if (!verifyAccess()) return;
 
-    const sessionCheck = window.setInterval(verifyAccess, 60 * 1000);
-    return () => window.clearInterval(sessionCheck);
+    return undefined;
   }, [brandId]);
 
   useEffect(() => {
     if (!isAuthorized) return;
 
-    const loadBookings = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("bookings")
-          .select("*")
-          .eq("deleted", false)
-          .order("event_date", { ascending: true });
-
-        if (error) throw error;
-
-        const remoteBookings = (Array.isArray(data) ? data : [])
-          .map((row) => normalizeBookingRow(row, brandId))
-          .filter((item) => item.brandId === brandId && item.eventDate);
-
-        if (remoteBookings.length > 0) {
-          setBookings(remoteBookings);
-          localStorage.setItem(customersKey, JSON.stringify(remoteBookings));
-          setLoadMessage("ดึงข้อมูลจากฐานข้อมูลแล้ว");
-          return;
-        }
-
-        const localBookings = readArray(customersKey).filter(
-          (item) => item.eventDate
-        );
-        setBookings(localBookings);
-        setLoadMessage("ยังไม่พบข้อมูลจากฐานข้อมูล ใช้ข้อมูลในเครื่อง");
-      } catch (error) {
-        console.error("Cannot load calendar bookings", error);
-        setBookings(readArray(customersKey).filter((item) => item.eventDate));
-        setLoadMessage("โหลดฐานข้อมูลไม่ได้ ใช้ข้อมูลในเครื่องแทน");
-      }
-    };
-
     loadBookings();
-    window.addEventListener("focus", loadBookings);
-    return () => window.removeEventListener("focus", loadBookings);
-  }, [brandId, customersKey, isAuthorized]);
+  }, [isAuthorized]);
 
   const events = useMemo(
     () =>
@@ -276,6 +282,14 @@ export default function BrandCalendarPage({ brandId }) {
             className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 md:px-5 md:py-3 md:text-base"
           >
             กลับเมนูหลัก
+          </button>
+          <button
+            type="button"
+            onClick={() => loadBookings({ manual: true })}
+            disabled={isRefreshingBookings}
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 md:px-5 md:py-3 md:text-base"
+          >
+            {isRefreshingBookings ? "กำลังรีเฟรช" : "รีเฟรช"}
           </button>
         </div>
 

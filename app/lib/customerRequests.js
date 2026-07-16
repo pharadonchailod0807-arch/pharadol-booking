@@ -14,9 +14,13 @@ export const CUSTOMER_FORM_LINKS = {
 };
 
 export const CUSTOMER_REQUESTS_EVENT = "customer-requests-updated";
+export const CUSTOMER_REQUESTS_CACHE_TTL_MS = 15 * 60 * 1000;
 
 export const getCustomerRequestsStorageKey = (brand) =>
   `${brand}_customer_requests`;
+
+export const getCustomerRequestsCacheKey = (brand) =>
+  `${brand}_customer_requests_cache_meta`;
 
 export const getPendingBookingPrefillKey = (brand) =>
   `pendingBookingPrefill_${brand}`;
@@ -93,17 +97,44 @@ export const readLocalCustomerRequests = (brand) => {
   }
 };
 
-export const writeLocalCustomerRequests = (brand, requests) => {
+const readCustomerRequestsCacheTime = (brand) => {
+  try {
+    const parsed = JSON.parse(
+      localStorage.getItem(getCustomerRequestsCacheKey(brand)) || "null"
+    );
+    return Number(parsed?.syncedAt || 0);
+  } catch {
+    return 0;
+  }
+};
+
+const writeCustomerRequestsCacheTime = (brand) => {
+  localStorage.setItem(
+    getCustomerRequestsCacheKey(brand),
+    JSON.stringify({ syncedAt: Date.now() })
+  );
+};
+
+export const writeLocalCustomerRequests = (
+  brand,
+  requests,
+  { notify = true, markSynced = false } = {}
+) => {
   localStorage.setItem(
     getCustomerRequestsStorageKey(brand),
     JSON.stringify(requests.map(normalizeCustomerRequest))
   );
-  window.dispatchEvent(new Event(CUSTOMER_REQUESTS_EVENT));
+  if (markSynced) writeCustomerRequestsCacheTime(brand);
+  if (notify) window.dispatchEvent(new Event(CUSTOMER_REQUESTS_EVENT));
 };
 
-export const fetchCustomerRequests = async (brand) => {
+export const fetchCustomerRequests = async (
+  brand,
+  { signal, cache = "default" } = {}
+) => {
   const response = await fetch(`/api/customer-requests?brand=${brand}`, {
-    cache: "no-store",
+    cache,
+    signal,
   });
   const result = await response.json().catch(() => ({}));
 
@@ -116,12 +147,27 @@ export const fetchCustomerRequests = async (brand) => {
     : [];
 };
 
-export const loadCustomerRequests = async (brand) => {
+export const loadCustomerRequests = async (
+  brand,
+  { forceRemote = false, maxAgeMs = CUSTOMER_REQUESTS_CACHE_TTL_MS, signal } = {}
+) => {
   const localRequests = readLocalCustomerRequests(brand);
+  const lastSyncedAt = readCustomerRequestsCacheTime(brand);
+  const cacheAge = Date.now() - lastSyncedAt;
+
+  if (!forceRemote && lastSyncedAt > 0 && cacheAge < maxAgeMs) {
+    return { requests: localRequests, source: "local-cache" };
+  }
 
   try {
-    const remoteRequests = await fetchCustomerRequests(brand);
-    writeLocalCustomerRequests(brand, remoteRequests);
+    const remoteRequests = await fetchCustomerRequests(brand, {
+      cache: forceRemote ? "reload" : "default",
+      signal,
+    });
+    writeLocalCustomerRequests(brand, remoteRequests, {
+      markSynced: true,
+      notify: false,
+    });
     return { requests: remoteRequests, source: "remote" };
   } catch (error) {
     return { requests: localRequests, source: "local", error };

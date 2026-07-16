@@ -8,6 +8,7 @@ import {
   getCustomerRequestPrefill,
   getPendingBookingPrefillKey,
   loadCustomerRequests,
+  readLocalCustomerRequests,
   updateLocalCustomerRequest,
   deleteLocalCustomerRequest,
 } from "@/app/lib/customerRequests";
@@ -57,6 +58,7 @@ export default function CustomerRequestsPage({ brand }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const formLink = CUSTOMER_FORM_LINKS[brand];
 
   const newCount = useMemo(
@@ -109,21 +111,38 @@ export default function CustomerRequestsPage({ brand }) {
   useEffect(() => {
     if (!isAuthorized) return;
 
-    const load = async () => {
+    const controller = new AbortController();
+    const load = async ({ forceRemote = false } = {}) => {
       setIsLoading(true);
-      const result = await loadCustomerRequests(brand);
+      setRequests(readLocalCustomerRequests(brand));
+      const result = await loadCustomerRequests(brand, {
+        forceRemote,
+        signal: controller.signal,
+      });
       setRequests(result.requests);
       setError(result.error ? result.error.message : "");
       setIsLoading(false);
     };
 
     load();
-    window.addEventListener("focus", load);
 
     return () => {
-      window.removeEventListener("focus", load);
+      controller.abort();
     };
   }, [brand, isAuthorized]);
+
+  const refreshRequests = async () => {
+    if (isRefreshing) return;
+
+    setIsRefreshing(true);
+    try {
+      const result = await loadCustomerRequests(brand, { forceRemote: true });
+      setRequests(result.requests);
+      setError(result.error ? result.error.message : "");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const copyLink = async () => {
     try {
@@ -254,11 +273,21 @@ export default function CustomerRequestsPage({ brand }) {
 
         <div className="mb-4 flex items-center justify-between rounded-2xl border border-white bg-white px-4 py-2.5 shadow-sm">
           <span className="text-sm font-semibold">คำขอทั้งหมด {requests.length} รายการ</span>
-          {newCount > 0 && (
-            <span className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">
-              ใหม่ {newCount > 99 ? "99+" : newCount}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {newCount > 0 && (
+              <span className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white">
+                ใหม่ {newCount > 99 ? "99+" : newCount}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={refreshRequests}
+              disabled={isRefreshing}
+              className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+            >
+              {isRefreshing ? "กำลังรีเฟรช" : "รีเฟรช"}
+            </button>
+          </div>
         </div>
 
         {isLoading ? (

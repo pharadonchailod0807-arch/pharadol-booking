@@ -10,6 +10,7 @@ import {
   CUSTOMER_REQUESTS_EVENT,
   countNewCustomerRequests,
   loadCustomerRequests,
+  readLocalCustomerRequests,
 } from "@/app/lib/customerRequests";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -164,41 +165,67 @@ export default function Dashboard() {
   const [dashboardTheme, setDashboardTheme] = useState("clean");
   const [showWelcome, setShowWelcome] = useState(null);
   const [newCustomerRequestCount, setNewCustomerRequestCount] = useState(0);
+  const [isRefreshingCounts, setIsRefreshingCounts] = useState(false);
 
-  useEffect(() => {
-    const loadDashboardData = (savedUser) => {
-      setCountsReady(false);
+  const loadDashboardSnapshot = (savedUser) => {
+    setCountsReady(false);
 
-      const parsedUser = {
-        ...savedUser,
-        brandId: "adisorn",
-        brandName: "Adisorn Wedding Studio",
-      };
-
-      setCurrentUser(parsedUser);
-
-      const safeCustomers = readArray("adisorn_customers");
-      const safeArchives = readArray("adisorn_archives");
-      const safeTrash = readArray("adisorn_trash");
-      const emailHistory = readArray("adisorn_email_history");
-      const nextCounts = calculateDashboardCounts({
-        brandId: "adisorn",
-        customers: safeCustomers,
-        archiveItems: safeArchives,
-        trashItems: safeTrash,
-        emailHistory,
-        hasBookingDraft: Boolean(localStorage.getItem(BOOKING_DRAFT_KEY)),
-      });
-
-      setDashboardCounts(nextCounts);
-      setCountsReady(true);
-
-      loadCustomerRequests("adisorn").then(({ requests }) => {
-        setNewCustomerRequestCount(countNewCustomerRequests(requests));
-      });
+    const parsedUser = {
+      ...savedUser,
+      brandId: "adisorn",
+      brandName: "Adisorn Wedding Studio",
     };
 
-    const verifyAccess = () => {
+    setCurrentUser(parsedUser);
+
+    const safeCustomers = readArray("adisorn_customers");
+    const safeArchives = readArray("adisorn_archives");
+    const safeTrash = readArray("adisorn_trash");
+    const emailHistory = readArray("adisorn_email_history");
+    const nextCounts = calculateDashboardCounts({
+      brandId: "adisorn",
+      customers: safeCustomers,
+      archiveItems: safeArchives,
+      trashItems: safeTrash,
+      emailHistory,
+      hasBookingDraft: Boolean(localStorage.getItem(BOOKING_DRAFT_KEY)),
+    });
+
+    setDashboardCounts(nextCounts);
+    setNewCustomerRequestCount(
+      countNewCustomerRequests(readLocalCustomerRequests("adisorn"))
+    );
+    setCountsReady(true);
+  };
+
+  const refreshDashboardCounts = async () => {
+    if (!currentUser || isRefreshingCounts) return;
+
+    setIsRefreshingCounts(true);
+    loadDashboardSnapshot(currentUser);
+
+    try {
+      const result = await loadCustomerRequests("adisorn", {
+        forceRemote: true,
+      });
+      setNewCustomerRequestCount(countNewCustomerRequests(result.requests));
+    } finally {
+      setIsRefreshingCounts(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadDashboardData = (savedUser, { syncRemote = false } = {}) => {
+      loadDashboardSnapshot(savedUser);
+
+      if (syncRemote) {
+        loadCustomerRequests("adisorn").then(({ requests }) => {
+          setNewCustomerRequestCount(countNewCustomerRequests(requests));
+        });
+      }
+    };
+
+    const verifyAccess = ({ refreshData = false } = {}) => {
       try {
         const loggedIn = sessionStorage.getItem("loggedIn") === "true";
         const savedUser = JSON.parse(
@@ -234,7 +261,7 @@ export default function Dashboard() {
         }
 
         sessionStorage.setItem("lastActivity", String(Date.now()));
-        loadDashboardData(savedUser);
+        if (refreshData) loadDashboardData(savedUser, { syncRemote: true });
         setIsAuthorized(true);
         return true;
       } catch (error) {
@@ -245,7 +272,7 @@ export default function Dashboard() {
       }
     };
 
-    if (!verifyAccess()) return;
+    if (!verifyAccess({ refreshData: true })) return;
 
     let activityTimer;
 
@@ -266,33 +293,31 @@ export default function Dashboard() {
         event.key === BOOKING_DRAFT_KEY ||
         event.key === CUSTOMER_REQUESTS_KEY
       ) {
-        verifyAccess();
+        verifyAccess({ refreshData: true });
       }
     };
-
-    const handleFocus = () => {
-      verifyAccess();
+    const handleCustomerRequestsEvent = () => {
+      verifyAccess({ refreshData: true });
     };
 
-    const sessionCheck = window.setInterval(verifyAccess, 60 * 1000);
     const activityEvents = ["mousedown", "keydown", "touchstart", "scroll"];
 
     activityEvents.forEach((eventName) =>
       window.addEventListener(eventName, updateActivity, { passive: true })
     );
     window.addEventListener("storage", handleStorage);
-    window.addEventListener(CUSTOMER_REQUESTS_EVENT, handleFocus);
-    window.addEventListener("focus", handleFocus);
+    window.addEventListener(CUSTOMER_REQUESTS_EVENT, handleCustomerRequestsEvent);
 
     return () => {
-      window.clearInterval(sessionCheck);
       window.clearTimeout(activityTimer);
       activityEvents.forEach((eventName) =>
         window.removeEventListener(eventName, updateActivity)
       );
       window.removeEventListener("storage", handleStorage);
-      window.removeEventListener(CUSTOMER_REQUESTS_EVENT, handleFocus);
-      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener(
+        CUSTOMER_REQUESTS_EVENT,
+        handleCustomerRequestsEvent
+      );
     };
   }, []);
 
@@ -667,6 +692,14 @@ export default function Dashboard() {
                 </div>
                 <button
                   type="button"
+                  onClick={refreshDashboardCounts}
+                  disabled={isRefreshingCounts}
+                  className="rounded-full border border-white/18 bg-white/[0.08] px-5 py-4 text-sm font-bold text-white disabled:opacity-50"
+                >
+                  {isRefreshingCounts ? "กำลังรีเฟรช" : "รีเฟรช"}
+                </button>
+                <button
+                  type="button"
                   onClick={() => (window.location.href = "/adisorn/notifications")}
                   className="relative flex h-14 w-14 items-center justify-center rounded-full border border-white/18 bg-white/[0.08] text-white/78"
                 >
@@ -795,12 +828,22 @@ export default function Dashboard() {
             <p className="mt-2 text-zinc-500">ระบบจัดการงานและข้อมูลลูกค้า</p>
           </div>
 
-          <button
-            onClick={logout}
-            className="rounded-xl bg-red-500 px-5 py-3 font-semibold text-white"
-          >
-            ออกจากระบบ
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={refreshDashboardCounts}
+              disabled={isRefreshingCounts}
+              className="rounded-xl bg-zinc-900 px-5 py-3 font-semibold text-white disabled:opacity-50"
+            >
+              {isRefreshingCounts ? "กำลังรีเฟรช" : "รีเฟรชข้อมูล"}
+            </button>
+            <button
+              onClick={logout}
+              className="rounded-xl bg-red-500 px-5 py-3 font-semibold text-white"
+            >
+              ออกจากระบบ
+            </button>
+          </div>
         </div>
 
         <div className="mx-auto mb-6 grid max-w-7xl grid-cols-2 gap-3 lg:grid-cols-5">
@@ -885,16 +928,30 @@ export default function Dashboard() {
           >
             {currentUser?.name || currentUser?.username}
           </div>
-          <button
-            onClick={logout}
-            className={
-              isNeonTheme
-                ? "rounded-full border border-white/10 bg-white px-5 py-2.5 text-sm font-semibold text-[#111317] transition hover:bg-white/90"
-                : "rounded-full border border-zinc-200 bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition hover:bg-zinc-800"
-            }
-          >
-            ออกจากระบบ
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={refreshDashboardCounts}
+              disabled={isRefreshingCounts}
+              className={
+                isNeonTheme
+                  ? "rounded-full border border-white/15 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                  : "rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 shadow-sm disabled:opacity-50"
+              }
+            >
+              {isRefreshingCounts ? "กำลังรีเฟรช" : "รีเฟรชข้อมูล"}
+            </button>
+            <button
+              onClick={logout}
+              className={
+                isNeonTheme
+                  ? "rounded-full border border-white/10 bg-white px-5 py-2.5 text-sm font-semibold text-[#111317] transition hover:bg-white/90"
+                  : "rounded-full border border-zinc-200 bg-zinc-950 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(15,23,42,0.14)] transition hover:bg-zinc-800"
+              }
+            >
+              ออกจากระบบ
+            </button>
+          </div>
         </div>
         <p className={isNeonTheme ? "text-sm font-semibold text-white/45" : "text-xs font-bold uppercase tracking-[0.32em] text-zinc-400"}>
           Dashboard

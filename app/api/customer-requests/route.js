@@ -63,10 +63,17 @@ export async function GET(request) {
     );
   }
 
-  return Response.json({
-    success: true,
-    requests: Array.isArray(data) ? data.map(normalizeRequest) : [],
-  });
+  return Response.json(
+    {
+      success: true,
+      requests: Array.isArray(data) ? data.map(normalizeRequest) : [],
+    },
+    {
+      headers: {
+        "Cache-Control": "private, max-age=300, stale-while-revalidate=300",
+      },
+    }
+  );
 }
 
 export async function POST(request) {
