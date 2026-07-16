@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -114,7 +114,7 @@ export default function BrandCalendarPage({ brandId }) {
   const [loadMessage, setLoadMessage] = useState("");
   const [isRefreshingBookings, setIsRefreshingBookings] = useState(false);
 
-  const loadBookings = async ({ manual = false } = {}) => {
+  const loadBookings = useCallback(async ({ manual = false } = {}) => {
     if (manual) setIsRefreshingBookings(true);
 
     const localBookings = readArray(customersKey).filter((item) => item.eventDate);
@@ -153,7 +153,7 @@ export default function BrandCalendarPage({ brandId }) {
     }
 
     setIsRefreshingBookings(false);
-  };
+  }, [brandId, customersKey]);
 
   useEffect(() => {
     const verifyAccess = () => {
@@ -208,8 +208,12 @@ export default function BrandCalendarPage({ brandId }) {
   useEffect(() => {
     if (!isAuthorized) return;
 
-    loadBookings();
-  }, [isAuthorized]);
+    const timer = window.setTimeout(() => {
+      loadBookings();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [isAuthorized, loadBookings]);
 
   const events = useMemo(
     () =>
