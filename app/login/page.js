@@ -369,7 +369,7 @@ export default function LoginPage() {
 
       const activeBrand = allowedBrands[0];
       sessionStorage.setItem("activeBrand", activeBrand);
-      window.location.replace(`/${activeBrand}/dashboard`);
+      window.location.replace(`/${activeBrand}/welcome`);
     } catch (error) {
       console.error("Login failed", error);
       sessionStorage.clear();
