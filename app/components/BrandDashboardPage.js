@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   calculateDashboardCounts,
@@ -215,14 +214,12 @@ export default function BrandDashboardPage({ brandId }) {
   const bookingDraftKey = `${brandId}_bookingDraft`;
   const customerRequestsKey = `${brandId}_customer_requests`;
   const dashboardPath = `/${brandId}/dashboard`;
-  const welcomeSeenKey = `${brandId}WelcomeSeen`;
-  const bookingPath = brandId === "adisorn" ? "/adisorn/booking" : "/pharadol";
+  const bookingPath = `/${brandId}`;
 
   const [currentUser, setCurrentUser] = useState(null);
   const [dashboardCounts, setDashboardCounts] = useState(emptyDashboardCounts);
   const [countsReady, setCountsReady] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(null);
   const [newCustomerRequestCount, setNewCustomerRequestCount] = useState(0);
   const [isRefreshingCounts, setIsRefreshingCounts] = useState(false);
 
@@ -380,23 +377,6 @@ export default function BrandDashboardPage({ brandId }) {
     };
   }, [brandId, bookingDraftKey, customerRequestsKey, loadDashboardSnapshot]);
 
-  useEffect(() => {
-    if (!isAuthorized) return;
-
-    const hasSeenWelcome = sessionStorage.getItem(welcomeSeenKey) === "true";
-    const timer = window.setTimeout(() => {
-      setShowWelcome(!hasSeenWelcome);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, [isAuthorized, welcomeSeenKey]);
-
-  const startSystem = () => {
-    sessionStorage.setItem(welcomeSeenKey, "true");
-    sessionStorage.setItem("lastActivity", String(Date.now()));
-    setShowWelcome(false);
-  };
-
   const navigate = (href) => {
     router.push(href);
   };
@@ -497,248 +477,13 @@ export default function BrandDashboardPage({ brandId }) {
     [`/${brandId}/customer-requests`, "bell", "ดูคำขอลูกค้า"],
   ];
 
-  if (!isAuthorized || !currentUser || showWelcome === null) {
+  if (!isAuthorized || !currentUser) {
     return (
       <main
         className="flex min-h-screen items-center justify-center text-sm font-semibold"
         style={{ backgroundColor: theme.background, color: theme.muted }}
       >
         กำลังตรวจสอบสิทธิ์การใช้งาน...
-      </main>
-    );
-  }
-
-  if (showWelcome) {
-    const isPharadol = brandId === "pharadol";
-    const welcomeConfig = isPharadol
-      ? {
-          backgroundImage: "/pharadol-wedding-bg.jpg",
-          backgroundOpacity: "opacity-35",
-          radial: "radial-gradient(circle_at_center,rgba(22,78,51,0.18),transparent_48%)",
-          orbOne: "bg-emerald-700/8",
-          orbTwo: "bg-slate-500/8",
-          logoBorder: "border-[#b89a68]/25",
-          logoBg: "#10291d",
-          logoShadow: "rgba(16,41,29,0.5)",
-          logoPulseBase: "rgba(16, 41, 29, 0.38)",
-          logoPulseGlow: "rgba(184, 154, 104, 0.28)",
-          logoClassName:
-            "scale-[1.38] object-cover transition duration-700 hover:scale-[1.45]",
-          logoSrc: "/pharadol-logo.jpeg",
-          eyebrow: "PHARADOL PRODUCTION Booking Management",
-          subEyebrow: "FILM & STILL",
-          title: "PHARADOL PRODUCTION",
-          titleGradient: "from-white via-[#e8ded0] to-white",
-          description:
-            "ระบบจัดการงาน ลูกค้า ใบจอง ปฏิทิน รายได้ และข้อมูลทั้งหมดของ PHARADOL PRODUCTION",
-        }
-      : {
-          backgroundImage: "/adisorn-wedding-bg.jpg",
-          backgroundOpacity: "opacity-30",
-          radial: "radial-gradient(circle_at_center,rgba(112,58,20,0.2),transparent_45%)",
-          orbOne: "bg-fuchsia-500/12",
-          orbTwo: "bg-blue-500/12",
-          logoBorder: "border-[#c88a55]/30",
-          logoBg: "#552b0d",
-          logoShadow: "rgba(139,78,31,0.35)",
-          logoPulseBase: "rgba(139, 78, 31, 0.35)",
-          logoPulseGlow: "rgba(244, 214, 189, 0.42)",
-          logoClassName: "object-contain transition duration-700 hover:scale-105",
-          logoSrc: "/adisorn-logo.png",
-          eyebrow: "Studio Booking Management",
-          subEyebrow: "",
-          title: "Adisorn Wedding Studio",
-          titleGradient: "from-white via-[#f4d6bd] to-white",
-          description:
-            "ระบบจัดการงาน ลูกค้า ใบจอง ปฏิทิน รายได้ และข้อมูลทั้งหมดของสตูดิโอ",
-        };
-
-    return (
-      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080808] px-4 py-5 text-white">
-        <div className="absolute inset-0">
-          <div
-            className={`absolute inset-0 scale-105 bg-cover bg-center ${welcomeConfig.backgroundOpacity} blur-[1px]`}
-            style={{ backgroundImage: `url('${welcomeConfig.backgroundImage}')` }}
-          />
-          <div className="absolute inset-0 bg-black/70" />
-          <div
-            className="absolute inset-0"
-            style={{ background: welcomeConfig.radial }}
-          />
-          <div
-            className={`welcome-orb absolute left-[-8%] top-[-14%] h-[430px] w-[430px] rounded-full ${welcomeConfig.orbOne} blur-[125px]`}
-          />
-          <div
-            className={`welcome-orb-delayed absolute bottom-[-18%] right-[-8%] h-[470px] w-[470px] rounded-full ${welcomeConfig.orbTwo} blur-[135px]`}
-          />
-          <div className="absolute inset-0 opacity-[0.045] [background-image:linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] [background-size:42px_42px]" />
-        </div>
-
-        <section className="welcome-card relative z-10 w-full max-w-[760px] px-6 py-8 text-center sm:px-10 sm:py-10">
-          <div className="logo-entrance relative mx-auto flex h-28 w-28 items-center justify-center sm:h-32 sm:w-32">
-            <div
-              className={`absolute inset-[-10px] rounded-full border ${welcomeConfig.logoBorder}`}
-            />
-            <div className="logo-ring absolute inset-[-18px] rounded-full border border-dashed border-white/15" />
-            <div className="logo-flash pointer-events-none absolute inset-[-28px] rounded-full bg-[conic-gradient(from_0deg,transparent,rgba(216,196,158,0.55),transparent_22%,transparent)] blur-sm" />
-            <div
-              className="logo-core relative h-full w-full overflow-hidden rounded-full border border-white/25"
-              style={{
-                backgroundColor: welcomeConfig.logoBg,
-                boxShadow: `0 0 45px ${welcomeConfig.logoShadow}`,
-              }}
-            >
-              <Image
-                src={welcomeConfig.logoSrc}
-                alt={theme.name}
-                fill
-                sizes="128px"
-                className={welcomeConfig.logoClassName}
-              />
-            </div>
-          </div>
-
-          <p className="mt-6 text-[10px] font-semibold uppercase tracking-[0.32em] text-white/65 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] sm:text-xs">
-            {welcomeConfig.eyebrow}
-          </p>
-
-          {welcomeConfig.subEyebrow && (
-            <p className="mt-3 text-sm font-semibold uppercase tracking-[0.28em] text-white/70 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] sm:text-base">
-              {welcomeConfig.subEyebrow}
-            </p>
-          )}
-
-          <h1 className="mt-3 leading-[1.02] tracking-[-0.04em] drop-shadow-[0_5px_24px_rgba(0,0,0,0.85)]">
-            <span className="block text-3xl font-semibold text-white/90 sm:text-4xl">
-              Welcome to
-            </span>
-            <span
-              className={`mt-2 block whitespace-nowrap bg-gradient-to-r ${welcomeConfig.titleGradient} bg-clip-text text-4xl font-black text-transparent sm:text-6xl`}
-            >
-              {welcomeConfig.title}
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-white/75 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] sm:text-base">
-            {welcomeConfig.description}
-          </p>
-
-          <button
-            type="button"
-            onClick={startSystem}
-            className="group relative mt-7 inline-flex min-w-[220px] items-center justify-center gap-3 overflow-hidden rounded-full border border-white/30 bg-white/90 px-7 py-4 text-sm font-black text-zinc-950 shadow-[0_16px_45px_rgba(0,0,0,0.35)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-[0_20px_55px_rgba(0,0,0,0.45)] active:translate-y-0 sm:text-base"
-          >
-            เริ่มใช้งานระบบ
-            <span className="transition-transform duration-300 group-hover:translate-x-1">
-              →
-            </span>
-          </button>
-
-          <p className="mt-4 text-[10px] text-white/50 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] sm:text-xs">
-            เข้าสู่ระบบโดย {currentUser?.name || currentUser?.username}
-          </p>
-        </section>
-        <style jsx>{`
-          .welcome-card {
-            animation: welcomeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-            text-shadow: 0 3px 18px rgba(0, 0, 0, 0.65);
-          }
-          @keyframes welcomeIn {
-            from {
-              opacity: 0;
-              transform: translateY(18px) scale(0.98);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-          @keyframes logoEntrance {
-            0% {
-              opacity: 0;
-              transform: scale(0.45) rotate(-160deg);
-              filter: blur(14px) brightness(2.2);
-            }
-            58% {
-              opacity: 1;
-              transform: scale(1.12) rotate(10deg);
-              filter: blur(0) brightness(1.45);
-            }
-            78% {
-              transform: scale(0.96) rotate(-4deg);
-              filter: brightness(1.1);
-            }
-            100% {
-              opacity: 1;
-              transform: scale(1) rotate(0deg);
-              filter: blur(0) brightness(1);
-            }
-          }
-          @keyframes ringBurst {
-            0% {
-              opacity: 0;
-              transform: scale(0.35) rotate(-220deg);
-            }
-            65% {
-              opacity: 1;
-              transform: scale(1.14) rotate(20deg);
-            }
-            100% {
-              opacity: 1;
-              transform: scale(1) rotate(0deg);
-            }
-          }
-          @keyframes flashSweep {
-            0% {
-              opacity: 0;
-              transform: rotate(-90deg) scale(0.65);
-            }
-            35% {
-              opacity: 1;
-            }
-            100% {
-              opacity: 0;
-              transform: rotate(250deg) scale(1.2);
-            }
-          }
-          @keyframes logoPulse {
-            0%,
-            100% {
-              box-shadow: 0 0 38px ${welcomeConfig.logoPulseBase};
-            }
-            50% {
-              box-shadow: 0 0 58px ${welcomeConfig.logoPulseGlow};
-            }
-          }
-          .logo-entrance {
-            animation: logoEntrance 1.15s cubic-bezier(0.16, 1, 0.3, 1) both,
-              logoFloat 5s ease-in-out 1.2s infinite;
-          }
-          .logo-core {
-            animation: logoPulse 2.8s ease-in-out 1.2s infinite;
-          }
-          .logo-ring {
-            animation: ringBurst 1.15s cubic-bezier(0.16, 1, 0.3, 1) both,
-              ringSpin 18s linear 1.2s infinite;
-          }
-          .logo-flash {
-            animation: flashSweep 1.05s ease-out 0.18s both;
-          }
-          @keyframes logoFloat {
-            0%,
-            100% {
-              transform: translateY(0);
-            }
-            50% {
-              transform: translateY(-8px);
-            }
-          }
-          @keyframes ringSpin {
-            to {
-              transform: rotate(360deg);
-            }
-          }
-        `}</style>
       </main>
     );
   }

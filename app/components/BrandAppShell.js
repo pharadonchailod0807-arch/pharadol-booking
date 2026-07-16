@@ -153,7 +153,7 @@ const Icon = ({ name, className = "h-5 w-5" }) => {
 };
 
 const buildMenuItems = (brandId, counts) => {
-  const bookingHref = brandId === "adisorn" ? "/adisorn/booking" : "/pharadol";
+  const bookingHref = `/${brandId}`;
 
   return [
     {
