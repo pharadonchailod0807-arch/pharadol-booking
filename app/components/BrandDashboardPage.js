@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   calculateDashboardCounts,
   emptyDashboardCounts,
@@ -208,81 +209,8 @@ const BrandButton = ({ children, onClick, disabled, variant = "primary", theme }
   );
 };
 
-const SidebarContent = ({
-  actionCards,
-  currentUser,
-  countsReady,
-  dashboardPath,
-  isMobile = false,
-  onNavigate,
-  onLogout,
-  theme,
-}) => (
-  <div className="flex h-full flex-col">
-    <div className="flex items-center gap-3 px-1">
-      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm">
-        <Image src={theme.logo} alt={theme.name} fill sizes="56px" className="object-contain p-1.5" />
-      </div>
-      <div className="min-w-0">
-        <p className="truncate text-base font-black text-white">{theme.shortName}</p>
-        <p className="mt-0.5 truncate text-[11px] font-semibold uppercase text-white/55">
-          {theme.tagline}
-        </p>
-      </div>
-    </div>
-
-    <div className="mt-7 space-y-1.5">
-      {actionCards.map(([href, icon, title, , badgeCount]) => {
-        const isActive = href === dashboardPath;
-        return (
-          <button
-            key={href}
-            type="button"
-            onClick={() => onNavigate(href)}
-            className="relative flex min-h-12 w-full items-center gap-3 rounded-xl px-3 py-2.5 pr-10 text-left text-sm font-bold transition"
-            style={{
-              backgroundColor: isActive ? theme.sidebarActiveBg : "transparent",
-              color: isActive ? "#FFFFFF" : "rgba(255, 255, 255, 0.68)",
-            }}
-          >
-            <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-              style={{
-                backgroundColor: isActive ? theme.accent : "rgba(255, 255, 255, 0.08)",
-                color: isActive ? theme.primaryDark : "rgba(255, 255, 255, 0.82)",
-              }}
-            >
-              <Icon name={icon} className="h-5 w-5" />
-            </span>
-            <span className="truncate">{title}</span>
-            <DashboardBadge count={badgeCount} ready={countsReady} theme={theme} />
-          </button>
-        );
-      })}
-    </div>
-
-    <div className="mt-auto pt-6">
-      <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-        <p className="text-xs font-semibold uppercase text-white/45">Signed in</p>
-        <p className="mt-1 truncate text-sm font-bold text-white">
-          {currentUser?.name || currentUser?.username || "Admin"}
-        </p>
-      </div>
-      <button
-        type="button"
-        onClick={onLogout}
-        className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/15"
-      >
-        <Icon name="logout" className="h-5 w-5" />
-        ออกจากระบบ
-      </button>
-    </div>
-
-    {isMobile && <div className="h-4" />}
-  </div>
-);
-
 export default function BrandDashboardPage({ brandId }) {
+  const router = useRouter();
   const theme = getBrandTheme(brandId);
   const bookingDraftKey = `${brandId}_bookingDraft`;
   const customerRequestsKey = `${brandId}_customer_requests`;
@@ -297,7 +225,6 @@ export default function BrandDashboardPage({ brandId }) {
   const [showWelcome, setShowWelcome] = useState(null);
   const [newCustomerRequestCount, setNewCustomerRequestCount] = useState(0);
   const [isRefreshingCounts, setIsRefreshingCounts] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const loadDashboardSnapshot = useCallback((savedUser) => {
     setCountsReady(false);
@@ -464,11 +391,6 @@ export default function BrandDashboardPage({ brandId }) {
     return () => window.clearTimeout(timer);
   }, [isAuthorized, welcomeSeenKey]);
 
-  const logout = () => {
-    sessionStorage.clear();
-    window.location.replace("/login");
-  };
-
   const startSystem = () => {
     sessionStorage.setItem(welcomeSeenKey, "true");
     sessionStorage.setItem("lastActivity", String(Date.now()));
@@ -476,8 +398,7 @@ export default function BrandDashboardPage({ brandId }) {
   };
 
   const navigate = (href) => {
-    setIsMobileMenuOpen(false);
-    window.location.href = href;
+    router.push(href);
   };
 
   const customerCount = dashboardCounts.activeCustomers;
@@ -830,98 +751,7 @@ export default function BrandDashboardPage({ brandId }) {
         color: theme.text,
       }}
     >
-      <div className="lg:grid lg:min-h-screen lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside
-          className="sticky top-0 hidden h-screen overflow-y-auto px-4 py-5 lg:block"
-          style={{ backgroundColor: theme.sidebarBg }}
-        >
-          <SidebarContent
-            actionCards={actionCards}
-            countsReady={countsReady}
-            currentUser={currentUser}
-            dashboardPath={dashboardPath}
-            onLogout={logout}
-            onNavigate={navigate}
-            theme={theme}
-          />
-        </aside>
-
-        <div className="min-w-0">
-          <header
-            className="sticky top-0 z-30 border-b px-4 py-3 backdrop-blur-xl lg:hidden"
-            style={{
-              backgroundColor: `${theme.background}E6`,
-              borderColor: theme.border,
-            }}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="flex h-11 w-11 items-center justify-center rounded-xl border bg-white"
-                style={{ borderColor: theme.border, color: theme.primary }}
-              >
-                <Icon name="menu" className="h-5 w-5" />
-              </button>
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white">
-                  <Image src={theme.logo} alt={theme.name} fill sizes="40px" className="object-contain p-1" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-black">{theme.shortName}</p>
-                  <p className="truncate text-[11px] font-semibold" style={{ color: theme.muted }}>
-                    Dashboard
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={refreshDashboardCounts}
-                disabled={isRefreshingCounts}
-                className="flex h-11 w-11 items-center justify-center rounded-xl text-white disabled:opacity-50"
-                style={{ backgroundColor: theme.primary }}
-              >
-                <Icon name="refresh" className="h-5 w-5" />
-              </button>
-            </div>
-          </header>
-
-          {isMobileMenuOpen && (
-            <div className="fixed inset-0 z-50 lg:hidden">
-              <button
-                type="button"
-                aria-label="Close menu"
-                className="absolute inset-0 bg-black/40"
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
-              <aside
-                className="relative h-full w-[min(86vw,340px)] overflow-y-auto px-4 py-5 shadow-2xl"
-                style={{ backgroundColor: theme.sidebarBg }}
-              >
-                <div className="mb-4 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white"
-                  >
-                    <Icon name="close" className="h-5 w-5" />
-                  </button>
-                </div>
-                <SidebarContent
-                  actionCards={actionCards}
-                  countsReady={countsReady}
-                  currentUser={currentUser}
-                  dashboardPath={dashboardPath}
-                  isMobile
-                  onLogout={logout}
-                  onNavigate={navigate}
-                  theme={theme}
-                />
-              </aside>
-            </div>
-          )}
-
-          <section className="mx-auto max-w-[1540px] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+      <section className="mx-auto max-w-[1540px] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
             <div
               className="overflow-hidden rounded-[18px] border p-5 shadow-sm sm:p-6 lg:p-7"
               style={{
@@ -1122,9 +952,7 @@ export default function BrandDashboardPage({ brandId }) {
                 </section>
               </aside>
             </div>
-          </section>
-        </div>
-      </div>
+      </section>
     </main>
   );
 }
