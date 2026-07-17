@@ -6438,16 +6438,30 @@ const confirmSendBookingEmail = async () => {
         .booking-form-panel input,
         .booking-form-panel select,
         .booking-form-panel textarea {
+          width: 100%;
           min-height: 50px;
           border-radius: 16px;
           border-color: var(--booking-border);
           background: #ffffff;
           color: var(--booking-text);
           font-size: 14px;
+          line-height: 1.25;
           transition:
             border-color 180ms ease,
             box-shadow 180ms ease,
             background-color 180ms ease;
+        }
+
+        .booking-form-panel input,
+        .booking-form-panel select {
+          height: 52px;
+          padding: 0 18px !important;
+        }
+
+        .booking-form-panel textarea {
+          min-height: 88px;
+          padding: 13px 18px !important;
+          resize: vertical;
         }
 
         .booking-form-panel input::placeholder,
@@ -6476,7 +6490,7 @@ const confirmSendBookingEmail = async () => {
         }
 
         .booking-form-panel .space-y-5 > :not([hidden]) ~ :not([hidden]) {
-          margin-top: 0.9rem;
+          margin-top: 1rem;
         }
 
         .booking-form-toggle {
