@@ -8,7 +8,6 @@ export const maxDuration = 60;
 
 let cachedChromiumPath = "";
 let chromiumDownloadPromise = null;
-let sharedBrowserPromise = null;
 let latestPdfCache = null;
 
 const PDF_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -130,45 +129,8 @@ const launchBrowser = async (requestOrigin) => {
   });
 };
 
-const getSharedBrowser = async (requestOrigin) => {
-  if (sharedBrowserPromise) {
-    try {
-      const existingBrowser =
-        await sharedBrowserPromise;
-
-      if (existingBrowser?.connected) {
-        return existingBrowser;
-      }
-    } catch {
-      // เปิด Browser ใหม่ด้านล่าง
-    }
-
-    sharedBrowserPromise = null;
-  }
-
-  const launchPromise = launchBrowser(requestOrigin);
-  sharedBrowserPromise = launchPromise;
-
-  try {
-    const browser = await launchPromise;
-
-    browser.once("disconnected", () => {
-      if (sharedBrowserPromise === launchPromise) {
-        sharedBrowserPromise = null;
-      }
-    });
-
-    return browser;
-  } catch (error) {
-    if (sharedBrowserPromise === launchPromise) {
-      sharedBrowserPromise = null;
-    }
-
-    throw error;
-  }
-};
-
 export async function POST(request) {
+  let browser;
   let browserContext;
 
   try {
@@ -241,11 +203,9 @@ export async function POST(request) {
       );
     }
 
-    const browser =
-      await getSharedBrowser(requestOrigin);
+    browser = await launchBrowser(requestOrigin);
 
-    browserContext =
-      await browser.createBrowserContext();
+    browserContext = await browser.createBrowserContext();
 
     const page = await browserContext.newPage();
 
@@ -365,16 +325,7 @@ export async function POST(request) {
     const message =
       error?.message ||
       "ไม่สามารถสร้าง PDF แบบคมชัดได้";
-
-    if (
-      /browser.*disconnect|browser.*closed|target closed|session closed|protocol error/i.test(
-        message
-      )
-    ) {
-      sharedBrowserPromise = null;
-    }
-
-    console.error(
+console.error(
       "Vector PDF generation error:",
       error
     );
@@ -386,6 +337,10 @@ export async function POST(request) {
   } finally {
     if (browserContext) {
       await browserContext.close().catch(() => {});
+    }
+
+    if (browser) {
+      await browser.close().catch(() => {});
     }
   }
 }
