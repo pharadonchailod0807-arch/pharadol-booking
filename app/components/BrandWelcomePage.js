@@ -66,11 +66,11 @@ export default function BrandWelcomePage({ brandId }) {
 
         <section className="relative z-10 flex w-full max-w-[1500px] flex-col items-center text-center">
           <div className="relative flex h-28 w-28 items-center justify-center rounded-full sm:h-32 sm:w-32">
-            <div className="absolute inset-[-11px] rounded-full border border-[#8d7651]/55" />
-            <div className="absolute inset-[-22px] rounded-full border border-dashed border-white/18" />
-            <div className="absolute inset-[-31px] rounded-full border border-white/10" />
-            <div className="absolute inset-[-25px] rounded-full bg-emerald-400/10 blur-2xl" />
-            <div className="relative h-full w-full overflow-hidden rounded-full border border-emerald-300/25 bg-[#10291d] shadow-[0_0_48px_rgba(0,0,0,0.5),inset_0_0_28px_rgba(102,255,198,0.08)]">
+            <div className="pharadol-ring-pulse absolute inset-[-12px] rounded-full border border-[#CDAE77]/45" />
+            <div className="pharadol-ring-spin absolute inset-[-22px] rounded-full border border-dashed border-white/25" />
+            <div className="absolute inset-[-31px] rounded-full border border-[#CDAE77]/20" />
+            <div className="pharadol-logo-glow absolute inset-[-25px] rounded-full bg-[#CDAE77]/20 blur-2xl" />
+            <div className="relative h-full w-full overflow-hidden rounded-full border border-[#CDAE77]/28 bg-[#10291d] shadow-[0_0_24px_rgba(205,174,119,0.18),inset_0_0_28px_rgba(205,174,119,0.08)]">
               <Image
                 src={copy.logo}
                 alt={theme.name}
@@ -105,7 +105,7 @@ export default function BrandWelcomePage({ brandId }) {
           <button
             type="button"
             onClick={openDashboard}
-            className="mt-9 inline-flex min-h-[72px] min-w-[320px] items-center justify-center gap-5 rounded-full bg-white/92 px-12 py-5 text-lg font-black text-zinc-950 shadow-[0_22px_58px_rgba(0,0,0,0.46)] transition hover:-translate-y-0.5 hover:bg-white active:translate-y-0"
+            className="mt-9 inline-flex h-[58px] min-w-[220px] items-center justify-center gap-4 rounded-full bg-[#CDAE77] px-[38px] py-[14px] text-[17px] font-extrabold text-[#0B0B0D] shadow-[0_18px_42px_rgba(205,174,119,0.24)] transition hover:-translate-y-0.5 hover:bg-[#B9965D] active:translate-y-0"
           >
             เริ่มใช้งานระบบ
             <span aria-hidden="true">→</span>
@@ -119,6 +119,54 @@ export default function BrandWelcomePage({ brandId }) {
             {copy.footerNote}
           </p>
         </section>
+        <style jsx>{`
+          @keyframes slowSpin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          @keyframes softPulse {
+            0%,
+            100% {
+              opacity: 0.45;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.85;
+              transform: scale(1.04);
+            }
+          }
+
+          @keyframes logoGlow {
+            0%,
+            100% {
+              opacity: 0.72;
+              box-shadow: 0 0 24px rgba(205, 174, 119, 0.18);
+            }
+            50% {
+              opacity: 0.95;
+              box-shadow: 0 0 42px rgba(205, 174, 119, 0.34);
+            }
+          }
+
+          .pharadol-ring-spin {
+            animation: slowSpin 34s linear infinite;
+            transform-origin: center;
+          }
+
+          .pharadol-ring-pulse {
+            animation: softPulse 4.8s ease-in-out infinite;
+            transform-origin: center;
+          }
+
+          .pharadol-logo-glow {
+            animation: logoGlow 5.4s ease-in-out infinite;
+          }
+        `}</style>
       </main>
     );
   }
