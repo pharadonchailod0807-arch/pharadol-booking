@@ -4551,9 +4551,21 @@ const confirmSendBookingEmail = async () => {
                 <span>รวมค่าบริการ</span>
                 <span>฿ {serviceTotal.toLocaleString()}</span>
               </div>
-              <div>ส่วนลดจาก % : ฿ {percentDiscountValue.toLocaleString()}</div>
-              <div>ส่วนลดเพิ่ม : ฿ {Number(discountAmount || 0).toLocaleString()}</div>
-              <div>ส่วนลดรวม : ฿ {totalDiscount.toLocaleString()}</div>
+              {percentDiscountValue > 0 && (
+                <div>
+                  ส่วนลดจาก % : ฿ {percentDiscountValue.toLocaleString()}
+                </div>
+              )}
+              {Number(discountAmount || 0) > 0 && (
+                <div>
+                  ส่วนลดเพิ่ม : ฿ {Number(discountAmount || 0).toLocaleString()}
+                </div>
+              )}
+              {totalDiscount > 0 && (
+                <div>
+                  ส่วนลดรวม : ฿ {totalDiscount.toLocaleString()}
+                </div>
+              )}
               <div className="booking-summary-net font-bold text-green-700 text-base">
                 ยอดสุทธิ : ฿ {finalPrice.toLocaleString()}
               </div>
@@ -5449,18 +5461,28 @@ const confirmSendBookingEmail = async () => {
                   <span>รวมค่าบริการ</span>
                   <span>฿ {serviceTotal.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-zinc-600">
-                  <span>ส่วนลดจากเปอร์เซ็นต์ ({Number(discountPercent || 0)}%)</span>
-                  <span>-฿ {percentDiscountValue.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-zinc-600">
-                  <span>ส่วนลดเพิ่มเติม</span>
-                  <span>-฿ {Number(discountAmount || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between font-semibold text-red-600">
-                  <span>ส่วนลดรวม</span>
-                  <span>-฿ {totalDiscount.toLocaleString()}</span>
-                </div>
+                {percentDiscountValue > 0 && (
+                  <div className="flex justify-between text-zinc-600">
+                    <span>
+                      ส่วนลดจากเปอร์เซ็นต์ ({Number(discountPercent || 0)}%)
+                    </span>
+                    <span>-฿ {percentDiscountValue.toLocaleString()}</span>
+                  </div>
+                )}
+                {Number(discountAmount || 0) > 0 && (
+                  <div className="flex justify-between text-zinc-600">
+                    <span>ส่วนลดเพิ่มเติม</span>
+                    <span>
+                      -฿ {Number(discountAmount || 0).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {totalDiscount > 0 && (
+                  <div className="flex justify-between font-semibold text-red-600">
+                    <span>ส่วนลดรวม</span>
+                    <span>-฿ {totalDiscount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="border-t pt-2 mt-1 flex justify-between items-center font-bold">
                   <span className="text-2xl">ยอดรวมสุทธิ</span>
                   <span className="text-2xl">฿ {finalPrice.toLocaleString()}</span>
