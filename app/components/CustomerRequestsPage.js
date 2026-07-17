@@ -311,93 +311,174 @@ export default function CustomerRequestsPage({ brand }) {
             {requests.map((request) => (
               <article
                 key={request.id}
-                className="rounded-[18px] border border-white bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:p-5"
+                className={`group overflow-hidden rounded-[26px] border bg-white shadow-[0_16px_45px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,0.11)] ${
+                  isAdisorn
+                    ? "border-[#E9DCCB]"
+                    : "border-emerald-100"
+                }`}
               >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h2 className="text-lg font-bold leading-tight">{request.customerName}</h2>
-                    <p className="mt-0.5 text-xs text-zinc-500">
-                      ส่งเมื่อ {formatDate(request.createdAt)}
+                <div
+                  className={`h-1.5 w-full bg-gradient-to-r ${
+                    isAdisorn
+                      ? "from-[#4A2E22] via-[#7A5139] to-[#C9A46A]"
+                      : "from-emerald-950 via-emerald-600 to-amber-400"
+                  }`}
+                />
+
+                <div className="p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg font-black shadow-sm ${
+                          isAdisorn
+                            ? "bg-[#F3E6CF] text-[#4A2E22]"
+                            : "bg-emerald-100 text-emerald-900"
+                        }`}
+                      >
+                        {request.customerName?.trim()?.charAt(0) || "?"}
+                      </div>
+
+                      <div className="min-w-0">
+                        <h2 className="truncate text-lg font-extrabold leading-tight text-zinc-950">
+                          {request.customerName}
+                        </h2>
+                        <p className="mt-1 text-xs font-medium text-zinc-400">
+                          ส่งข้อมูลเมื่อ {formatDate(request.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-extrabold ${getStatusClassName(
+                        request.status
+                      )}`}
+                    >
+                      {CUSTOMER_REQUEST_STATUSES[request.status] ||
+                        request.status}
+                    </span>
+                  </div>
+
+                  <dl
+                    className={`mt-5 grid gap-2.5 rounded-[20px] border p-3 sm:grid-cols-2 sm:p-4 ${
+                      isAdisorn
+                        ? "border-[#EEE4D8] bg-[#FCF9F5]"
+                        : "border-emerald-100 bg-emerald-50/40"
+                    }`}
+                  >
+                    <div className="min-w-0 rounded-2xl bg-white px-3.5 py-3 shadow-sm">
+                      <dt className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+                        เบอร์โทร
+                      </dt>
+                      <dd className="mt-1 truncate text-sm font-bold text-zinc-800">
+                        {request.phone || "-"}
+                      </dd>
+                    </div>
+
+                    <div className="min-w-0 rounded-2xl bg-white px-3.5 py-3 shadow-sm">
+                      <dt className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+                        อีเมล
+                      </dt>
+                      <dd className="mt-1 break-all text-sm font-semibold leading-snug text-zinc-700">
+                        {request.email || "-"}
+                      </dd>
+                    </div>
+
+                    <div className="min-w-0 rounded-2xl bg-white px-3.5 py-3 shadow-sm">
+                      <dt className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+                        วันงาน
+                      </dt>
+                      <dd className="mt-1 text-sm font-bold text-zinc-800">
+                        {formatDate(request.eventDate)}
+                      </dd>
+                    </div>
+
+                    <div className="min-w-0 rounded-2xl bg-white px-3.5 py-3 shadow-sm">
+                      <dt className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+                        สถานที่จัดงาน
+                      </dt>
+                      <dd className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-zinc-700">
+                        {request.eventLocation || "-"}
+                      </dd>
+                    </div>
+
+                    <div className="min-w-0 rounded-2xl bg-white px-3.5 py-3 shadow-sm">
+                      <dt className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+                        หลักฐานการโอน
+                      </dt>
+                      <dd
+                        className={`mt-1 text-sm font-extrabold ${
+                          request.slipUrl
+                            ? "text-emerald-600"
+                            : "text-zinc-400"
+                        }`}
+                      >
+                        {request.slipUrl ? "แนบสลิปแล้ว" : "ยังไม่มีสลิป"}
+                      </dd>
+                    </div>
+
+                    <div className="min-w-0 rounded-2xl bg-white px-3.5 py-3 shadow-sm">
+                      <dt className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+                        วันที่ส่งข้อมูล
+                      </dt>
+                      <dd className="mt-1 text-sm font-semibold text-zinc-700">
+                        {formatDate(request.createdAt)}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="mt-3 rounded-[18px] border border-zinc-100 bg-zinc-50/80 px-4 py-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-zinc-400">
+                      รายละเอียดเพิ่มเติม
+                    </p>
+                    <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-zinc-700">
+                      {request.note || "-"}
                     </p>
                   </div>
-                  <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-bold ${getStatusClassName(request.status)}`}>
-                    {CUSTOMER_REQUEST_STATUSES[request.status] || request.status}
-                  </span>
-                </div>
 
-                <dl className="mt-4 grid gap-x-4 gap-y-2 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="text-xs font-semibold text-zinc-400">เบอร์โทร</dt>
-                    <dd className="mt-0.5 font-semibold leading-snug">{request.phone || "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold text-zinc-400">อีเมล</dt>
-                    <dd className="mt-0.5 break-all leading-snug">{request.email || "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold text-zinc-400">วันงาน</dt>
-                    <dd className="mt-0.5 leading-snug">{formatDate(request.eventDate)}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold text-zinc-400">สถานที่จัดงาน</dt>
-                    <dd className="mt-0.5 line-clamp-2 leading-snug">{request.eventLocation || "-"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold text-zinc-400">สถานะสลิป</dt>
-                    <dd className="mt-0.5 font-semibold leading-snug">
-                      {request.slipUrl ? "มีสลิป" : "ไม่มีสลิป"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-semibold text-zinc-400">วันที่ส่งข้อมูล</dt>
-                    <dd className="mt-0.5 leading-snug">{formatDate(request.createdAt)}</dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs font-semibold text-zinc-400">รายละเอียดเพิ่มเติม</dt>
-                    <dd className="mt-0.5 line-clamp-2 whitespace-pre-wrap text-sm leading-6">
-                      {request.note || "-"}
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => openAsBooking(request)}
-                    className={`min-h-10 rounded-xl px-3 py-2 text-sm font-semibold text-white transition ${
-                      isAdisorn
-                        ? "bg-[#4A2E22] hover:bg-[#5A3828]"
-                        : "bg-emerald-600 hover:bg-emerald-700"
-                    }`}
-                  >
-                    เปิดเป็นใบจอง
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => markContacted(request)}
-                    className="min-h-10 rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-100"
-                  >
-                    ทำเครื่องหมายว่าติดต่อแล้ว
-                  </button>
-                  {request.slipUrl && (
-                    <a
-                      href={request.slipUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="min-h-10 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-center text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                  <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => openAsBooking(request)}
+                      className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 ${
+                        isAdisorn
+                          ? "bg-[#4A2E22] hover:bg-[#5A3828]"
+                          : "bg-emerald-800 hover:bg-emerald-900"
+                      }`}
                     >
-                      ดูสลิป
-                    </a>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => deleteRequest(request)}
-                    className={`min-h-10 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold transition hover:bg-red-100 ${
-                      isAdisorn ? "text-[#DC2626]" : "text-red-600"
-                    }`}
-                  >
-                    ลบคำขอ
-                  </button>
+                      เปิดเป็นใบจอง
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => markContacted(request)}
+                      className={`min-h-12 rounded-2xl border px-4 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${
+                        isAdisorn
+                          ? "border-[#D9BE96] bg-[#FFF9EF] text-[#6A432D] hover:bg-[#F3E6CF]"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                      }`}
+                    >
+                      ทำเครื่องหมายว่าติดต่อแล้ว
+                    </button>
+
+                    {request.slipUrl && (
+                      <a
+                        href={request.slipUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex min-h-12 items-center justify-center rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-center text-sm font-bold text-zinc-700 transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50"
+                      >
+                        ดูสลิป
+                      </a>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => deleteRequest(request)}
+                      className="min-h-12 rounded-2xl border border-red-100 bg-red-50/70 px-4 py-3 text-sm font-bold text-red-600 transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-100"
+                    >
+                      ลบคำขอ
+                    </button>
+                  </div>
                 </div>
               </article>
             ))}
