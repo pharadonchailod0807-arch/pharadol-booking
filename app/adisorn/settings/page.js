@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const CUSTOM_BOOKING_NUMBER_KEY = "adisorn_customBookingNumber";
 const BOOKING_NUMBER_HISTORY_KEY = "adisorn_bookingNumberHistory";
@@ -17,6 +18,7 @@ const DASHBOARD_THEME_KEY = "adisorn_dashboard_theme";
 
 function SettingsContent() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles("adisorn");
   const searchParams = useSearchParams();
   const isBarcodePage = searchParams.get("section") === "barcode";
   const isTeamPage = searchParams.get("section") === "team";
@@ -446,7 +448,10 @@ function SettingsContent() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 lg:p-8">
+    <main
+      className="min-h-screen overflow-x-hidden p-4 md:p-6 lg:p-8"
+      style={{ backgroundColor: brandChrome.theme.background, color: brandChrome.theme.text }}
+    >
       <div className="mx-auto w-full max-w-5xl">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -492,7 +497,7 @@ function SettingsContent() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/dashboard")}
-              className="min-h-12 rounded-xl bg-black px-4 py-2 font-semibold text-white transition hover:bg-zinc-800"
+              className="min-h-12 rounded-xl bg-[#4A2E22] px-4 py-2 font-semibold text-white transition hover:bg-[#5A3828]"
             >
               เมนูหลัก
             </button>
@@ -506,7 +511,7 @@ function SettingsContent() {
               onClick={() => router.push("/adisorn/settings?section=barcode")}
               className="group rounded-3xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md"
             >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-xl text-white">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F3E6CF] text-xl text-[#4A2E22]">
                 ▥
               </div>
 
@@ -533,7 +538,7 @@ function SettingsContent() {
               onClick={() => router.push("/adisorn/settings?section=team")}
               className="group rounded-3xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md"
             >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-xl text-white">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F3E6CF] text-xl text-[#4A2E22]">
                 ◉
               </div>
 
@@ -558,7 +563,7 @@ function SettingsContent() {
               onClick={() => router.push("/adisorn/settings?section=theme")}
               className="group rounded-3xl border border-zinc-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-md"
             >
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-black text-xl text-white">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F3E6CF] text-xl text-[#4A2E22]">
                 ◐
               </div>
 
@@ -612,7 +617,7 @@ function SettingsContent() {
                   onClick={() => saveDashboardTheme(theme)}
                   className={`rounded-3xl border p-6 text-left transition ${
                     dashboardTheme === theme
-                      ? "border-black bg-black text-white"
+                      ? "border-[#C9A46A] bg-[#4A2E22] text-white"
                       : "border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300"
                   }`}
                 >
@@ -684,7 +689,7 @@ function SettingsContent() {
                   setNewTeamMember({ ...newTeamMember, name: event.target.value })
                 }
                 placeholder="ชื่อทีมงาน"
-                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-black"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-[#C9A46A]"
               />
               <input
                 value={newTeamMember.role}
@@ -692,7 +697,7 @@ function SettingsContent() {
                   setNewTeamMember({ ...newTeamMember, role: event.target.value })
                 }
                 placeholder="ตำแหน่ง เช่น ช่างภาพหลัก"
-                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-black"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-[#C9A46A]"
               />
               <input
                 value={newTeamMember.phone}
@@ -700,7 +705,7 @@ function SettingsContent() {
                   setNewTeamMember({ ...newTeamMember, phone: event.target.value })
                 }
                 placeholder="เบอร์โทร"
-                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-black"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-[#C9A46A]"
               />
               <input
                 type="email"
@@ -709,12 +714,12 @@ function SettingsContent() {
                   setNewTeamMember({ ...newTeamMember, email: event.target.value })
                 }
                 placeholder="อีเมล"
-                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-black"
+                className="rounded-xl border border-zinc-300 bg-white px-4 py-3 outline-none focus:border-[#C9A46A]"
               />
               <button
                 type="button"
                 onClick={addTeamMember}
-                className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white transition hover:bg-zinc-800 md:col-span-2"
+                className="min-h-12 rounded-xl bg-[#4A2E22] px-5 py-3 font-semibold text-white transition hover:bg-[#5A3828] md:col-span-2"
               >
                 บันทึกทีมงาน
               </button>
@@ -762,7 +767,7 @@ function SettingsContent() {
                         <button
                           type="button"
                           onClick={() => deleteTeamMember(member.id)}
-                          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-red-100"
                         >
                           ลบ
                         </button>
@@ -794,10 +799,10 @@ function SettingsContent() {
             <div className="mb-5 grid gap-3 md:grid-cols-2">
               <button
                 type="button"
-                onClick={() => applyBookingNumberMode("auto")}
-                className={`rounded-2xl border p-5 text-left transition ${
-                  bookingNumberMode === "auto"
-                    ? "border-black bg-black text-white shadow-sm"
+                  onClick={() => applyBookingNumberMode("auto")}
+                  className={`rounded-2xl border p-5 text-left transition ${
+                    bookingNumberMode === "auto"
+                    ? "border-[#C9A46A] bg-[#4A2E22] text-white shadow-sm"
                     : "border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300"
                 }`}
               >
@@ -832,10 +837,10 @@ function SettingsContent() {
 
               <button
                 type="button"
-                onClick={() => applyBookingNumberMode("custom")}
-                className={`rounded-2xl border p-5 text-left transition ${
+                  onClick={() => applyBookingNumberMode("custom")}
+                  className={`rounded-2xl border p-5 text-left transition ${
                   bookingNumberMode === "custom"
-                    ? "border-black bg-black text-white shadow-sm"
+                    ? "border-[#C9A46A] bg-[#4A2E22] text-white shadow-sm"
                     : "border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300"
                 }`}
               >
@@ -896,14 +901,14 @@ function SettingsContent() {
                 }}
                 placeholder="เช่น BK-20260626-010"
                 disabled={bookingNumberMode !== "custom"}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-lg font-semibold outline-none transition focus:border-black disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-lg font-semibold outline-none transition focus:border-[#C9A46A] disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
               />
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
                   onClick={saveCustomBookingNumber}
-                  className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white transition hover:bg-zinc-800"
+                  className="min-h-12 rounded-xl bg-[#4A2E22] px-5 py-3 font-semibold text-white transition hover:bg-[#5A3828]"
                 >
                   {bookingNumberMode === "auto"
                     ? "ใช้เลขอัตโนมัติ"
@@ -922,7 +927,7 @@ function SettingsContent() {
                 <button
                   type="button"
                   onClick={resetBarcodeSettings}
-                  className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 font-semibold text-red-600 transition hover:bg-red-100"
+                  className="rounded-xl border border-red-200 bg-red-50 px-5 py-3 font-semibold text-[#DC2626] transition hover:bg-red-100"
                 >
                   รีเซ็ตการตั้งค่า
                 </button>
@@ -973,7 +978,7 @@ function SettingsContent() {
                           <span
                             className={`rounded-full px-3 py-1 text-xs font-semibold ${
                               item.mode === "custom"
-                                ? "bg-zinc-900 text-white"
+                                ? "bg-[#4A2E22] text-white"
                                 : "bg-emerald-100 text-emerald-700"
                             }`}
                           >
@@ -1001,7 +1006,7 @@ function SettingsContent() {
                         <button
                           type="button"
                           onClick={() => reuseHistoryItem(item)}
-                          className="min-h-12 rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                          className="min-h-12 rounded-xl bg-[#4A2E22] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5A3828]"
                         >
                           นำกลับมาใช้
                         </button>
@@ -1009,7 +1014,7 @@ function SettingsContent() {
                         <button
                           type="button"
                           onClick={() => deleteHistoryItem(item.id)}
-                          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                          className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-[#DC2626] transition hover:bg-red-100"
                         >
                           ลบ
                         </button>

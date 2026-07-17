@@ -69,6 +69,7 @@ export default function BrandMailPage({ brandId }) {
   const router = useRouter();
   const brand = BRAND_COPY[brandId];
   const brandChrome = getBrandChromeStyles(brandId);
+  const isAdisorn = brandId === "adisorn";
   const customersKey = `${brandId}_customers`;
   const emailHistoryKey = `${brandId}_email_history`;
   const mailTrashKey = `${brandId}_mail_trash`;
@@ -542,7 +543,10 @@ export default function BrandMailPage({ brandId }) {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-3 text-zinc-900 sm:p-4 md:p-6 xl:p-8">
+    <main
+      className="min-h-screen p-3 text-zinc-900 sm:p-4 md:p-6 xl:p-8"
+      style={{ backgroundColor: isAdisorn ? brandChrome.theme.background : "#F4F4F5" }}
+    >
       <div className="mx-auto w-full max-w-[1536px]">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -555,7 +559,9 @@ export default function BrandMailPage({ brandId }) {
             <button
               type="button"
               onClick={openNewMail}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-3xl font-semibold leading-none text-white hover:bg-blue-700 sm:h-12 sm:w-12"
+              className={`flex h-11 w-11 items-center justify-center rounded-full text-3xl font-semibold leading-none text-white sm:h-12 sm:w-12 ${
+                isAdisorn ? "bg-[#4A2E22] hover:bg-[#5A3828]" : "bg-blue-600 hover:bg-blue-700"
+              }`}
               aria-label="สร้างอีเมลใหม่"
             >
               +
@@ -593,7 +599,9 @@ export default function BrandMailPage({ brandId }) {
                     <button
                       type="button"
                       onClick={clearAll}
-                      className="min-h-10 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      className={`min-h-10 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold hover:bg-red-50 ${
+                        isAdisorn ? "text-[#DC2626]" : "text-red-600"
+                      }`}
                     >
                       ล้างทั้งหมด
                     </button>
@@ -649,7 +657,9 @@ export default function BrandMailPage({ brandId }) {
                     key={item.id}
                     className={`p-3 ${
                       selectedEmailId === item.id && !isComposerOpen
-                        ? "bg-blue-50"
+                        ? isAdisorn
+                          ? "bg-[#F3E6CF]/55"
+                          : "bg-blue-50"
                         : "bg-white"
                     }`}
                   >
@@ -707,14 +717,20 @@ export default function BrandMailPage({ brandId }) {
                         <button
                           type="button"
                           onClick={() => restoreEmailFromTrash(item)}
-                          className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
+                          className={`rounded-lg px-3 py-1.5 text-sm font-semibold text-white ${
+                            isAdisorn
+                              ? "bg-[#16A34A] hover:bg-[#15803D]"
+                              : "bg-green-600 hover:bg-green-700"
+                          }`}
                         >
                           กู้คืน
                         </button>
                         <button
                           type="button"
                           onClick={() => deleteMailForever(item)}
-                          className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                          className={`rounded-lg border border-red-200 px-3 py-1.5 text-sm font-semibold hover:bg-red-50 ${
+                            isAdisorn ? "text-[#DC2626]" : "text-red-600"
+                          }`}
                         >
                           ลบถาวร
                         </button>
@@ -850,7 +866,9 @@ export default function BrandMailPage({ brandId }) {
                       type="button"
                       onClick={() => sendEmail()}
                       disabled={isSending}
-                      className="min-h-12 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                      className={`min-h-12 rounded-xl px-6 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300 ${
+                        isAdisorn ? "bg-[#4A2E22] hover:bg-[#5A3828]" : "bg-blue-600 hover:bg-blue-700"
+                      }`}
                     >
                       {isSending ? "กำลังส่ง..." : "ส่งอีเมล"}
                     </button>
@@ -889,14 +907,18 @@ export default function BrandMailPage({ brandId }) {
                       type="button"
                       onClick={() => sendEmailAgain(selectedEmail)}
                       disabled={isSending}
-                      className="min-h-10 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+                      className={`min-h-10 rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300 ${
+                        isAdisorn ? "bg-[#4A2E22] hover:bg-[#5A3828]" : "bg-blue-600 hover:bg-blue-700"
+                      }`}
                     >
                       ส่งอีกครั้ง
                     </button>
                     <button
                       type="button"
                       onClick={() => deleteEmailRecord(selectedEmail)}
-                      className="min-h-10 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      className={`min-h-10 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold hover:bg-red-50 ${
+                        isAdisorn ? "text-[#DC2626]" : "text-red-600"
+                      }`}
                     >
                       ลบ
                     </button>
@@ -908,7 +930,11 @@ export default function BrandMailPage({ brandId }) {
                     href={selectedEmail.pdfDriveLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-5 inline-flex rounded-xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
+                    className={`mt-5 inline-flex rounded-xl px-4 py-2 text-sm font-bold ${
+                      isAdisorn
+                        ? "bg-[#F3E6CF] text-[#4A2E22] hover:bg-[#E9DCCB]"
+                        : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    }`}
                   >
                     เปิด PDF ใน Google Drive
                   </a>
@@ -927,7 +953,9 @@ export default function BrandMailPage({ brandId }) {
                 <button
                   type="button"
                   onClick={openNewMail}
-                  className="mt-5 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+                  className={`mt-5 rounded-xl px-6 py-3 font-semibold text-white ${
+                    isAdisorn ? "bg-[#4A2E22] hover:bg-[#5A3828]" : "bg-blue-600 hover:bg-blue-700"
+                  }`}
                 >
                   สร้างเมลใหม่
                 </button>

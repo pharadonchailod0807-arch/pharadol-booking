@@ -55,6 +55,7 @@ const getStatusClassName = (status) => {
 export default function CustomerRequestsPage({ brand }) {
   const router = useRouter();
   const brandChrome = getBrandChromeStyles(brand);
+  const isAdisorn = brand === "adisorn";
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [requests, setRequests] = useState([]);
   const [message, setMessage] = useState("");
@@ -226,7 +227,10 @@ export default function CustomerRequestsPage({ brand }) {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 px-4 py-5 text-zinc-950 sm:px-6 lg:px-8">
+    <main
+      className="min-h-screen overflow-x-hidden px-4 py-5 text-zinc-950 sm:px-6 lg:px-8"
+      style={isAdisorn ? { backgroundColor: brandChrome.theme.background } : undefined}
+    >
       <section className="mx-auto max-w-7xl">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -360,7 +364,11 @@ export default function CustomerRequestsPage({ brand }) {
                   <button
                     type="button"
                     onClick={() => openAsBooking(request)}
-                    className="min-h-10 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                    className={`min-h-10 rounded-xl px-3 py-2 text-sm font-semibold text-white transition ${
+                      isAdisorn
+                        ? "bg-[#4A2E22] hover:bg-[#5A3828]"
+                        : "bg-emerald-600 hover:bg-emerald-700"
+                    }`}
                   >
                     เปิดเป็นใบจอง
                   </button>
@@ -384,7 +392,9 @@ export default function CustomerRequestsPage({ brand }) {
                   <button
                     type="button"
                     onClick={() => deleteRequest(request)}
-                    className="min-h-10 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                    className={`min-h-10 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold transition hover:bg-red-100 ${
+                      isAdisorn ? "text-[#DC2626]" : "text-red-600"
+                    }`}
                   >
                     ลบคำขอ
                   </button>

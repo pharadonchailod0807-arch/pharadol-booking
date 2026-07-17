@@ -284,7 +284,10 @@ export default function IncomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
+    <main
+      className="min-h-screen overflow-x-hidden p-4 md:p-6 xl:p-8"
+      style={{ backgroundColor: brandChrome.theme.background, color: brandChrome.theme.text }}
+    >
       <div className="mx-auto w-full max-w-[1720px]">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between md:mb-10">
           <div>
@@ -297,7 +300,7 @@ export default function IncomePage() {
           <button
             type="button"
             onClick={() => router.push("/adisorn/dashboard")}
-            className="min-h-12 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+            className="min-h-12 rounded-xl bg-[#4A2E22] px-5 py-3 font-semibold text-white hover:bg-[#5A3828]"
           >
             กลับเมนูหลัก
           </button>
@@ -306,7 +309,7 @@ export default function IncomePage() {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="rounded-3xl bg-white p-5 text-center shadow-xl md:p-8">
             <p className="text-zinc-500">รายได้ทั้งหมด</p>
-            <h2 className="mt-3 break-words text-3xl font-bold text-green-600 md:text-5xl">
+            <h2 className="mt-3 break-words text-3xl font-bold text-[#16A34A] md:text-5xl">
               ฿ {totalIncome.toLocaleString()}
             </h2>
           </div>
@@ -318,7 +321,7 @@ export default function IncomePage() {
 
           <div className="rounded-3xl bg-white p-5 text-center shadow-xl md:p-8">
             <p className="text-zinc-500">ค่าเฉลี่ยต่องาน</p>
-            <h2 className="mt-3 break-words text-3xl font-bold text-blue-600 md:text-5xl">
+            <h2 className="mt-3 break-words text-3xl font-bold md:text-5xl" style={{ color: brandChrome.theme.accent }}>
               ฿ {averageIncome.toLocaleString()}
             </h2>
           </div>

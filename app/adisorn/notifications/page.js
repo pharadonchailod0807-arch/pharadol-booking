@@ -120,7 +120,10 @@ export default function ArchivesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-8">
+    <main
+      className="min-h-screen overflow-x-hidden p-4 md:p-8"
+      style={{ backgroundColor: brandChrome.theme.background, color: brandChrome.theme.text }}
+    >
       <div className="mx-auto w-full max-w-6xl">
         <div className="mb-6 flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">ถังเก็บใบจอง</h1>
@@ -129,7 +132,7 @@ export default function ArchivesPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn")}
-              className="rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+              className="rounded-xl bg-[#4A2E22] px-5 py-3 font-semibold text-white hover:bg-[#5A3828]"
             >
               ระบบสร้างใบจอง
             </button>
@@ -145,15 +148,16 @@ export default function ArchivesPage() {
           </div>
         </div>
 
-        <table className="w-full table-auto border-collapse border border-zinc-300 bg-white shadow-sm">
+        <div className="w-full overflow-x-auto rounded-2xl bg-white shadow-sm">
+        <table className="w-full min-w-[980px] table-auto border-collapse border bg-white shadow-sm" style={{ borderColor: brandChrome.theme.border }}>
           <thead>
             <tr style={brandChrome.tableHeader}>
-              <th className="border border-zinc-300 px-4 py-2">เลขที่จอง</th>
-              <th className="border border-zinc-300 px-4 py-2">ชื่อลูกค้า</th>
-              <th className="border border-zinc-300 px-4 py-2">วันที่งาน</th>
-              <th className="border border-zinc-300 px-4 py-2">สถานที่</th>
-              <th className="border border-zinc-300 px-4 py-2">สถานะ</th>
-              <th className="border border-zinc-300 px-4 py-2">จัดการ</th>
+              <th className="border px-4 py-3" style={{ borderColor: brandChrome.theme.border }}>เลขที่จอง</th>
+              <th className="border px-4 py-3" style={{ borderColor: brandChrome.theme.border }}>ชื่อลูกค้า</th>
+              <th className="border px-4 py-3" style={{ borderColor: brandChrome.theme.border }}>วันที่งาน</th>
+              <th className="border px-4 py-3" style={{ borderColor: brandChrome.theme.border }}>สถานที่</th>
+              <th className="border px-4 py-3" style={{ borderColor: brandChrome.theme.border }}>สถานะ</th>
+              <th className="border px-4 py-3" style={{ borderColor: brandChrome.theme.border }}>จัดการ</th>
             </tr>
           </thead>
           <tbody>
@@ -167,7 +171,8 @@ export default function ArchivesPage() {
                   </td>
                   <td className="border border-zinc-300 px-4 py-2">{item.location || "-"}</td>
                   <td className="border border-zinc-300 px-4 py-2">{item.status || "-"}</td>
-                  <td className="border border-zinc-300 px-4 py-2 space-x-2">
+                  <td className="border border-zinc-300 px-4 py-2">
+                    <div className="flex flex-nowrap gap-2 whitespace-nowrap">
                     <button
                       type="button"
                       onClick={() => {
@@ -181,7 +186,7 @@ export default function ArchivesPage() {
                         );
                         router.push("/adisorn?view=customer", { scroll: false });
                       }}
-                      className="min-h-10 rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+                      className="min-h-10 rounded-xl bg-[#4A2E22] px-4 py-2 font-semibold text-white hover:bg-[#5A3828]"
                     >
                       ดูใบจอง
                     </button>
@@ -189,7 +194,7 @@ export default function ArchivesPage() {
                     <button
                       type="button"
                       onClick={() => moveToTrash(item)}
-                      className="rounded-xl border border-red-600 bg-red-50 px-4 py-2 font-semibold text-red-600 hover:bg-red-100"
+                      className="rounded-xl border border-[#DC2626] bg-red-50 px-4 py-2 font-semibold text-[#DC2626] hover:bg-red-100"
                     >
                       ย้ายไปถังขยะ
                     </button>
@@ -199,10 +204,11 @@ export default function ArchivesPage() {
                       onClick={() => {
                         // Restore function (not changed)
                       }}
-                      className="rounded-xl border border-green-600 bg-green-50 px-4 py-2 font-semibold text-green-600 hover:bg-green-100"
+                      className="rounded-xl border border-[#16A34A] bg-green-50 px-4 py-2 font-semibold text-[#16A34A] hover:bg-green-100"
                     >
                       คืนข้อมูล
                     </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -215,6 +221,7 @@ export default function ArchivesPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </main>
   );

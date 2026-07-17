@@ -571,10 +571,10 @@ export default function CustomersPage() {
     }
 
     if (["ยกเลิก", "ยกเลิกงาน"].includes(normalizedStatus)) {
-      return "bg-red-100 text-red-700";
+      return "bg-red-50 text-red-700";
     }
 
-    return "bg-amber-100 text-amber-700";
+    return "border border-[#E7C77D] bg-[#FFF3D7] text-[#9A5B00]";
   };
 
   if (!isAuthorized) {
@@ -586,7 +586,10 @@ export default function CustomersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
+    <main
+      className="min-h-screen overflow-x-hidden p-4 md:p-6 xl:p-8"
+      style={{ backgroundColor: brandChrome.theme.background, color: brandChrome.theme.text }}
+    >
       <div className="mx-auto w-full max-w-[1840px]">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -600,7 +603,8 @@ export default function CustomersPage() {
             <button
               type="button"
               onClick={() => goTo(ROUTES.booking)}
-              className="min-h-12 rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700"
+              className="min-h-12 rounded-xl border bg-white px-4 py-2 font-semibold transition hover:bg-[#F3E6CF]"
+              style={brandChrome.secondaryButton}
             >
               กลับหน้าสร้างใบจอง
             </button>
@@ -616,7 +620,10 @@ export default function CustomersPage() {
           </div>
         </div>
 
-        <div className="mb-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
+        <div
+          className="mb-5 rounded-3xl border bg-white p-5 shadow-sm"
+          style={{ borderColor: brandChrome.theme.border }}
+        >
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="min-w-0 flex-1">
               <label className="mb-2 block text-sm font-semibold text-zinc-700">
@@ -690,20 +697,20 @@ export default function CustomersPage() {
 
             {selectedBookingNumbers.length > 0 && (
               <>
-                <span className="rounded-xl bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
+                <span className="rounded-xl bg-[#F3E6CF] px-3 py-2 text-sm font-semibold text-[#4A2E22]">
                   เลือกแล้ว {selectedBookingNumbers.length} รายการ
                 </span>
                 <button
                   type="button"
                   onClick={bulkMoveToArchive}
-                  className="min-h-12 rounded-2xl bg-amber-500 px-4 py-3 text-sm font-semibold text-white hover:bg-amber-600"
+                  className="min-h-12 rounded-2xl bg-[#C9A46A] px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#B88F52]"
                 >
                   จัดเก็บที่เลือก
                 </button>
                 <button
                   type="button"
                   onClick={bulkMoveToTrash}
-                  className="min-h-12 rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700"
+                  className="min-h-12 rounded-2xl bg-[#DC2626] px-4 py-3 text-sm font-semibold text-white hover:bg-[#B91C1C]"
                 >
                   ย้ายที่เลือกไปถังขยะ
                 </button>
@@ -726,7 +733,7 @@ export default function CustomersPage() {
                 <article
                   key={customer.bookingNumber || index}
                   className={`rounded-2xl border bg-white p-4 shadow-sm ${
-                    isSelected ? "border-blue-300 ring-2 ring-blue-100" : "border-zinc-200"
+                    isSelected ? "border-[#C9A46A] ring-2 ring-[#F3E6CF]" : "border-zinc-200"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -740,7 +747,7 @@ export default function CustomersPage() {
                         aria-label={`เลือกใบจอง ${
                           customer.bookingNumber || "นี้"
                         }`}
-                        className="mt-1 h-5 w-5 cursor-pointer accent-blue-600"
+                        className="mt-1 h-5 w-5 cursor-pointer accent-[#4A2E22]"
                       />
                       <span className="min-w-0">
                         <span className="block text-sm font-bold text-zinc-900">
@@ -793,7 +800,7 @@ export default function CustomersPage() {
                     <button
                       type="button"
                       onClick={() => openBooking(customer)}
-                      className="min-h-11 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                      className="min-h-11 rounded-xl bg-[#4A2E22] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5A3828]"
                     >
                       ดูใบจอง
                     </button>
@@ -801,14 +808,14 @@ export default function CustomersPage() {
                       <button
                         type="button"
                         onClick={() => moveToArchive(customer)}
-                        className="min-h-11 rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-600"
+                        className="min-h-11 rounded-xl bg-[#C9A46A] px-3 py-2 text-sm font-semibold text-[#111111] hover:bg-[#B88F52]"
                       >
                         จัดเก็บ
                       </button>
                       <button
                         type="button"
                         onClick={() => moveToTrash(customer)}
-                        className="min-h-11 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                        className="min-h-11 rounded-xl bg-[#DC2626] px-3 py-2 text-sm font-semibold text-white hover:bg-[#B91C1C]"
                       >
                         ถังขยะ
                       </button>
@@ -824,10 +831,10 @@ export default function CustomersPage() {
           )}
         </div>
 
-        <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
-          <div className="min-w-[980px] lg:min-w-[1320px]">
+        <div className="hidden w-full overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
+          <div className="min-w-[1120px]">
             <div
-              className="grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-3 px-4 py-4 text-sm font-semibold text-white lg:grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_430px] lg:gap-4 lg:px-5"
+              className="grid grid-cols-[44px_1fr_1fr_0.9fr_0.9fr_0.8fr_300px] gap-3 px-4 py-4 text-sm font-semibold text-white lg:gap-4 lg:px-5"
               style={brandChrome.tableHeader}
             >
               <div className="flex items-center justify-center">
@@ -836,7 +843,7 @@ export default function CustomersPage() {
                   checked={allVisibleSelected}
                   onChange={toggleSelectAll}
                   aria-label="เลือกใบจองทั้งหมดที่แสดง"
-                  className="h-5 w-5 cursor-pointer accent-blue-600"
+                  className="h-5 w-5 cursor-pointer accent-[#4A2E22]"
                 />
               </div>
               <div>เลขที่การจอง</div>
@@ -855,9 +862,9 @@ export default function CustomersPage() {
                 return (
                   <div
                     key={customer.bookingNumber || index}
-                    className={`grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_360px] items-center gap-3 border-t px-4 py-4 text-sm transition lg:grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_430px] lg:gap-4 lg:px-5 lg:text-base ${
+                    className={`grid grid-cols-[44px_1fr_1fr_0.9fr_0.9fr_0.8fr_300px] items-center gap-3 border-t px-4 py-4 text-sm transition lg:gap-4 lg:px-5 ${
                       selectedBookingNumbers.includes(customer.bookingNumber)
-                        ? "border-blue-200 bg-blue-50/60"
+                        ? "border-[#C9A46A]/60 bg-[#F3E6CF]/45"
                         : "border-zinc-200"
                     }`}
                   >
@@ -873,7 +880,7 @@ export default function CustomersPage() {
                         aria-label={`เลือกใบจอง ${
                           customer.bookingNumber || "นี้"
                         }`}
-                        className="h-5 w-5 cursor-pointer accent-blue-600"
+                        className="h-5 w-5 cursor-pointer accent-[#4A2E22]"
                       />
                     </div>
 
@@ -919,11 +926,11 @@ export default function CustomersPage() {
                       </select>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-2">
+                    <div className="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => openBooking(customer)}
-                        className="min-h-10 rounded-xl bg-blue-600 px-3 py-2 font-semibold text-white hover:bg-blue-700"
+                        className="min-h-10 rounded-xl bg-[#4A2E22] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5A3828]"
                       >
                         ดูใบจอง
                       </button>
@@ -931,7 +938,7 @@ export default function CustomersPage() {
                       <button
                         type="button"
                         onClick={() => moveToArchive(customer)}
-                        className="min-h-10 rounded-xl bg-amber-500 px-3 py-2 font-semibold text-white hover:bg-amber-600"
+                        className="min-h-10 rounded-xl bg-[#C9A46A] px-3 py-2 text-sm font-semibold text-[#111111] hover:bg-[#B88F52]"
                       >
                         จัดเก็บข้อมูล
                       </button>
@@ -939,7 +946,7 @@ export default function CustomersPage() {
                       <button
                         type="button"
                         onClick={() => moveToTrash(customer)}
-                        className="min-h-10 rounded-xl bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-700"
+                        className="min-h-10 rounded-xl bg-[#DC2626] px-3 py-2 text-sm font-semibold text-white hover:bg-[#B91C1C]"
                       >
                         ย้ายไปถังขยะ
                       </button>

@@ -106,6 +106,7 @@ export default function BrandCalendarPage({ brandId }) {
   const router = useRouter();
   const brand = BRAND_CONFIG[brandId];
   const brandChrome = getBrandChromeStyles(brandId);
+  const isAdisorn = brandId === "adisorn";
   const customersKey = `${brandId}_customers`;
   const selectedBookingKey = `${brandId}_selectedBooking`;
   const currentBookingKey = `${brandId}_currentBooking`;
@@ -269,7 +270,10 @@ export default function BrandCalendarPage({ brandId }) {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-3 text-zinc-900 sm:p-4 md:p-6 xl:p-8">
+    <main
+      className="min-h-screen overflow-x-hidden p-3 text-zinc-900 sm:p-4 md:p-6 xl:p-8"
+      style={isAdisorn ? { backgroundColor: brandChrome.theme.background } : undefined}
+    >
       <div className="mx-auto max-w-[1536px]">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 md:mb-5">
           <div className="min-w-0">
@@ -285,7 +289,9 @@ export default function BrandCalendarPage({ brandId }) {
           <button
             type="button"
             onClick={() => router.push(brand.dashboardPath)}
-            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 md:px-5 md:py-3 md:text-base"
+            className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white md:px-5 md:py-3 md:text-base ${
+              isAdisorn ? "bg-[#4A2E22] hover:bg-[#5A3828]" : "bg-blue-600 hover:bg-blue-700"
+            }`}
           >
             กลับเมนูหลัก
           </button>
@@ -358,8 +364,14 @@ export default function BrandCalendarPage({ brandId }) {
                       key={date.toISOString()}
                       type="button"
                       onClick={() => setSelectedDate(date)}
-                      className={`min-h-[72px] min-w-0 border-b border-r border-zinc-100 p-1 text-left transition hover:bg-blue-50 sm:min-h-[88px] sm:p-1.5 md:min-h-[112px] md:p-2 xl:min-h-[120px] ${
-                        isSelected ? "bg-blue-50 ring-1 ring-inset ring-blue-500" : "bg-white"
+                      className={`min-h-[72px] min-w-0 border-b border-r border-zinc-100 p-1 text-left transition sm:min-h-[88px] sm:p-1.5 md:min-h-[112px] md:p-2 xl:min-h-[120px] ${
+                        isSelected
+                          ? isAdisorn
+                            ? "bg-[#F3E6CF]/55 ring-1 ring-inset ring-[#C9A46A]"
+                            : "bg-blue-50 ring-1 ring-inset ring-blue-500"
+                          : isAdisorn
+                            ? "bg-white hover:bg-[#F3E6CF]/45"
+                            : "bg-white hover:bg-blue-50"
                       } ${isCurrentMonth ? "" : "text-zinc-300"}`}
                     >
                       <div className="mb-1 flex items-center justify-between gap-1 md:mb-2">
@@ -368,10 +380,12 @@ export default function BrandCalendarPage({ brandId }) {
                             isToday
                               ? "text-white"
                               : isSelected
-                                ? "bg-blue-600 text-white"
+                                ? isAdisorn
+                                  ? "text-white"
+                                  : "bg-blue-600 text-white"
                                 : "text-zinc-700"
                           }`}
-                          style={isToday ? brandChrome.activeControl : undefined}
+                          style={isToday || (isAdisorn && isSelected) ? brandChrome.activeControl : undefined}
                         >
                           {date.getDate()}
                         </span>

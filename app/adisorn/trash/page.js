@@ -354,7 +354,10 @@ export default function TrashPage() {
     });
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 lg:p-10">
+    <main
+      className="min-h-screen overflow-x-hidden p-4 md:p-6 lg:p-10"
+      style={{ backgroundColor: brandChrome.theme.background, color: brandChrome.theme.text }}
+    >
       <div className="mx-auto w-full max-w-6xl">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -370,7 +373,7 @@ export default function TrashPage() {
               type="button"
               onClick={clearTrash}
               disabled={trash.length === 0}
-              className="min-h-12 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="min-h-12 rounded-xl bg-[#DC2626] px-5 py-3 font-semibold text-white hover:bg-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-40"
             >
               ล้างถังขยะทั้งหมด
             </button>
@@ -379,7 +382,7 @@ export default function TrashPage() {
               type="button"
               onClick={clearMailTrash}
               disabled={mailTrash.length === 0}
-              className="min-h-12 rounded-xl border border-red-200 bg-white px-5 py-3 font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="min-h-12 rounded-xl border border-red-200 bg-white px-5 py-3 font-semibold text-[#DC2626] hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               ล้างขยะเมล
             </button>
@@ -425,7 +428,8 @@ export default function TrashPage() {
             filteredTrash.map(({ item, originalIndex }) => (
               <div
                 key={`${item.bookingNumber || "trash"}-${originalIndex}`}
-                className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+                className="rounded-2xl border bg-white p-5 shadow-sm"
+                style={{ borderColor: brandChrome.theme.border }}
               >
                 <div className="grid gap-2 text-zinc-700 md:grid-cols-2">
                   <p>
@@ -465,7 +469,7 @@ export default function TrashPage() {
                   <button
                     type="button"
                     onClick={() => restoreCustomer(originalIndex)}
-                    className="min-h-10 rounded-xl bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                    className="min-h-10 rounded-xl bg-[#16A34A] px-4 py-2 font-semibold text-white hover:bg-[#15803D]"
                   >
                     ♻️ กู้คืน
                   </button>
@@ -473,7 +477,7 @@ export default function TrashPage() {
                   <button
                     type="button"
                     onClick={() => deleteForever(originalIndex)}
-                    className="min-h-10 rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                    className="min-h-10 rounded-xl bg-[#DC2626] px-4 py-2 font-semibold text-white hover:bg-[#B91C1C]"
                   >
                     ❌ ลบถาวร
                   </button>
@@ -496,7 +500,8 @@ export default function TrashPage() {
             filteredMailTrash.map(({ item, originalIndex }) => (
               <div
                 key={`${item.bookingNumber || item.email || "mail-trash"}-${originalIndex}`}
-                className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm"
+                className="rounded-2xl border bg-white p-5 shadow-sm"
+                style={{ borderColor: brandChrome.theme.border }}
               >
                 <div className="grid gap-2 text-zinc-700 md:grid-cols-2">
                   <p>
@@ -518,7 +523,7 @@ export default function TrashPage() {
                   <button
                     type="button"
                     onClick={() => restoreMailTrash(originalIndex)}
-                    className="min-h-10 rounded-xl bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                    className="min-h-10 rounded-xl bg-[#16A34A] px-4 py-2 font-semibold text-white hover:bg-[#15803D]"
                   >
                     กู้คืนเมล
                   </button>
@@ -526,7 +531,7 @@ export default function TrashPage() {
                   <button
                     type="button"
                     onClick={() => deleteMailTrashForever(originalIndex)}
-                    className="min-h-10 rounded-xl bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700"
+                    className="min-h-10 rounded-xl bg-[#DC2626] px-4 py-2 font-semibold text-white hover:bg-[#B91C1C]"
                   >
                     ลบถาวร
                   </button>

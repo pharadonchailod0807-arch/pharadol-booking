@@ -238,7 +238,10 @@ export default function ReportsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
+    <main
+      className="min-h-screen overflow-x-hidden p-4 md:p-6 xl:p-8"
+      style={{ backgroundColor: brandChrome.theme.background, color: brandChrome.theme.text }}
+    >
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -282,15 +285,15 @@ export default function ReportsPage() {
           </div>
 
           <div className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
-            <p className="text-red-600">ยังไม่มัดจำ</p>
-            <p className="mt-2 text-2xl font-bold text-red-600 md:text-3xl">
+            <p className="text-[#DC2626]">ยังไม่มัดจำ</p>
+            <p className="mt-2 text-2xl font-bold text-[#DC2626] md:text-3xl">
               {unpaidCount}
             </p>
           </div>
 
           <div className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
-            <p className="text-blue-600">กำลังคัด/ตัดต่อ</p>
-            <p className="mt-2 text-2xl font-bold text-blue-600 md:text-3xl">
+            <p style={{ color: brandChrome.theme.accent }}>กำลังคัด/ตัดต่อ</p>
+            <p className="mt-2 text-2xl font-bold md:text-3xl" style={{ color: brandChrome.theme.accent }}>
               {editingJobs}
             </p>
           </div>
@@ -303,8 +306,8 @@ export default function ReportsPage() {
           </div>
 
           <div className="rounded-2xl bg-white p-4 shadow-sm md:p-5">
-            <p className="text-red-600">ยอดค้างชำระ</p>
-            <p className="mt-2 text-xl font-bold text-red-600 md:text-2xl">
+            <p className="text-[#DC2626]">ยอดค้างชำระ</p>
+            <p className="mt-2 text-xl font-bold text-[#DC2626] md:text-2xl">
               ฿ {totalOutstanding.toLocaleString()}
             </p>
           </div>
@@ -414,7 +417,7 @@ export default function ReportsPage() {
                     );
                     router.push("/adisorn?view=customer", { scroll: false });
                   }}
-                  className="mt-4 min-h-11 w-full rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  className="mt-4 min-h-11 w-full rounded-xl bg-[#4A2E22] px-4 py-2 text-sm font-semibold text-white hover:bg-[#5A3828]"
                 >
                   ดูใบจอง
                 </button>
@@ -474,7 +477,7 @@ export default function ReportsPage() {
                       );
                       router.push("/adisorn?view=customer", { scroll: false });
                     }}
-                    className="min-h-10 rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+                    className="min-h-10 rounded-xl bg-[#4A2E22] px-4 py-2 font-semibold text-white hover:bg-[#5A3828]"
                   >
                     ดูใบจอง
                   </button>

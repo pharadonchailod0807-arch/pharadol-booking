@@ -863,10 +863,10 @@ export default function ArchivesPage() {
     }
 
     if (["ยกเลิก", "ยกเลิกงาน"].includes(normalizedStatus)) {
-      return "bg-red-100 text-red-700";
+      return "bg-red-50 text-red-700";
     }
 
-    return "bg-amber-100 text-amber-700";
+    return "border border-[#E7C77D] bg-[#FFF3D7] text-[#9A5B00]";
   };
 
   const currentCount =
@@ -881,7 +881,10 @@ export default function ArchivesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
+    <main
+      className="min-h-screen overflow-x-hidden p-4 md:p-6 xl:p-8"
+      style={{ backgroundColor: brandChrome.theme.background, color: brandChrome.theme.text }}
+    >
       <div className="mx-auto w-full max-w-[1840px]">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -895,7 +898,8 @@ export default function ArchivesPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/customers")}
-              className="min-h-12 rounded-xl border border-zinc-300 bg-white px-4 py-2 font-semibold text-zinc-700"
+              className="min-h-12 rounded-xl border bg-white px-4 py-2 font-semibold transition hover:bg-[#F3E6CF]"
+              style={brandChrome.secondaryButton}
             >
               ข้อมูลลูกค้า
             </button>
@@ -910,7 +914,10 @@ export default function ArchivesPage() {
           </div>
         </div>
 
-        <div className="mb-5 flex flex-wrap gap-2 rounded-2xl border border-zinc-200 bg-white p-2 shadow-sm">
+        <div
+          className="mb-5 flex flex-wrap gap-2 rounded-2xl border bg-white p-2 shadow-sm"
+          style={{ borderColor: brandChrome.theme.border }}
+        >
           <button
             type="button"
             onClick={() => {
@@ -1059,7 +1066,7 @@ export default function ArchivesPage() {
                         <button
                           type="button"
                           onClick={() => openBooking(booking)}
-                          className="min-h-11 rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white"
+                          className="min-h-11 rounded-xl bg-[#4A2E22] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5A3828]"
                         >
                           ดูใบจอง
                         </button>
@@ -1067,14 +1074,14 @@ export default function ArchivesPage() {
                           <button
                             type="button"
                             onClick={() => restoreBooking(booking)}
-                            className="min-h-11 rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white"
+                            className="min-h-11 rounded-xl bg-[#16A34A] px-3 py-2 text-sm font-semibold text-white hover:bg-[#15803D]"
                           >
                             คืนข้อมูล
                           </button>
                           <button
                             type="button"
                             onClick={() => moveToTrash(booking)}
-                            className="min-h-11 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white"
+                            className="min-h-11 rounded-xl bg-[#DC2626] px-3 py-2 text-sm font-semibold text-white hover:bg-[#B91C1C]"
                           >
                             ถังขยะ
                           </button>
@@ -1090,7 +1097,7 @@ export default function ArchivesPage() {
               )}
             </div>
 
-          <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
+          <div className="hidden w-full overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
             <div className="min-w-[1250px]">
               <div
                 className="grid grid-cols-[1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-4 px-5 py-4 text-sm font-semibold tracking-wide text-zinc-100"
@@ -1137,25 +1144,25 @@ export default function ArchivesPage() {
                           {jobStatus}
                         </span>
                       </div>
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() => openBooking(booking)}
-                          className="rounded-xl bg-blue-600 px-3 py-2 font-semibold text-white"
+                          className="rounded-xl bg-[#4A2E22] px-3 py-2 font-semibold text-white hover:bg-[#5A3828]"
                         >
                           ดูใบจอง
                         </button>
                         <button
                           type="button"
                           onClick={() => restoreBooking(booking)}
-                          className="rounded-xl bg-green-600 px-3 py-2 font-semibold text-white"
+                          className="rounded-xl bg-[#16A34A] px-3 py-2 font-semibold text-white hover:bg-[#15803D]"
                         >
                           คืนข้อมูล
                         </button>
                         <button
                           type="button"
                           onClick={() => moveToTrash(booking)}
-                          className="rounded-xl bg-red-600 px-3 py-2 font-semibold text-white"
+                          className="rounded-xl bg-[#DC2626] px-3 py-2 font-semibold text-white hover:bg-[#B91C1C]"
                         >
                           ย้ายไปถังขยะ
                         </button>
@@ -1224,7 +1231,7 @@ export default function ArchivesPage() {
                         <button
                           type="button"
                           onClick={() => deleteReceipt(receipt)}
-                          className="min-h-11 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white"
+                          className="min-h-11 rounded-xl bg-[#DC2626] px-3 py-2 text-sm font-semibold text-white hover:bg-[#B91C1C]"
                         >
                           ลบ
                         </button>
@@ -1287,7 +1294,7 @@ export default function ArchivesPage() {
                     <div className="text-sm text-zinc-600">
                       {formatSavedDate(receipt.savedAt)}
                     </div>
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => setSelectedReceipt(receipt)}
@@ -1306,7 +1313,7 @@ export default function ArchivesPage() {
                       <button
                         type="button"
                         onClick={() => deleteReceipt(receipt)}
-                        className="rounded-xl bg-red-600 px-3 py-2 font-semibold text-white"
+                        className="rounded-xl bg-[#DC2626] px-3 py-2 font-semibold text-white hover:bg-[#B91C1C]"
                       >
                         ลบ
                       </button>
@@ -1388,7 +1395,7 @@ export default function ArchivesPage() {
               <button
                 type="button"
                 onClick={() => deleteReceipt(selectedReceipt)}
-                className="rounded-2xl bg-red-50 px-5 py-3 font-bold text-red-600"
+                className="rounded-2xl bg-red-50 px-5 py-3 font-bold text-[#DC2626] hover:bg-red-100"
               >
                 ลบเอกสาร
               </button>
