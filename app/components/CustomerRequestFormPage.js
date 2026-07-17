@@ -121,33 +121,31 @@ export default function CustomerRequestFormPage({ brand }) {
   };
 
   const renderLogo = (priority = false) =>
-    config.logoDark ? (
-      <div className="flex w-full justify-center">
-        <div className="rounded-[22px] bg-black px-5 py-4 shadow-[0_16px_42px_rgba(15,15,15,0.16)] sm:px-6 sm:py-5">
-          <Image
-            src={config.logo}
-            alt={config.name}
-            width={220}
-            height={220}
-            priority={priority}
-            className="h-auto w-[170px] object-contain sm:w-[220px]"
-          />
-        </div>
-      </div>
-    ) : (
-      <div className="relative h-24 w-24 overflow-hidden rounded-full border border-zinc-200 bg-white shadow-sm">
-        <Image
-          src={config.logo}
-          alt={config.name}
-          fill
-          sizes="96px"
-          priority={priority}
-          className="object-contain"
-        />
-      </div>
-    );
+  config.logoDark ? (
+    <div className="flex w-full justify-center">
+      <Image
+        src="/customer-form/pharadol-logo-transparent.png"
+        alt={config.name}
+        width={684}
+        height={200}
+        priority={priority}
+        className="block h-auto w-[280px] bg-transparent object-contain sm:w-[360px]"
+      />
+    </div>
+  ) : (
+    <div className="relative h-24 w-24 overflow-hidden rounded-full border border-zinc-200 bg-white shadow-sm">
+      <Image
+        src={config.logo}
+        alt={config.name}
+        fill
+        sizes="96px"
+        priority={priority}
+        className="object-contain"
+      />
+    </div>
+  );
 
-  const handleSubmit = async (event) => {
+const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitError("");
     setSuccessMessage("");
