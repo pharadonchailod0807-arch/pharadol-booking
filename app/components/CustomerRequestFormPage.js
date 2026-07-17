@@ -122,14 +122,14 @@ export default function CustomerRequestFormPage({ brand }) {
 
   const renderLogo = (priority = false) =>
   config.logoDark ? (
-    <div className="flex w-full justify-center">
+    <div className="flex w-full items-center justify-center">
       <Image
         src="/customer-form/pharadol-logo-transparent.png"
         alt={config.name}
         width={684}
         height={200}
         priority={priority}
-        className="block h-auto w-[280px] bg-transparent object-contain sm:w-[360px]"
+        className="mx-auto block h-auto w-[280px] translate-x-3 bg-transparent object-contain sm:w-[360px] sm:translate-x-4"
       />
     </div>
   ) : (
