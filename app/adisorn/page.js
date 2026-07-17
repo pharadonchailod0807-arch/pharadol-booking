@@ -562,17 +562,17 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
 };
 
 const actionDownloadButtonClass =
-  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#4A2E22] bg-[#4A2E22] px-5 py-3 text-sm font-extrabold text-white shadow-[0_12px_26px_rgba(74,46,34,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5A3828] hover:shadow-[0_14px_30px_rgba(74,46,34,0.22)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#4A2E22] bg-[#4A2E22] px-4 py-2.5 text-sm font-bold text-white shadow-[0_10px_22px_rgba(74,46,34,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5A3828] hover:shadow-[0_12px_26px_rgba(74,46,34,0.20)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionSaveButtonClass =
-  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#4A2E22] bg-[#4A2E22] px-5 py-3 text-sm font-extrabold text-white shadow-[0_12px_26px_rgba(74,46,34,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5A3828] hover:shadow-[0_14px_30px_rgba(74,46,34,0.22)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#4A2E22] bg-[#4A2E22] px-4 py-2.5 text-sm font-bold text-white shadow-[0_10px_22px_rgba(74,46,34,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5A3828] hover:shadow-[0_12px_26px_rgba(74,46,34,0.20)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionCreateButtonClass =
-  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#C9A46A] bg-[#C9A46A] px-5 py-3 text-sm font-extrabold text-[#111111] shadow-[0_12px_26px_rgba(201,164,106,0.24)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#B88F52] hover:shadow-[0_14px_30px_rgba(201,164,106,0.28)] sm:min-w-[150px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#C9A46A] bg-[#C9A46A] px-4 py-2.5 text-sm font-bold text-[#111111] shadow-[0_10px_22px_rgba(201,164,106,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#B88F52] hover:shadow-[0_12px_26px_rgba(201,164,106,0.26)] sm:min-w-[145px]";
 const actionSendButtonClass =
-  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#E9DCCB] bg-[#F3E6CF] px-5 py-3 text-sm font-extrabold text-[#2B1A14] shadow-[0_10px_22px_rgba(43,26,20,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9A46A] hover:bg-[#EAD7B8] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#E9DCCB] bg-[#F3E6CF] px-4 py-2.5 text-sm font-bold text-[#2B1A14] shadow-[0_8px_18px_rgba(43,26,20,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9A46A] hover:bg-[#EAD7B8] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionEditButtonClass =
-  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#C9A46A] bg-white px-5 py-3 text-sm font-extrabold text-[#2B1A14] shadow-[0_10px_22px_rgba(43,26,20,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#F3E6CF] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#C9A46A] bg-white px-4 py-2.5 text-sm font-bold text-[#2B1A14] shadow-[0_8px_18px_rgba(43,26,20,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#F3E6CF] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionSecondaryButtonClass =
-  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#E9DCCB] bg-white px-5 py-3 text-sm font-extrabold text-[#2B1A14] shadow-[0_10px_22px_rgba(43,26,20,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9A46A] hover:bg-[#F3E6CF] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#E9DCCB] bg-white px-4 py-2.5 text-sm font-bold text-[#2B1A14] shadow-[0_8px_18px_rgba(43,26,20,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9A46A] hover:bg-[#F3E6CF] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionDangerButtonClass =
   "flex min-h-[48px] items-center justify-center gap-2 rounded-[20px] border border-red-300 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 shadow-sm transition-all duration-200 hover:bg-red-100";
 const actionMenuButtonClass =
@@ -6330,33 +6330,46 @@ const confirmSendBookingEmail = async () => {
           width: 100%;
           min-height: 100vh;
           display: grid;
-          grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+          grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
           align-items: start;
-          gap: 24px;
-          padding: 28px;
+          gap: 22px;
+          padding: 22px;
           background: var(--booking-bg);
           color: var(--booking-text);
+          overflow-x: hidden;
+          box-sizing: border-box;
+        }
+
+        .booking-workspace *,
+        .booking-workspace *::before,
+        .booking-workspace *::after {
+          box-sizing: border-box;
+        }
+
+        html,
+        body {
           overflow-x: hidden;
         }
 
         .booking-workspace-collapsed {
-          grid-template-columns: 64px minmax(0, 1fr);
+          grid-template-columns: 56px minmax(0, 1fr);
         }
 
         .booking-workspace-view {
           display: block;
-          padding: 24px;
+          padding: 20px;
         }
 
         .booking-form-panel {
           grid-column: 1;
           grid-row: 1 / span 2;
           width: 100%;
-          max-width: 420px;
+          min-width: 0;
+          max-width: 380px;
           align-self: start;
           position: sticky;
-          top: 24px;
-          max-height: calc(100vh - 48px);
+          top: 20px;
+          max-height: calc(100vh - 40px);
           overflow-y: auto;
           overflow-x: hidden;
           border-color: var(--booking-border);
@@ -6368,7 +6381,18 @@ const confirmSendBookingEmail = async () => {
         .booking-form-panel input,
         .booking-form-panel select,
         .booking-form-panel textarea {
-          min-height: 52px;
+          min-height: 50px;
+          border-radius: 16px;
+          font-size: 14px;
+        }
+
+        .booking-form-panel h1 {
+          font-size: clamp(1.75rem, 2.1vw, 2rem);
+          line-height: 1.1;
+        }
+
+        .booking-form-panel .space-y-5 > :not([hidden]) ~ :not([hidden]) {
+          margin-top: 0.9rem;
         }
 
         .booking-form-toggle {
@@ -6380,8 +6404,15 @@ const confirmSendBookingEmail = async () => {
           grid-row: 1;
           min-width: 0;
           width: 100%;
+          padding: 18px 20px;
           border-color: var(--booking-border);
-          border-radius: 24px;
+          border-radius: 22px;
+          overflow: visible;
+        }
+
+        .booking-action-grid {
+          grid-template-columns: repeat(3, minmax(150px, 1fr)) !important;
+          gap: 10px !important;
         }
 
         .booking-more-toggle {
@@ -6401,19 +6432,41 @@ const confirmSendBookingEmail = async () => {
           grid-row: 2;
           min-width: 0;
           width: 100%;
-          padding: 32px 24px 80px;
-          border-radius: 24px;
+          overflow-x: auto;
+          overflow-y: visible;
+          padding: 24px 20px 96px;
+          border-radius: 22px;
           background: rgba(255, 255, 255, 0.42);
           box-shadow: inset 0 0 0 1px rgba(233, 220, 203, 0.78);
+          scrollbar-gutter: stable both-edges;
         }
 
         .booking-preview-panel .print-area {
+          flex: 0 0 auto;
           margin-left: auto;
           margin-right: auto;
           box-shadow: 0 20px 60px rgba(43, 26, 20, 0.10);
         }
 
-        @media (max-width: 1024px) {
+        @media (max-width: 1500px) {
+          .booking-workspace {
+            grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+            gap: 18px;
+            padding: 20px;
+          }
+
+          .booking-form-panel {
+            max-width: 360px;
+          }
+        }
+
+        @media (max-width: 1280px) {
+          .booking-action-grid {
+            grid-template-columns: repeat(2, minmax(150px, 1fr)) !important;
+          }
+        }
+
+        @media (max-width: 1100px) {
           .booking-workspace,
           .booking-workspace-collapsed {
             grid-template-columns: 1fr;
@@ -6437,8 +6490,12 @@ const confirmSendBookingEmail = async () => {
           .booking-preview-panel {
             grid-column: auto;
             grid-row: auto;
-            padding: 20px 0 72px;
+            padding: 18px 0 80px;
             border-radius: 20px;
+          }
+
+          .booking-action-grid {
+            grid-template-columns: 1fr !important;
           }
         }
 
