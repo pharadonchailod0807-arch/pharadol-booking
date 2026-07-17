@@ -3484,14 +3484,373 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.962) => {
   }
 };;;
 
+
+const compressPortablePdfImage = async (
+  source,
+  maxDimension = 2200,
+  quality = 0.9
+) => {
+  if (
+    !source ||
+    !source.startsWith("data:image/") ||
+    source.length < 900000
+  ) {
+    return source;
+  }
+
+  return new Promise((resolve) => {
+    const image = new Image();
+
+    image.onload = () => {
+      try {
+        const naturalWidth = image.naturalWidth || image.width;
+        const naturalHeight = image.naturalHeight || image.height;
+
+        if (!naturalWidth || !naturalHeight) {
+          resolve(source);
+          return;
+        }
+
+        const ratio = Math.min(
+          1,
+          maxDimension / Math.max(naturalWidth, naturalHeight)
+        );
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(naturalWidth * ratio));
+        canvas.height = Math.max(1, Math.round(naturalHeight * ratio));
+
+        const context = canvas.getContext("2d", {
+          alpha: false,
+        });
+
+        if (!context) {
+          resolve(source);
+          return;
+        }
+
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } catch {
+        resolve(source);
+      }
+    };
+
+    image.onerror = () => resolve(source);
+    image.src = source;
+  });
+};
+
+const getPortablePdfImageSource = async (image) => {
+  const source =
+    image.currentSrc ||
+    image.getAttribute("src") ||
+    image.src ||
+    "";
+
+  if (!source) return "";
+
+  if (source.startsWith("data:image/")) {
+    return compressPortablePdfImage(source);
+  }
+
+  if (source.startsWith("blob:")) {
+    const dataUrl = await imageUrlToDataUrl(source);
+
+    return dataUrl
+      ? compressPortablePdfImage(dataUrl)
+      : "";
+  }
+
+  try {
+    return new URL(source, window.location.href).href;
+  } catch {
+    return source;
+  }
+};
+
+const copyPdfFormElementValues = (sourceRoot, clonedRoot) => {
+  const sourceFields = Array.from(
+    sourceRoot.querySelectorAll("input, textarea, select")
+  );
+  const clonedFields = Array.from(
+    clonedRoot.querySelectorAll("input, textarea, select")
+  );
+
+  sourceFields.forEach((sourceField, index) => {
+    const clonedField = clonedFields[index];
+
+    if (!clonedField) return;
+
+    if (sourceField instanceof HTMLInputElement) {
+      clonedField.setAttribute("value", sourceField.value);
+
+      if (sourceField.checked) {
+        clonedField.setAttribute("checked", "");
+      } else {
+        clonedField.removeAttribute("checked");
+      }
+    }
+
+    if (sourceField instanceof HTMLTextAreaElement) {
+      clonedField.textContent = sourceField.value;
+    }
+
+    if (sourceField instanceof HTMLSelectElement) {
+      Array.from(clonedField.options).forEach(
+        (option, optionIndex) => {
+          if (sourceField.options[optionIndex]?.selected) {
+            option.setAttribute("selected", "");
+          } else {
+            option.removeAttribute("selected");
+          }
+        }
+      );
+    }
+  });
+};
+
+const createBookingVectorPdfHtml = async () => {
+  const cleanupSlipPreviewForCapture =
+    await prepareSlipPreviewForCapture();
+
+  document.body.classList.add("booking-exporting");
+
+  try {
+    const pages = Array.from(
+      document.querySelectorAll(".print-area")
+    );
+
+    if (pages.length === 0) {
+      throw new Error("ไม่พบหน้าเอกสารสำหรับสร้าง PDF");
+    }
+
+    applyBookingPageNumbers(pages);
+    await waitForNextRender();
+
+    const sourceImages = pages.flatMap((page) =>
+      Array.from(page.querySelectorAll("img"))
+    );
+
+    await Promise.allSettled(
+      sourceImages.map(
+        (image) =>
+          new Promise((resolve) => {
+            if (image.complete) {
+              resolve();
+              return;
+            }
+
+            let timer;
+
+            const finish = () => {
+              window.clearTimeout(timer);
+              image.removeEventListener("load", finish);
+              image.removeEventListener("error", finish);
+              resolve();
+            };
+
+            timer = window.setTimeout(finish, 4000);
+            image.addEventListener("load", finish, {
+              once: true,
+            });
+            image.addEventListener("error", finish, {
+              once: true,
+            });
+          })
+      )
+    );
+
+    const clonedPages = [];
+
+    for (const sourcePage of pages) {
+      const clonedPage = sourcePage.cloneNode(true);
+
+      copyPdfFormElementValues(sourcePage, clonedPage);
+
+      const originalImages = Array.from(
+        sourcePage.querySelectorAll("img")
+      );
+      const copiedImages = Array.from(
+        clonedPage.querySelectorAll("img")
+      );
+
+      for (
+        let imageIndex = 0;
+        imageIndex < originalImages.length;
+        imageIndex += 1
+      ) {
+        const copiedImage = copiedImages[imageIndex];
+
+        if (!copiedImage) continue;
+
+        const portableSource =
+          await getPortablePdfImageSource(
+            originalImages[imageIndex]
+          );
+
+        if (portableSource) {
+          copiedImage.setAttribute("src", portableSource);
+          copiedImage.removeAttribute("srcset");
+        }
+      }
+
+      clonedPage
+        .querySelectorAll(".no-print")
+        .forEach((element) => element.remove());
+
+      clonedPages.push(clonedPage);
+    }
+
+    const documentClone =
+      document.documentElement.cloneNode(true);
+
+    documentClone
+      .querySelectorAll("script, noscript")
+      .forEach((element) => element.remove());
+
+    const clonedHead =
+      documentClone.querySelector("head");
+    const clonedBody =
+      documentClone.querySelector("body");
+
+    if (!clonedHead || !clonedBody) {
+      throw new Error("ไม่สามารถเตรียมโครงสร้างเอกสาร PDF ได้");
+    }
+
+    clonedHead
+      .querySelectorAll("base")
+      .forEach((element) => element.remove());
+
+    const baseElement = document.createElement("base");
+    baseElement.href = `${window.location.origin}/`;
+    clonedHead.prepend(baseElement);
+
+    const pdfStyle = document.createElement("style");
+
+    pdfStyle.textContent = `
+      @page {
+        size: A4;
+        margin: 0;
+      }
+
+      html,
+      body {
+        width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+      }
+
+      body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      .vector-pdf-container {
+        display: block !important;
+        width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .vector-pdf-container > .print-area {
+        width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        max-height: 297mm !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        box-shadow: none !important;
+        transform: none !important;
+        zoom: 1 !important;
+        overflow: hidden !important;
+        break-after: page !important;
+        page-break-after: always !important;
+      }
+
+      .vector-pdf-container > .print-area:last-child {
+        break-after: auto !important;
+        page-break-after: auto !important;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+    `;
+
+    clonedHead.appendChild(pdfStyle);
+    clonedBody.innerHTML = "";
+    clonedBody.classList.add("booking-vector-pdf");
+
+    const pdfContainer =
+      document.createElement("main");
+
+    pdfContainer.className = "vector-pdf-container";
+
+    clonedPages.forEach((page) => {
+      pdfContainer.appendChild(page);
+    });
+
+    clonedBody.appendChild(pdfContainer);
+
+    return {
+      html: `<!doctype html>${documentClone.outerHTML}`,
+      origin: window.location.origin,
+    };
+  } finally {
+    document.body.classList.remove("booking-exporting");
+    await cleanupSlipPreviewForCapture();
+  }
+};
+
 const createBookingPdfAttachment = async () => {
-  const images = await captureBookingPagesAsJpegs(0.96);
   const filename = `${bookingNumber || "booking"}-booking.pdf`;
-  const blob = createPdfBlobFromJpegs(images);
+  const vectorDocument =
+    await createBookingVectorPdfHtml();
+
+  const response = await fetch("/api/vector-pdf", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      html: vectorDocument.html,
+      origin: vectorDocument.origin,
+      filename,
+    }),
+  });
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => ({}));
+
+    throw new Error(
+      result?.error ||
+        "ไม่สามารถสร้าง PDF แบบคมชัดได้"
+    );
+  }
+
+  const blob = await response.blob();
+
+  if (
+    !blob ||
+    blob.size === 0 ||
+    !String(blob.type).includes("pdf")
+  ) {
+    throw new Error("ระบบได้รับไฟล์ PDF ที่ไม่สมบูรณ์");
+  }
+
   const base64 = await blobToBase64(blob);
 
-  return { filename, blob, base64 };
-};;;
+  return {
+    filename,
+    blob,
+    base64,
+  };
+};;;;
 
 const downloadBlob = (blob, filename) => {
   const url = URL.createObjectURL(blob);
