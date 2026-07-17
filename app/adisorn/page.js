@@ -289,6 +289,28 @@ async function imageUrlToDataUrl(url) {
   }
 }
 
+const normalizeThaiMobileNumber = (value) => {
+  let phoneNumber = String(value || "").replace(/\D/g, "");
+
+  // รองรับรูปแบบ 0066xxxxxxxxx
+  if (phoneNumber.startsWith("0066")) {
+    phoneNumber = phoneNumber.slice(4);
+  } else if (phoneNumber.startsWith("66")) {
+    // รองรับ +66xxxxxxxxx และ 66xxxxxxxxx
+    phoneNumber = phoneNumber.slice(2);
+  }
+
+  // เลขหลังรหัสประเทศไม่มี 0 นำหน้า
+  if (/^[689]\d{8}$/.test(phoneNumber)) {
+    phoneNumber = `0${phoneNumber}`;
+  }
+
+  // เบอร์มือถือไทยต้องขึ้นต้น 06, 08 หรือ 09 และมี 10 หลัก
+  return /^0[689]\d{8}$/.test(phoneNumber)
+    ? phoneNumber
+    : "";
+};
+
 export default function BookingSystem() {
   const router = useRouter();
 
@@ -3912,10 +3934,17 @@ const sendBookingEmail = async () => {
 const sendBookingSms = async () => {
   if (isPreparingAttachment || attachmentLockRef.current) return;
 
-  const customerPhone = phone.trim().replace(/[^\d+]/g, "");
+  const customerPhone = normalizeThaiMobileNumber(phone);
+
+  if (!phone.trim()) {
+    window.alert("กรุณากรอกเบอร์โทรศัพท์ลูกค้าก่อนส่ง SMS");
+    return;
+  }
 
   if (!customerPhone) {
-    window.alert("กรุณากรอกเบอร์โทรศัพท์ลูกค้าก่อนส่ง SMS");
+    window.alert(
+      "เบอร์โทรไม่ถูกต้อง กรุณากรอกเบอร์มือถือไทย 10 หลัก เช่น 0812345678"
+    );
     return;
   }
 
