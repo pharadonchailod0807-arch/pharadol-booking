@@ -458,7 +458,7 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
 
   return `w-full rounded-2xl border outline-none transition ${
     hasTypedValue
-      ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-100"
+      ? "booking-input-edited border-zinc-200 bg-white"
       : "border-zinc-200 bg-white"
   } ${extraClasses || "px-5 py-4"}`;
 };
@@ -3800,6 +3800,16 @@ const confirmSendBookingEmail = async () => {
         "--booking-primary-dark": "#082E25",
         "--booking-accent": "#CDAE77",
         "--booking-accent-soft": "#F6EFD7",
+        "--booking-focus-ring": "rgba(205, 174, 119, 0.18)",
+        "--booking-soft-surface": "#F7F0DF",
+        "--booking-payment-surface": "#EEF7F1",
+        "--booking-discount-surface": "#F7F0DF",
+        "--booking-success": "#0F8F5F",
+        "--booking-danger": "#EF4444",
+        "--booking-accent-border": "rgba(205, 174, 119, 0.5)",
+        "--booking-primary-shadow": "rgba(15, 61, 49, 0.2)",
+        "--booking-card-shadow": "rgba(16, 35, 28, 0.09)",
+        "--booking-button-on-accent": "#0B0B0D",
       }}
     >
 
@@ -4130,11 +4140,11 @@ const confirmSendBookingEmail = async () => {
               />
             </div>
           </div>
-          <div className="border rounded-2xl p-4 bg-zinc-50">
+          <div className="booking-form-section booking-service-section border rounded-2xl p-4 bg-zinc-50">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
-                <p className="font-bold text-lg">รายการบริการ</p>
-                <p className="text-sm text-zinc-500">
+                <p className="booking-section-title font-bold text-lg">รายการบริการ</p>
+                <p className="booking-section-subtitle text-sm text-zinc-500">
                   เพิ่มเฉพาะรายการที่ใช้ในงานนี้
                 </p>
               </div>
@@ -4142,14 +4152,14 @@ const confirmSendBookingEmail = async () => {
               <button
                 type="button"
                 onClick={openServiceModal}
-                className="shrink-0 bg-black text-white rounded-xl px-4 py-3 font-semibold"
+                className="booking-form-primary-button shrink-0 rounded-xl px-4 py-3 font-semibold"
               >
                 + เพิ่มรายการ
               </button>
             </div>
 
             {serviceItems.length === 0 ? (
-              <div className="border border-dashed rounded-xl p-4 text-center text-zinc-400">
+              <div className="booking-empty-state border border-dashed rounded-xl p-4 text-center text-zinc-400">
                 ยังไม่มีรายการบริการ
               </div>
             ) : (
@@ -4157,7 +4167,7 @@ const confirmSendBookingEmail = async () => {
                 {serviceItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between gap-3 bg-white border rounded-xl px-4 py-3"
+                    className="booking-list-item flex items-center justify-between gap-3 bg-white border rounded-xl px-4 py-3"
                   >
                     <div className="min-w-0">
                       <p className="font-medium truncate">
@@ -4195,8 +4205,8 @@ const confirmSendBookingEmail = async () => {
               </div>
             )}
           </div>
-          <div className="border-2 border-blue-500 rounded-2xl p-4 bg-blue-50">
-            <p className="font-bold text-blue-700 mb-3">
+          <div className="booking-form-section booking-discount-section border rounded-2xl p-4">
+            <p className="booking-section-title font-bold mb-3">
               ระบบส่วนลด
             </p>
 
@@ -4230,7 +4240,7 @@ const confirmSendBookingEmail = async () => {
               />
             </div>
 
-            <div className="mt-3 rounded-xl bg-white p-3 border text-sm space-y-1">
+            <div className="booking-summary-card mt-3 rounded-xl bg-white p-3 border text-sm space-y-1">
               {serviceItems.length === 0 ? (
                 <div className="text-zinc-400">ยังไม่มีรายการบริการ</div>
               ) : (
@@ -4253,14 +4263,14 @@ const confirmSendBookingEmail = async () => {
               <div>ส่วนลดจาก % : ฿ {percentDiscountValue.toLocaleString()}</div>
               <div>ส่วนลดเพิ่ม : ฿ {Number(discountAmount || 0).toLocaleString()}</div>
               <div>ส่วนลดรวม : ฿ {totalDiscount.toLocaleString()}</div>
-              <div className="font-bold text-green-700 text-base">
+              <div className="booking-summary-net font-bold text-green-700 text-base">
                 ยอดสุทธิ : ฿ {finalPrice.toLocaleString()}
               </div>
             </div>
           </div>
 
-          <div className="border-2 border-emerald-500 rounded-2xl p-4 bg-emerald-50">
-            <p className="font-bold text-emerald-700 mb-3">
+          <div className="booking-form-section booking-payment-section border rounded-2xl p-4">
+            <p className="booking-section-title font-bold mb-3">
               รายละเอียดการจ่ายเงิน
             </p>
 
@@ -4314,10 +4324,10 @@ const confirmSendBookingEmail = async () => {
               )}
             />
 
-            <div className="mb-3 w-full rounded-2xl border bg-white px-4 py-3">
+            <div className="booking-status-card mb-3 w-full rounded-2xl border bg-white px-4 py-3">
               <p className="text-xs text-zinc-500">สถานะการชำระ</p>
               <p
-                className={`mt-2 inline-flex rounded-full border px-3 py-1 text-sm font-bold ${paymentDisplayStatusClass}`}
+                className={`booking-payment-badge mt-2 inline-flex rounded-full border px-3 py-1 text-sm font-bold ${paymentDisplayStatusClass}`}
               >
                 {paymentDisplayStatus}
               </p>
@@ -4384,7 +4394,7 @@ const confirmSendBookingEmail = async () => {
             </select>
 
             {paymentStatus === "มัดจำ" && (
-              <div className="w-full rounded-2xl border bg-white px-4 py-3 mb-3">
+              <div className="booking-status-card w-full rounded-2xl border bg-white px-4 py-3 mb-3">
                 <p className="text-xs text-zinc-500">ยอดคงเหลือที่ต้องชำระ</p>
                 <p className="text-lg font-bold text-red-600">
                   ฿ {previewRemainingPayment.toLocaleString()}
@@ -4409,16 +4419,16 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={addPaymentTransaction}
-              className="mb-3 w-full rounded-2xl bg-emerald-600 px-4 py-3 font-semibold text-white transition hover:bg-emerald-700"
+              className="booking-form-primary-button booking-payment-button mb-3 w-full rounded-2xl px-4 py-3 font-semibold text-white transition"
             >
               + เพิ่มรายการชำระเงิน
             </button>
 
             {paymentTransactions.length > 0 && (
-              <div className="mb-3 space-y-2 rounded-2xl border border-emerald-200 bg-white p-3">
+              <div className="booking-history-card mb-3 space-y-2 rounded-2xl border border-emerald-200 bg-white p-3">
                 <div className="flex items-center justify-between">
-                  <p className="font-bold text-emerald-800">ประวัติการชำระ</p>
-                  <p className="font-bold text-emerald-700">
+                  <p className="booking-history-title font-bold text-emerald-800">ประวัติการชำระ</p>
+                  <p className="booking-history-total font-bold text-emerald-700">
                     รวม ฿ {totalPaid.toLocaleString()}
                   </p>
                 </div>
@@ -4459,7 +4469,7 @@ const confirmSendBookingEmail = async () => {
                           onClick={() =>
                             downloadPaymentReceipt(transaction, index)
                           }
-                          className="rounded-lg bg-zinc-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-zinc-700"
+                          className="booking-form-small-button rounded-lg px-3 py-2 text-xs font-semibold text-white transition"
                         >
                           ออกใบรับชำระ PDF
                         </button>
@@ -4487,11 +4497,11 @@ const confirmSendBookingEmail = async () => {
                 markFieldEdited("slipImage");
                 handleSlipUpload(event);
               }}
-              className={editableInputClass("slipImage", slipImage, "px-4 py-3")}
+              className={editableInputClass("slipImage", slipImage, "booking-upload-input px-4 py-3")}
             />
 
             {slipImage && slipIsImage && slipPreviewUrl && !slipPreviewFailed && (
-              <div className="mt-3">
+              <div className="booking-upload-preview mt-3">
                 <img
                   src={slipPreviewUrl}
                   alt="หลักฐานการโอน"
@@ -4509,7 +4519,7 @@ const confirmSendBookingEmail = async () => {
             )}
 
             {slipImage && slipIsImage && slipPreviewFailed && (
-              <div className="mt-3 flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-6 py-10 text-center">
+              <div className="booking-upload-preview mt-3 flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-6 py-10 text-center">
                 <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-500">
                   มีไฟล์แนบ
                 </div>
@@ -4524,7 +4534,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                   onClick={() => window.open(slipImage, "_blank", "noopener,noreferrer")}
-                  className="rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                  className="booking-form-primary-button rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-sm transition"
                 >
                   ดูสลิปเต็ม
                 </button>
@@ -4532,7 +4542,7 @@ const confirmSendBookingEmail = async () => {
             )}
 
             {slipImage && slipIsPdf && (
-              <div className="mt-3 flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-6 py-10 text-center">
+              <div className="booking-upload-preview mt-3 flex min-h-[240px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-6 py-10 text-center">
                 <div className="rounded-full bg-zinc-100 px-4 py-2 text-xs font-semibold text-zinc-500">
                   ไฟล์ PDF
                 </div>
@@ -4543,7 +4553,7 @@ const confirmSendBookingEmail = async () => {
                 <button
                   type="button"
                   onClick={() => window.open(slipImage, "_blank", "noopener,noreferrer")}
-                  className="rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-zinc-800"
+                  className="booking-form-primary-button rounded-2xl px-5 py-3 text-sm font-bold text-white shadow-sm transition"
                 >
                   เปิดไฟล์สลิป
                 </button>
@@ -6214,7 +6224,34 @@ const confirmSendBookingEmail = async () => {
         .booking-form-panel textarea {
           min-height: 50px;
           border-radius: 16px;
+          border-color: var(--booking-border);
+          background: #ffffff;
+          color: var(--booking-text);
           font-size: 14px;
+          transition:
+            border-color 180ms ease,
+            box-shadow 180ms ease,
+            background-color 180ms ease;
+        }
+
+        .booking-form-panel input::placeholder,
+        .booking-form-panel textarea::placeholder {
+          color: var(--booking-muted);
+          opacity: 0.78;
+        }
+
+        .booking-form-panel input:focus,
+        .booking-form-panel select:focus,
+        .booking-form-panel textarea:focus {
+          border-color: var(--booking-accent) !important;
+          box-shadow: 0 0 0 4px var(--booking-focus-ring) !important;
+          outline: none;
+        }
+
+        .booking-form-panel .booking-input-edited {
+          border-color: var(--booking-accent) !important;
+          background: color-mix(in srgb, var(--booking-accent-soft) 30%, #ffffff 70%) !important;
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--booking-accent) 12%, transparent) !important;
         }
 
         .booking-form-panel h1 {
@@ -6228,6 +6265,161 @@ const confirmSendBookingEmail = async () => {
 
         .booking-form-toggle {
           background: var(--booking-primary);
+        }
+
+        .booking-form-section {
+          border: 1px solid var(--booking-border) !important;
+          border-radius: 24px !important;
+          padding: 22px !important;
+          background: var(--booking-card) !important;
+          box-shadow: 0 14px 36px var(--booking-card-shadow);
+        }
+
+        .booking-service-section {
+          background: linear-gradient(180deg, #ffffff 0%, rgba(247, 250, 247, 0.76) 100%) !important;
+        }
+
+        .booking-discount-section {
+          border-color: var(--booking-accent-border) !important;
+          background:
+            linear-gradient(180deg, color-mix(in srgb, var(--booking-discount-surface) 88%, #ffffff 12%) 0%, #ffffff 100%) !important;
+        }
+
+        .booking-payment-section {
+          border-color: color-mix(in srgb, var(--booking-success) 22%, var(--booking-border) 78%) !important;
+          background:
+            linear-gradient(180deg, color-mix(in srgb, var(--booking-payment-surface) 86%, #ffffff 14%) 0%, #ffffff 100%) !important;
+        }
+
+        .booking-section-title {
+          position: relative;
+          margin-bottom: 0.35rem;
+          padding-left: 14px;
+          color: var(--booking-primary) !important;
+          font-size: 20px !important;
+          line-height: 1.25;
+          letter-spacing: 0;
+        }
+
+        .booking-section-title::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0.22em;
+          bottom: 0.22em;
+          width: 4px;
+          border-radius: 999px;
+          background: var(--booking-accent);
+          box-shadow: 0 0 0 4px color-mix(in srgb, var(--booking-accent) 16%, transparent);
+        }
+
+        .booking-section-subtitle {
+          color: var(--booking-muted) !important;
+          line-height: 1.45;
+        }
+
+        .booking-form-primary-button,
+        .booking-form-small-button {
+          min-height: 50px;
+          border: 0;
+          background: var(--booking-primary) !important;
+          color: #ffffff !important;
+          box-shadow: 0 12px 26px var(--booking-primary-shadow);
+          font-weight: 800;
+          transition:
+            transform 180ms ease,
+            background-color 180ms ease,
+            box-shadow 180ms ease;
+        }
+
+        .booking-form-primary-button:hover,
+        .booking-form-small-button:hover {
+          background: var(--booking-primary-dark) !important;
+          box-shadow: 0 16px 30px var(--booking-primary-shadow);
+          transform: translateY(-1px);
+        }
+
+        .booking-form-small-button {
+          min-height: 36px;
+          border-radius: 12px;
+          padding: 8px 12px;
+          font-size: 12px;
+        }
+
+        .booking-empty-state {
+          border-color: var(--booking-accent-border) !important;
+          background: color-mix(in srgb, var(--booking-accent-soft) 48%, #ffffff 52%) !important;
+          color: var(--booking-muted) !important;
+          border-radius: 18px !important;
+        }
+
+        .booking-list-item,
+        .booking-summary-card,
+        .booking-status-card,
+        .booking-history-card,
+        .booking-upload-preview {
+          border-color: var(--booking-border) !important;
+          border-radius: 18px !important;
+          background: #ffffff !important;
+          color: var(--booking-text);
+        }
+
+        .booking-list-item {
+          box-shadow: 0 8px 18px rgba(16, 35, 28, 0.045);
+        }
+
+        .booking-summary-card {
+          padding: 14px !important;
+          color: var(--booking-text);
+        }
+
+        .booking-summary-net,
+        .booking-history-title,
+        .booking-history-total {
+          color: var(--booking-primary-dark) !important;
+        }
+
+        .booking-status-card {
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+        }
+
+        .booking-payment-badge {
+          border-color: var(--booking-accent-border) !important;
+          background: color-mix(in srgb, var(--booking-accent-soft) 64%, #ffffff 36%) !important;
+          color: var(--booking-primary-dark) !important;
+        }
+
+        .booking-history-card {
+          border-color: color-mix(in srgb, var(--booking-accent) 32%, var(--booking-border) 68%) !important;
+          padding: 14px !important;
+        }
+
+        .booking-upload-input,
+        .booking-form-panel input[type="file"] {
+          min-height: 52px;
+          border-style: dashed !important;
+          border-color: var(--booking-accent-border) !important;
+          background: color-mix(in srgb, var(--booking-accent-soft) 38%, #ffffff 62%) !important;
+          color: var(--booking-muted);
+          cursor: pointer;
+        }
+
+        .booking-upload-input::file-selector-button,
+        .booking-form-panel input[type="file"]::file-selector-button {
+          margin-right: 12px;
+          border: 0;
+          border-radius: 999px;
+          background: var(--booking-primary);
+          color: #ffffff;
+          padding: 8px 14px;
+          font-size: 13px;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        .booking-upload-preview {
+          border-color: var(--booking-accent-border) !important;
+          background: color-mix(in srgb, var(--booking-accent-soft) 24%, #ffffff 76%) !important;
         }
 
         .booking-right-panel {
