@@ -336,26 +336,26 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
         onClick={onNavigate}
         className="flex items-center gap-3 px-1"
       >
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm">
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm">
           <Image
             src={theme.logo}
             alt={theme.name}
             fill
-            sizes="56px"
+            sizes="48px"
             className="object-contain p-1.5"
           />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-base font-black text-white">
+          <p className="truncate text-[15px] font-black text-white">
             {theme.shortName}
           </p>
-          <p className="mt-0.5 truncate text-[11px] font-semibold uppercase text-white/55">
+          <p className="mt-0.5 truncate text-[10px] font-semibold uppercase text-white/50">
             {theme.tagline}
           </p>
         </div>
       </Link>
 
-      <nav className="mt-7 space-y-1.5">
+      <nav className="mt-6 space-y-1">
         {menuItems.map((item) => {
           const active = isActiveMenu(pathname, item);
 
@@ -365,7 +365,7 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
               href={item.href}
               prefetch={false}
               onClick={onNavigate}
-              className="relative flex min-h-12 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition hover:bg-white/10"
+              className="relative flex min-h-[54px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[14px] font-bold transition hover:bg-white/10"
               style={{
                 backgroundColor: active ? theme.sidebarActiveBg : "transparent",
                 color: active ? "#FFFFFF" : "rgba(255, 255, 255, 0.68)",
@@ -386,11 +386,11 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
                   color: active ? theme.primaryDark : "rgba(255, 255, 255, 0.82)",
                 }}
               >
-                <Icon name={item.icon} className="h-5 w-5" />
+                <Icon name={item.icon} className="h-[18px] w-[18px]" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{item.title}</span>
-                <span className="mt-0.5 block truncate text-[11px] font-semibold text-white/38">
+                <span className="mt-0.5 block truncate text-[11px] font-semibold text-white/34">
                   {item.subtitle}
                 </span>
               </span>
@@ -400,21 +400,21 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
         })}
       </nav>
 
-      <div className="mt-auto pt-6">
-        <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-          <p className="text-xs font-semibold uppercase text-white/45">
+      <div className="mt-auto pt-5">
+        <div className="rounded-xl border border-white/10 bg-white/10 p-3">
+          <p className="text-[10px] font-semibold uppercase text-white/42">
             Signed in
           </p>
-          <p className="mt-1 truncate text-sm font-bold text-white">
+          <p className="mt-1 truncate text-[13px] font-bold text-white">
             {currentUser?.name || currentUser?.username || "Admin"}
           </p>
         </div>
         <button
           type="button"
           onClick={logout}
-          className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/10 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/15"
+          className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/10 px-4 py-2 text-[13px] font-bold text-white transition hover:bg-white/15"
         >
-          <Icon name="logout" className="h-5 w-5" />
+          <Icon name="logout" className="h-[18px] w-[18px]" />
           ออกจากระบบ
         </button>
       </div>
@@ -428,17 +428,17 @@ export default function BrandAppShell({ brandId, children }) {
 
   return (
     <div
-      className="min-h-screen overflow-x-hidden lg:grid lg:grid-cols-[280px_minmax(0,1fr)]"
+      className="min-h-screen overflow-x-hidden"
       style={{ backgroundColor: theme.background, color: theme.text }}
     >
       <aside
-        className="sticky top-0 hidden h-screen overflow-y-auto px-4 py-5 lg:block"
+        className="fixed left-0 top-0 z-50 hidden h-screen w-[270px] overflow-y-auto overflow-x-hidden px-4 py-5 lg:block"
         style={{ backgroundColor: theme.sidebarBg }}
       >
         <BrandSidebar brandId={brandId} />
       </aside>
 
-      <div className="min-w-0">
+      <div className="min-w-0 lg:ml-[270px]">
         <header
           className="sticky top-0 z-40 border-b px-4 py-3 backdrop-blur-xl lg:hidden"
           style={{
@@ -508,7 +508,7 @@ export default function BrandAppShell({ brandId, children }) {
           </div>
         )}
 
-        <main className="min-w-0">{children}</main>
+        <main className="min-w-0 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

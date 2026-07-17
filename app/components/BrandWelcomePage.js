@@ -22,6 +22,13 @@ const welcomeCopy = {
       "radial-gradient(circle_at_center, rgba(255,255,255,0.07), transparent 45%)",
     logoBg: "#10291d",
     logoShadow: "rgba(0,0,0,0.42)",
+    titleClassName:
+      "bg-gradient-to-b from-white via-[#d7d2c8] to-[#858078] text-[clamp(2.875rem,6.2vw,5.75rem)]",
+    buttonBg: "#CDAE77",
+    buttonHover: "#B9965D",
+    ringColor: "#CDAE77",
+    ringSoftColor: "rgba(205,174,119,0.45)",
+    logoGlowColor: "rgba(15,61,49,0.35)",
   },
   adisorn: {
     backgroundImage: "/adisorn-wedding-bg.jpg",
@@ -35,6 +42,13 @@ const welcomeCopy = {
     logoClassName: "object-contain p-2",
     overlay:
       "linear-gradient(180deg, rgba(40, 18, 8, 0.8), rgba(38, 17, 7, 0.9))",
+    titleClassName:
+      "bg-gradient-to-b from-white via-[#F4D6B2] to-[#B87538] text-[clamp(2.625rem,5.6vw,5.125rem)]",
+    buttonBg: "#D6A55F",
+    buttonHover: "#BE8844",
+    ringColor: "#D6A55F",
+    ringSoftColor: "rgba(214,165,95,0.45)",
+    logoGlowColor: "rgba(58,36,24,0.35)",
   },
 };
 
@@ -82,45 +96,47 @@ export default function BrandWelcomePage({ brandId }) {
             </div>
           </div>
 
-          <p className="mt-8 max-w-[92vw] text-center text-xs font-black uppercase tracking-[0.34em] text-white/62 drop-shadow-[0_3px_18px_rgba(0,0,0,0.9)] sm:text-sm">
+          <p className="mt-8 max-w-[92vw] text-center text-[clamp(11px,0.9vw,15px)] font-bold uppercase tracking-[0.34em] text-white/62 drop-shadow-[0_3px_18px_rgba(0,0,0,0.9)]">
             {copy.eyebrow}
           </p>
-          <p className="mt-4 text-sm font-black uppercase tracking-[0.34em] text-white/72 drop-shadow-[0_3px_18px_rgba(0,0,0,0.9)] sm:text-base">
+          <p className="mt-5 text-[clamp(13px,1vw,18px)] font-extrabold uppercase tracking-[0.34em] text-white/72 drop-shadow-[0_3px_18px_rgba(0,0,0,0.9)]">
             {copy.subEyebrow}
           </p>
 
-          <h1 className="mt-5 w-full max-w-[calc(100vw-40px)] text-center leading-[1.04]">
-            <span className="block text-3xl font-bold text-white/95 drop-shadow-[0_5px_20px_rgba(0,0,0,0.95)] sm:text-4xl">
+          <h1 className="mt-6 w-full max-w-[calc(100vw-40px)] text-center leading-[0.98]">
+            <span className="block text-[clamp(28px,3vw,48px)] font-extrabold text-white/95 drop-shadow-[0_5px_20px_rgba(0,0,0,0.95)]">
               Welcome to
             </span>
-            <span className="mx-auto mt-3 block w-full whitespace-normal break-words bg-gradient-to-b from-white via-[#d7d2c8] to-[#858078] bg-clip-text px-1 text-[clamp(2.35rem,4.9vw,5.35rem)] font-black text-transparent drop-shadow-[0_11px_28px_rgba(0,0,0,0.95)] sm:whitespace-nowrap">
+            <span
+              className={`mx-auto mt-3 block w-full whitespace-normal break-words bg-clip-text px-1 font-black text-transparent drop-shadow-[0_11px_28px_rgba(0,0,0,0.95)] lg:whitespace-nowrap ${copy.titleClassName}`}
+            >
               {copy.title}
             </span>
           </h1>
 
-          <p className="mt-7 max-w-[860px] text-balance text-base font-semibold leading-8 text-white/68 drop-shadow-[0_3px_16px_rgba(0,0,0,0.9)] sm:text-lg">
+          <p className="mt-7 max-w-[760px] text-balance text-[clamp(15px,1.25vw,22px)] font-semibold leading-[1.7] text-white/68 drop-shadow-[0_3px_16px_rgba(0,0,0,0.9)]">
             {copy.description}
           </p>
 
           <button
             type="button"
             onClick={openDashboard}
-            className="mt-9 inline-flex h-[58px] min-w-[220px] items-center justify-center gap-4 rounded-full bg-[#CDAE77] px-[38px] py-[14px] text-[17px] font-extrabold text-[#0B0B0D] shadow-[0_18px_42px_rgba(205,174,119,0.24)] transition hover:-translate-y-0.5 hover:bg-[#B9965D] active:translate-y-0"
+            className="mt-9 inline-flex h-[56px] min-w-[220px] items-center justify-center gap-4 rounded-full bg-[#CDAE77] px-[34px] py-[13px] text-[16px] font-extrabold text-[#0B0B0D] shadow-[0_18px_42px_rgba(205,174,119,0.24)] transition hover:-translate-y-0.5 hover:bg-[#B9965D] active:translate-y-0 sm:h-[58px] sm:px-[38px] sm:text-[17px]"
           >
             เริ่มใช้งานระบบ
             <span aria-hidden="true">→</span>
           </button>
 
-          <p className="mt-6 text-xs font-semibold text-white/42 sm:text-sm">
-            {copy.signedInText}
-          </p>
+            <p className="mt-5 text-[clamp(12px,0.9vw,15px)] font-semibold text-white/42 sm:mt-6">
+              {copy.signedInText}
+            </p>
 
           <p className="absolute bottom-[-116px] text-[10px] font-black uppercase tracking-[0.14em] text-white/14 sm:text-xs">
             {copy.footerNote}
           </p>
         </section>
         <style jsx>{`
-          @keyframes slowSpin {
+          @keyframes welcomeRingSpin {
             from {
               transform: rotate(0deg);
             }
@@ -129,7 +145,7 @@ export default function BrandWelcomePage({ brandId }) {
             }
           }
 
-          @keyframes softPulse {
+          @keyframes welcomeSoftPulse {
             0%,
             100% {
               opacity: 0.45;
@@ -141,7 +157,7 @@ export default function BrandWelcomePage({ brandId }) {
             }
           }
 
-          @keyframes logoGlow {
+          @keyframes welcomeGlowBreath {
             0%,
             100% {
               opacity: 0.72;
@@ -154,17 +170,17 @@ export default function BrandWelcomePage({ brandId }) {
           }
 
           .pharadol-ring-spin {
-            animation: slowSpin 34s linear infinite;
+            animation: welcomeRingSpin 34s linear infinite;
             transform-origin: center;
           }
 
           .pharadol-ring-pulse {
-            animation: softPulse 4.8s ease-in-out infinite;
+            animation: welcomeSoftPulse 4.8s ease-in-out infinite;
             transform-origin: center;
           }
 
           .pharadol-logo-glow {
-            animation: logoGlow 5.4s ease-in-out infinite;
+            animation: welcomeGlowBreath 5.4s ease-in-out infinite;
           }
         `}</style>
       </main>
@@ -183,12 +199,12 @@ export default function BrandWelcomePage({ brandId }) {
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/75 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/70 to-transparent" />
 
-        <section className="relative z-10 flex w-full max-w-[1180px] flex-col items-center text-center">
+        <section className="relative z-10 flex w-full max-w-[1120px] flex-col items-center text-center">
           <div className="relative flex h-28 w-28 items-center justify-center rounded-full sm:h-32 sm:w-32">
-            <div className="absolute inset-[-10px] rounded-full border border-[#D8A96A]/45" />
-            <div className="absolute inset-[-21px] rounded-full border border-dashed border-[#F4D6B2]/22" />
-            <div className="absolute inset-[-30px] rounded-full border border-white/8" />
-            <div className="absolute inset-[-26px] rounded-full bg-[#D8A96A]/14 blur-2xl" />
+            <div className="adisorn-ring-pulse absolute inset-[-10px] rounded-full border border-[#D6A55F]/45" />
+            <div className="adisorn-ring-spin absolute inset-[-21px] rounded-full border border-dashed border-white/22" />
+            <div className="absolute inset-[-30px] rounded-full border border-[#D6A55F]/18" />
+            <div className="adisorn-logo-glow absolute inset-[-26px] rounded-full bg-[#D6A55F]/16 blur-2xl" />
             <div className="relative h-full w-full overflow-hidden rounded-full border border-[#F4D6B2]/24 bg-[#3b1c0a]/88 shadow-[0_0_48px_rgba(0,0,0,0.42),inset_0_0_26px_rgba(216,169,106,0.13)]">
               <Image
                 src={copy.logo}
@@ -201,38 +217,98 @@ export default function BrandWelcomePage({ brandId }) {
             </div>
           </div>
 
-          <p className="mt-8 max-w-[92vw] text-center text-xs font-black uppercase tracking-[0.28em] text-[#F4D6B2]/70 drop-shadow-[0_3px_18px_rgba(0,0,0,0.86)] sm:text-sm">
+          <p className="mt-8 max-w-[92vw] text-center text-[clamp(11px,0.9vw,15px)] font-bold uppercase tracking-[0.28em] text-[#F4D6B2]/70 drop-shadow-[0_3px_18px_rgba(0,0,0,0.86)]">
             {copy.eyebrow}
           </p>
-          <p className="mt-4 text-sm font-black uppercase tracking-[0.3em] text-white/74 drop-shadow-[0_3px_18px_rgba(0,0,0,0.86)] sm:text-base">
+          <p className="mt-5 text-[clamp(13px,1vw,18px)] font-extrabold uppercase tracking-[0.3em] text-white/74 drop-shadow-[0_3px_18px_rgba(0,0,0,0.86)]">
             {copy.subEyebrow}
           </p>
 
-          <h1 className="mt-5 w-full max-w-[calc(100vw-40px)] text-center leading-[1.08]">
-            <span className="block text-3xl font-bold text-white/94 drop-shadow-[0_5px_20px_rgba(0,0,0,0.88)] sm:text-4xl">
+          <h1 className="mt-6 w-full max-w-[calc(100vw-40px)] text-center leading-[1.02]">
+            <span className="block text-[clamp(28px,3vw,48px)] font-extrabold text-white/94 drop-shadow-[0_5px_20px_rgba(0,0,0,0.88)]">
               Welcome to
             </span>
-            <span className="mx-auto mt-3 block w-full whitespace-normal break-words bg-gradient-to-b from-white via-[#F4D6B2] to-[#B87538] bg-clip-text px-1 text-[clamp(2.65rem,5.2vw,5.45rem)] font-black text-transparent drop-shadow-[0_11px_26px_rgba(0,0,0,0.88)] sm:whitespace-nowrap">
+            <span
+              className={`mx-auto mt-3 block w-full whitespace-normal break-words bg-clip-text px-1 font-black text-transparent drop-shadow-[0_11px_26px_rgba(0,0,0,0.88)] lg:whitespace-nowrap ${copy.titleClassName}`}
+            >
               {copy.title}
             </span>
           </h1>
 
-          <p className="mt-7 max-w-[820px] text-balance text-base font-semibold leading-8 text-white/70 drop-shadow-[0_3px_16px_rgba(0,0,0,0.86)] sm:text-lg">
+          <p className="mt-7 max-w-[760px] text-balance text-[clamp(15px,1.25vw,22px)] font-semibold leading-[1.7] text-white/70 drop-shadow-[0_3px_16px_rgba(0,0,0,0.86)]">
             {copy.description}
           </p>
 
           <button
             type="button"
             onClick={openDashboard}
-            className="mt-9 inline-flex min-h-[64px] min-w-[280px] items-center justify-center rounded-full bg-[#D8A96A] px-10 py-4 text-base font-black text-[#111111] shadow-[0_20px_52px_rgba(0,0,0,0.34)] transition hover:-translate-y-0.5 hover:bg-[#BE8844] active:translate-y-0 sm:text-lg"
+            className="mt-9 inline-flex h-[56px] min-w-[220px] items-center justify-center gap-4 rounded-full bg-[#D6A55F] px-[34px] py-[13px] text-[16px] font-extrabold text-[#111111] shadow-[0_18px_42px_rgba(214,165,95,0.24)] transition hover:-translate-y-0.5 hover:bg-[#BE8844] active:translate-y-0 sm:h-[58px] sm:px-[38px] sm:text-[17px]"
           >
             เริ่มใช้งานระบบ
+            <span aria-hidden="true">→</span>
           </button>
 
-          <p className="mt-6 text-xs font-semibold text-white/42 sm:text-sm">
-            {copy.signedInText}
+          <p className="mt-5 text-[clamp(12px,0.9vw,15px)] font-semibold uppercase text-white/42 sm:mt-6">
+            เข้าสู่ระบบโดย ADISORN WEDDING STUDIO
           </p>
         </section>
+        <style jsx>{`
+          @keyframes welcomeRingSpin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          @keyframes welcomeRingReverseSpin {
+            from {
+              transform: rotate(360deg);
+            }
+            to {
+              transform: rotate(0deg);
+            }
+          }
+
+          @keyframes welcomeSoftPulse {
+            0%,
+            100% {
+              opacity: 0.42;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.86;
+              transform: scale(1.045);
+            }
+          }
+
+          @keyframes welcomeGlowBreath {
+            0%,
+            100% {
+              opacity: 0.74;
+              filter: drop-shadow(0 0 14px rgba(214, 165, 95, 0.18));
+            }
+            50% {
+              opacity: 0.96;
+              filter: drop-shadow(0 0 28px rgba(214, 165, 95, 0.34));
+            }
+          }
+
+          .adisorn-ring-spin {
+            animation: welcomeRingReverseSpin 38s linear infinite;
+            transform-origin: center;
+          }
+
+          .adisorn-ring-pulse {
+            animation: welcomeSoftPulse 5.2s ease-in-out infinite;
+            transform-origin: center;
+          }
+
+          .adisorn-logo-glow {
+            animation: welcomeGlowBreath 5.6s ease-in-out infinite;
+          }
+        `}</style>
       </main>
     );
   }
