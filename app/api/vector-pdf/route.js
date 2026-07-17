@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import puppeteerCore from "puppeteer-core";
 
@@ -7,6 +8,10 @@ export const maxDuration = 60;
 
 let cachedChromiumPath = "";
 let chromiumDownloadPromise = null;
+let sharedBrowserPromise = null;
+let latestPdfCache = null;
+
+const PDF_CACHE_TTL_MS = 10 * 60 * 1000;
 
 const sanitizeFilename = (value) => {
   const cleaned = String(value || "booking.pdf")
@@ -18,6 +23,17 @@ const sanitizeFilename = (value) => {
     ? cleaned
     : `${cleaned || "booking"}.pdf`;
 };
+
+const createPdfResponse = (pdfBuffer, filename) =>
+  new Response(pdfBuffer, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition":
+        `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store",
+    },
+  });
 
 const getLocalChromePath = () => {
   const candidates = [
@@ -114,8 +130,46 @@ const launchBrowser = async (requestOrigin) => {
   });
 };
 
+const getSharedBrowser = async (requestOrigin) => {
+  if (sharedBrowserPromise) {
+    try {
+      const existingBrowser =
+        await sharedBrowserPromise;
+
+      if (existingBrowser?.connected) {
+        return existingBrowser;
+      }
+    } catch {
+      // เปิด Browser ใหม่ด้านล่าง
+    }
+
+    sharedBrowserPromise = null;
+  }
+
+  const launchPromise = launchBrowser(requestOrigin);
+  sharedBrowserPromise = launchPromise;
+
+  try {
+    const browser = await launchPromise;
+
+    browser.once("disconnected", () => {
+      if (sharedBrowserPromise === launchPromise) {
+        sharedBrowserPromise = null;
+      }
+    });
+
+    return browser;
+  } catch (error) {
+    if (sharedBrowserPromise === launchPromise) {
+      sharedBrowserPromise = null;
+    }
+
+    throw error;
+  }
+};
+
 export async function POST(request) {
-  let browser;
+  let browserContext;
 
   try {
     const payload = await request.json();
@@ -169,10 +223,36 @@ export async function POST(request) {
       );
     }
 
-    browser = await launchBrowser(requestOrigin);
+    const serverCacheKey = createHash("sha256")
+      .update(filename)
+      .update("\u0000")
+      .update(html)
+      .digest("hex");
 
-    const page = await browser.newPage();
+    if (
+      latestPdfCache?.key === serverCacheKey &&
+      Date.now() - latestPdfCache.createdAt <
+        PDF_CACHE_TTL_MS &&
+      latestPdfCache.buffer?.length > 0
+    ) {
+      return createPdfResponse(
+        latestPdfCache.buffer,
+        filename
+      );
+    }
 
+    const browser =
+      await getSharedBrowser(requestOrigin);
+
+    browserContext =
+      await browser.createBrowserContext();
+
+    const page = await browserContext.newPage();
+
+    page.setDefaultNavigationTimeout(30_000);
+    page.setDefaultTimeout(30_000);
+
+    await page.setCacheEnabled(true);
     await page.setRequestInterception(true);
 
     page.on("request", (resourceRequest) => {
@@ -207,11 +287,8 @@ export async function POST(request) {
     await page.emulateMediaType("screen");
 
     await page.setContent(html, {
-      waitUntil: [
-        "domcontentloaded",
-        "networkidle0",
-      ],
-      timeout: 45_000,
+      waitUntil: "load",
+      timeout: 30_000,
     });
 
     await page.evaluate(async () => {
@@ -219,42 +296,42 @@ export async function POST(request) {
         await document.fonts.ready;
       }
 
-      const images = Array.from(
+      const pendingImages = Array.from(
         document.querySelectorAll("img")
-      );
+      ).filter((image) => !image.complete);
 
       await Promise.allSettled(
-        images.map(
+        pendingImages.map(
           (image) =>
             new Promise((resolve) => {
-              if (image.complete) {
-                resolve();
-                return;
-              }
-
               const timer = window.setTimeout(
                 resolve,
-                6000
+                2500
               );
+
+              const finish = () => {
+                window.clearTimeout(timer);
+                resolve();
+              };
 
               image.addEventListener(
                 "load",
-                () => {
-                  window.clearTimeout(timer);
-                  resolve();
-                },
+                finish,
                 { once: true }
               );
 
               image.addEventListener(
                 "error",
-                () => {
-                  window.clearTimeout(timer);
-                  resolve();
-                },
+                finish,
                 { once: true }
               );
             })
+        )
+      );
+
+      await new Promise((resolve) =>
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(resolve)
         )
       );
     });
@@ -272,29 +349,43 @@ export async function POST(request) {
       timeout: 45_000,
     });
 
-    return new Response(Buffer.from(pdf), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition":
-          `attachment; filename="${filename}"`,
-        "Cache-Control": "no-store",
-      },
-    });
+    const pdfBuffer = Buffer.from(pdf);
+
+    latestPdfCache = {
+      key: serverCacheKey,
+      buffer: pdfBuffer,
+      createdAt: Date.now(),
+    };
+
+    return createPdfResponse(
+      pdfBuffer,
+      filename
+    );
   } catch (error) {
-    console.error("Vector PDF generation error:", error);
+    const message =
+      error?.message ||
+      "ไม่สามารถสร้าง PDF แบบคมชัดได้";
+
+    if (
+      /browser.*disconnect|browser.*closed|target closed|session closed|protocol error/i.test(
+        message
+      )
+    ) {
+      sharedBrowserPromise = null;
+    }
+
+    console.error(
+      "Vector PDF generation error:",
+      error
+    );
 
     return Response.json(
-      {
-        error:
-          error?.message ||
-          "ไม่สามารถสร้าง PDF แบบคมชัดได้",
-      },
+      { error: message },
       { status: 500 }
     );
   } finally {
-    if (browser) {
-      await browser.close().catch(() => {});
+    if (browserContext) {
+      await browserContext.close().catch(() => {});
     }
   }
 }

@@ -559,6 +559,7 @@ const [bookingPreviewScale, setBookingPreviewScale] = useState(1);
 const saveLockRef = useRef(false);
 const emailSendLockRef = useRef(false);
 const attachmentLockRef = useRef(false);
+const bookingPdfCacheRef = useRef(null);
 const bookingPreviewPanelRef = useRef(null);
 
 const markFieldEdited = (fieldName) => {
@@ -3997,50 +3998,123 @@ const createBookingVectorPdfHtml = async () => {
   }
 };
 
+
+const createBookingPdfCacheKey = async (html, filename) => {
+  const source = `${filename}\u0000${html}`;
+
+  if (window.crypto?.subtle) {
+    const encoded = new TextEncoder().encode(source);
+    const digest = await window.crypto.subtle.digest(
+      "SHA-256",
+      encoded
+    );
+
+    return Array.from(new Uint8Array(digest))
+      .map((value) => value.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  let hash = 2166136261;
+
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return `fallback-${(hash >>> 0).toString(16)}-${source.length}`;
+};
+
 const createBookingPdfAttachment = async () => {
   const filename = `${bookingNumber || "booking"}-booking.pdf`;
   const vectorDocument =
     await createBookingVectorPdfHtml();
 
-  const response = await fetch("/api/vector-pdf", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      html: vectorDocument.html,
-      origin: vectorDocument.origin,
-      filename,
-    }),
-  });
+  const cacheKey = await createBookingPdfCacheKey(
+    vectorDocument.html,
+    filename
+  );
 
-  if (!response.ok) {
-    const result = await response.json().catch(() => ({}));
-
-    throw new Error(
-      result?.error ||
-        "ไม่สามารถสร้าง PDF แบบคมชัดได้"
-    );
-  }
-
-  const blob = await response.blob();
+  const existingCache = bookingPdfCacheRef.current;
 
   if (
-    !blob ||
-    blob.size === 0 ||
-    !String(blob.type).includes("pdf")
+    existingCache?.key === cacheKey &&
+    existingCache?.attachment?.blob?.size > 0
   ) {
-    throw new Error("ระบบได้รับไฟล์ PDF ที่ไม่สมบูรณ์");
+    return existingCache.attachment;
   }
 
-  const base64 = await blobToBase64(blob);
+  if (
+    existingCache?.key === cacheKey &&
+    existingCache?.promise
+  ) {
+    return existingCache.promise;
+  }
 
-  return {
-    filename,
-    blob,
-    base64,
+  const creationPromise = (async () => {
+    const response = await fetch("/api/vector-pdf", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        html: vectorDocument.html,
+        origin: vectorDocument.origin,
+        filename,
+      }),
+    });
+
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+
+      throw new Error(
+        result?.error ||
+          "ไม่สามารถสร้าง PDF แบบคมชัดได้"
+      );
+    }
+
+    const blob = await response.blob();
+
+    if (
+      !blob ||
+      blob.size === 0 ||
+      !String(blob.type).includes("pdf")
+    ) {
+      throw new Error("ระบบได้รับไฟล์ PDF ที่ไม่สมบูรณ์");
+    }
+
+    const base64 = await blobToBase64(blob);
+
+    return {
+      filename,
+      blob,
+      base64,
+    };
+  })();
+
+  bookingPdfCacheRef.current = {
+    key: cacheKey,
+    promise: creationPromise,
+    attachment: null,
   };
-};;;;
+
+  try {
+    const attachment = await creationPromise;
+
+    bookingPdfCacheRef.current = {
+      key: cacheKey,
+      promise: null,
+      attachment,
+    };
+
+    return attachment;
+  } catch (error) {
+    if (bookingPdfCacheRef.current?.key === cacheKey) {
+      bookingPdfCacheRef.current = null;
+    }
+
+    throw error;
+  }
+};
 
 const downloadBlob = (blob, filename) => {
   const url = URL.createObjectURL(blob);
