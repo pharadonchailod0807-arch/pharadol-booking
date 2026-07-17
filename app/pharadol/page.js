@@ -2230,7 +2230,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
           <main class="page">
             <header class="header">
               <div class="brand-wrap">
-                <img class="brand-logo" src="/customer-form/pharadol-logo-gold-transparent-v2.png" alt="PHARADOL PRODUCTION" />
+                <img class="brand-logo" src="/pharadol-logo.jpeg" alt="PHARADOL PRODUCTION" />
                 <div class="brand">
                   <p>FILM &amp; STILL</p>
                   <h1>PHARADOL PRODUCTION</h1>
@@ -5060,7 +5060,7 @@ const confirmSendBookingEmail = async () => {
             <div className="flex items-center gap-2">
 
               <img
-                src="/customer-form/pharadol-logo-gold-transparent-v2.png"
+                src="/pharadol-logo.jpeg"
                 alt="logo"
                 className={`${isDenseDocument ? "w-28 h-28 -ml-4" : "w-36 h-36 -ml-6"} rounded-full object-cover`}
               />
@@ -5309,7 +5309,7 @@ const confirmSendBookingEmail = async () => {
           <div className="-mt-4 -translate-y-3 flex justify-between items-center pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <img
-                src="/customer-form/pharadol-logo-gold-transparent-v2.png"
+                src="/pharadol-logo.jpeg"
                 alt="logo"
                 className="w-36 h-36 -ml-6 rounded-full object-cover"
               />
@@ -5559,7 +5559,7 @@ const confirmSendBookingEmail = async () => {
           <div className="-mt-4 -translate-y-3 flex justify-between items-center pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <img
-                src="/customer-form/pharadol-logo-gold-transparent-v2.png"
+                src="/pharadol-logo.jpeg"
                 alt="logo"
                 className="w-36 h-36 -ml-6 rounded-full object-cover"
               />
@@ -5796,7 +5796,7 @@ const confirmSendBookingEmail = async () => {
           <div className="-mt-4 -translate-y-3 flex justify-between items-center pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <img
-                src="/customer-form/pharadol-logo-gold-transparent-v2.png"
+                src="/pharadol-logo.jpeg"
                 alt="logo"
                 className="w-36 h-36 -ml-6 rounded-full object-cover"
               />
