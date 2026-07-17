@@ -39,7 +39,7 @@ const welcomeCopy = {
     description:
       "ระบบจัดการงานแต่งงาน ลูกค้า ใบจอง ปฏิทิน รายได้ และข้อมูลสำคัญของสตูดิโอ",
     signedInText: "เข้าสู่ระบบโดย Adisorn Wedding Studio",
-    logoClassName: "object-contain p-2",
+    logoClassName: "scale-[2.4] object-cover",
     overlay:
       "linear-gradient(180deg, rgba(42, 23, 16, 0.74), rgba(26, 14, 10, 0.88))",
     titleClassName:
