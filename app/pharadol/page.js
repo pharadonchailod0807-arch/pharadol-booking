@@ -431,9 +431,11 @@ const [draftStatus, setDraftStatus] = useState("");
 const [isDraftReady, setIsDraftReady] = useState(false);
 const [isAuthorized, setIsAuthorized] = useState(false);
 const [editedFields, setEditedFields] = useState({});
+const [bookingPreviewScale, setBookingPreviewScale] = useState(1);
 const saveLockRef = useRef(false);
 const emailSendLockRef = useRef(false);
 const attachmentLockRef = useRef(false);
+const bookingPreviewPanelRef = useRef(null);
 
 const markFieldEdited = (fieldName) => {
   setEditedFields((currentFields) =>
@@ -647,6 +649,41 @@ const chooseLocationSuggestion = (suggestion) => {
       return () => window.clearTimeout(timer);
     }
   }, [isAuthorized]);
+
+  useEffect(() => {
+    if (!isAuthorized) return;
+
+    const previewPanel = bookingPreviewPanelRef.current;
+    if (!previewPanel) return;
+
+    const updatePreviewScale = () => {
+      const panelWidth = previewPanel.clientWidth || 0;
+      const availableWidth = Math.max(0, panelWidth - 40);
+      const nextScale = Math.min(1, Math.max(0.72, availableWidth / 794));
+
+      setBookingPreviewScale((currentScale) => {
+        const roundedScale = Number(nextScale.toFixed(3));
+        return Math.abs(currentScale - roundedScale) > 0.005
+          ? roundedScale
+          : currentScale;
+      });
+    };
+
+    updatePreviewScale();
+
+    const resizeObserver =
+      typeof ResizeObserver === "function"
+        ? new ResizeObserver(updatePreviewScale)
+        : null;
+
+    resizeObserver?.observe(previewPanel);
+    window.addEventListener("resize", updatePreviewScale);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updatePreviewScale);
+    };
+  }, [isAuthorized, isSidebarCollapsed, isViewMode]);
 
   useEffect(() => {
     if (!isAuthorized || normalizedLocationInput.length < 2) {
@@ -3292,6 +3329,7 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
   }
 
   const cleanupSlipPreviewForCapture = await prepareSlipPreviewForCapture();
+  document.body.classList.add("booking-exporting");
 
   try {
     applyBookingPageNumbers(pages);
@@ -3353,6 +3391,7 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
 
     return images;
   } finally {
+    document.body.classList.remove("booking-exporting");
     await cleanupSlipPreviewForCapture();
   }
 };
@@ -4818,11 +4857,13 @@ const confirmSendBookingEmail = async () => {
       {/* ========================= */}
 
       <div
+        ref={bookingPreviewPanelRef}
         className={`booking-preview-panel print-container min-w-0 overflow-x-auto pb-10 transition-all duration-300 ${
           isViewMode
             ? "col-span-full px-4 pt-0"
             : "px-0 pt-0"
         }`}
+        style={{ "--booking-preview-scale": bookingPreviewScale }}
       >
         {isViewMode && (
           <div className="no-print mx-auto mb-5 flex w-full min-w-[min(210mm,calc(100vw-32px))] max-w-[210mm] flex-col gap-3 rounded-[22px] border border-zinc-200 bg-white/90 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
@@ -6227,9 +6268,26 @@ const confirmSendBookingEmail = async () => {
 
         .booking-preview-panel .print-area {
           flex: 0 0 auto;
+          zoom: var(--booking-preview-scale, 1);
           margin-left: auto;
           margin-right: auto;
           box-shadow: 0 20px 60px rgba(16, 35, 28, 0.10);
+        }
+
+        @supports not (zoom: 1) {
+          .booking-preview-panel .print-area {
+            transform: scale(var(--booking-preview-scale, 1));
+            transform-origin: top left;
+            margin-left: max(0px, calc((100% - (210mm * var(--booking-preview-scale, 1))) / 2));
+            margin-right: 0;
+          }
+        }
+
+        body.booking-exporting .booking-preview-panel .print-area {
+          zoom: 1 !important;
+          transform: none !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
         }
 
         @media (max-width: 1500px) {
@@ -6333,6 +6391,8 @@ const confirmSendBookingEmail = async () => {
             height: 297mm !important;
             min-height: 297mm !important;
             margin: 0 auto !important;
+            zoom: 1 !important;
+            transform: none !important;
             padding: 10mm !important;
             box-sizing: border-box !important;
             box-shadow: none !important;
