@@ -2230,7 +2230,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
           <main class="page">
             <header class="header">
               <div class="brand-wrap">
-                <img class="brand-logo" src="/pharadol-logo.png" alt="PHARADOL PRODUCTION" />
+                <img class="brand-logo" src="/customer-form/pharadol-logo-gold-transparent-v2.png" alt="PHARADOL PRODUCTION" />
                 <div class="brand">
                   <p>FILM &amp; STILL</p>
                   <h1>PHARADOL PRODUCTION</h1>
@@ -3321,7 +3321,18 @@ const prepareSlipPreviewForCapture = async () => {
   };
 };
 
-const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
+const withTimeout = (promise, timeoutMs, message) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      window.setTimeout(() => reject(new Error(message)), timeoutMs)
+    ),
+  ]);
+
+const captureBookingPagesAsJpegs = async (
+  jpegQuality = 0.86,
+  onProgress = null
+) => {
   const html2canvas = (await import("html2canvas-pro")).default;
   const pages = Array.from(document.querySelectorAll(".print-area"));
 
@@ -3329,57 +3340,100 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
     throw new Error("ไม่พบหน้าเอกสารสำหรับสร้างไฟล์");
   }
 
-  const cleanupSlipPreviewForCapture = await prepareSlipPreviewForCapture();
+  const cleanupSlipPreviewForCapture =
+    await prepareSlipPreviewForCapture();
+
   document.body.classList.add("booking-exporting");
 
   try {
     applyBookingPageNumbers(pages);
 
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-    await waitForCaptureImages(document);
+    await new Promise((resolve) =>
+      window.requestAnimationFrame(resolve)
+    );
+
+    await withTimeout(
+      waitForCaptureImages(document),
+      12000,
+      "โหลดรูปภาพในเอกสารนานเกินไป กรุณาลองใหม่อีกครั้ง"
+    );
 
     const images = [];
 
     for (let index = 0; index < pages.length; index += 1) {
       const page = pages[index];
+      const pageNumber = index + 1;
+
+      onProgress?.(pageNumber, pages.length);
+
+      await new Promise((resolve) =>
+        window.requestAnimationFrame(resolve)
+      );
+
       const pageRect = page.getBoundingClientRect();
-      const captureWidth = Math.ceil(pageRect.width || page.offsetWidth || 794);
-      const captureHeight = Math.ceil(pageRect.height || page.offsetHeight || 1123);
+      const captureWidth = Math.ceil(
+        pageRect.width || page.offsetWidth || 794
+      );
+      const captureHeight = Math.ceil(
+        pageRect.height || page.offsetHeight || 1123
+      );
 
-      const canvas = await html2canvas(page, {
-        scale: 1.35,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        width: captureWidth,
-        height: captureHeight,
-        windowWidth: Math.max(document.documentElement.scrollWidth, captureWidth),
-        windowHeight: Math.max(document.documentElement.scrollHeight, captureHeight),
-        scrollX: -window.scrollX,
-        scrollY: -window.scrollY,
-        ignoreElements: (element) => element.classList?.contains("no-print"),
-        onclone: (clonedDocument) => {
-          const clonedPages = clonedDocument.querySelectorAll(".print-area");
-          const clonedPage = clonedPages[index];
+      const canvas = await withTimeout(
+        html2canvas(page, {
+          scale: 1.1,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
+          logging: false,
+          imageTimeout: 8000,
+          removeContainer: true,
+          width: captureWidth,
+          height: captureHeight,
+          windowWidth: Math.max(
+            window.innerWidth || 0,
+            captureWidth
+          ),
+          windowHeight: Math.max(
+            window.innerHeight || 0,
+            captureHeight
+          ),
+          scrollX: -window.scrollX,
+          scrollY: -window.scrollY,
+          ignoreElements: (element) =>
+            element.classList?.contains("no-print"),
+          onclone: (clonedDocument) => {
+            const clonedPages =
+              clonedDocument.querySelectorAll(".print-area");
+            const clonedPage = clonedPages[index];
 
-          if (clonedPage instanceof HTMLElement) {
-            clonedPage.style.boxShadow = "none";
-            clonedPage.style.margin = "0";
-          }
-        },
-      });
+            if (clonedPage instanceof HTMLElement) {
+              clonedPage.style.boxShadow = "none";
+              clonedPage.style.margin = "0";
+            }
+          },
+        }),
+        20000,
+        `การสร้างไฟล์หน้า ${pageNumber} ใช้เวลานานเกินไป กรุณาลองใหม่`
+      );
 
       if (isCanvasMostlyBlank(canvas)) {
-        throw new Error(`สร้างไฟล์หน้า ${index + 1} แล้วได้หน้าว่าง กรุณาลองใหม่อีกครั้ง`);
+        throw new Error(
+          `สร้างไฟล์หน้า ${pageNumber} แล้วได้หน้าว่าง กรุณาลองใหม่อีกครั้ง`
+        );
       }
 
-      const imageBlob = await new Promise((resolve) =>
-        canvas.toBlob(resolve, "image/jpeg", jpegQuality)
+      const imageBlob = await withTimeout(
+        new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/jpeg", jpegQuality)
+        ),
+        10000,
+        `ไม่สามารถแปลงหน้า ${pageNumber} เป็นรูปภาพได้`
       );
 
       if (!imageBlob) {
-        throw new Error(`ไม่สามารถสร้างไฟล์หน้า ${index + 1} ได้`);
+        throw new Error(
+          `ไม่สามารถสร้างไฟล์หน้า ${pageNumber} ได้`
+        );
       }
 
       images.push({
@@ -3388,6 +3442,10 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
         height: canvas.height,
         bytes: new Uint8Array(await imageBlob.arrayBuffer()),
       });
+
+      await new Promise((resolve) =>
+        window.setTimeout(resolve, 0)
+      );
     }
 
     return images;
@@ -3395,16 +3453,39 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
     document.body.classList.remove("booking-exporting");
     await cleanupSlipPreviewForCapture();
   }
-};
+};;
 
-const createBookingPdfAttachment = async () => {
-  const images = await captureBookingPagesAsJpegs(0.92);
+const createBookingPdfAttachment = async (
+  includeBase64 = false
+) => {
+  const images = await withTimeout(
+    captureBookingPagesAsJpegs(
+      0.86,
+      (currentPage, totalPages) => {
+        setEmailSendMessage(
+          `กำลังเตรียมไฟล์หน้า ${currentPage}/${totalPages}...`
+        );
+      }
+    ),
+    60000,
+    "การสร้าง PDF ใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง"
+  );
+
+  setEmailSendMessage("กำลังรวมไฟล์ PDF...");
+
   const filename = `${bookingNumber || "booking"}-booking.pdf`;
   const blob = createPdfBlobFromJpegs(images);
-  const base64 = await blobToBase64(blob);
+
+  const base64 = includeBase64
+    ? await withTimeout(
+        blobToBase64(blob),
+        15000,
+        "การเตรียมไฟล์สำหรับอีเมลใช้เวลานานเกินไป"
+      )
+    : "";
 
   return { filename, blob, base64 };
-};
+};;
 
 const downloadBlob = (blob, filename) => {
   const url = URL.createObjectURL(blob);
@@ -3610,7 +3691,7 @@ const sendBookingEmail = async () => {
   let pdfAttachment;
 
   try {
-    pdfAttachment = await createBookingPdfAttachment();
+    pdfAttachment = await createBookingPdfAttachment(true);
   } catch (error) {
     console.error("Cannot create booking PDF attachment", error);
     window.alert(error.message || "ไม่สามารถสร้างไฟล์ PDF แนบอีเมลได้");
@@ -3670,7 +3751,7 @@ const sendBookingSms = async () => {
       )
     );
 
-    const pdfAttachment = await createBookingPdfAttachment();
+    const pdfAttachment = await createBookingPdfAttachment(false);
     const pdfFile =
       typeof File === "function"
         ? new File([pdfAttachment.blob], pdfAttachment.filename, {
@@ -4979,7 +5060,7 @@ const confirmSendBookingEmail = async () => {
             <div className="flex items-center gap-2">
 
               <img
-                src="/pharadol-logo.png"
+                src="/customer-form/pharadol-logo-gold-transparent-v2.png"
                 alt="logo"
                 className={`${isDenseDocument ? "w-28 h-28 -ml-4" : "w-36 h-36 -ml-6"} rounded-full object-cover`}
               />
@@ -5228,7 +5309,7 @@ const confirmSendBookingEmail = async () => {
           <div className="-mt-4 -translate-y-3 flex justify-between items-center pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <img
-                src="/pharadol-logo.png"
+                src="/customer-form/pharadol-logo-gold-transparent-v2.png"
                 alt="logo"
                 className="w-36 h-36 -ml-6 rounded-full object-cover"
               />
@@ -5478,7 +5559,7 @@ const confirmSendBookingEmail = async () => {
           <div className="-mt-4 -translate-y-3 flex justify-between items-center pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <img
-                src="/pharadol-logo.png"
+                src="/customer-form/pharadol-logo-gold-transparent-v2.png"
                 alt="logo"
                 className="w-36 h-36 -ml-6 rounded-full object-cover"
               />
@@ -5715,7 +5796,7 @@ const confirmSendBookingEmail = async () => {
           <div className="-mt-4 -translate-y-3 flex justify-between items-center pb-2 shrink-0">
             <div className="flex items-center gap-2">
               <img
-                src="/pharadol-logo.png"
+                src="/customer-form/pharadol-logo-gold-transparent-v2.png"
                 alt="logo"
                 className="w-36 h-36 -ml-6 rounded-full object-cover"
               />
@@ -6011,7 +6092,7 @@ const confirmSendBookingEmail = async () => {
                 <span className="text-lg">@</span>
                 <span>
                   {preparingSendChannel === "email"
-                    ? "กำลังเตรียมไฟล์..."
+                    ? emailSendMessage || "กำลังเตรียมไฟล์..."
                     : "ส่งอีเมลให้ลูกค้า"}
                 </span>
               </button>
