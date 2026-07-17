@@ -2397,7 +2397,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
                 if (!page) throw new Error("ไม่พบหน้าเอกสาร");
 
                 const canvas = await html2canvas(page, {
-                  scale: 2,
+                  scale: 1.35,
                   useCORS: true,
                   backgroundColor: "#ffffff",
                   logging: false,
@@ -5992,7 +5992,7 @@ const confirmSendBookingEmail = async () => {
                 <span className="text-lg">@</span>
                 <span>
                   {isPreparingAttachment
-                    ? "กำลังสร้าง PDF..."
+                    ? emailSendMessage || "กำลังเตรียมไฟล์..."
                     : "ส่งอีเมลให้ลูกค้า"}
                 </span>
               </button>
@@ -6003,9 +6003,9 @@ const confirmSendBookingEmail = async () => {
                 disabled={isPreparingAttachment}
                 className={actionSendButtonClass}
               >
-                <span className="text-lg">SMS</span>
+                <span className={`${actionSendButtonClass} ${isPreparingAttachment ? "cursor-not-allowed opacity-70" : ""}`}
                 <span>
-                  {isPreparingAttachment ? "กำลังสร้าง PDF..." : "ส่งทาง SMS"}
+                  {isPreparingAttachment ? emailSendMessage || "กำลังเตรียมไฟล์..." : "ส่งทาง SMS"}
                 </span>
               </button>
             </div>
