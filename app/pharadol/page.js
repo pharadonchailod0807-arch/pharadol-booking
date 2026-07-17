@@ -417,6 +417,7 @@ const [emailSendMessage, setEmailSendMessage] = useState("");
 const [emailSendStatus, setEmailSendStatus] = useState("idle");
 const [isSendingEmail, setIsSendingEmail] = useState(false);
 const [isPreparingAttachment, setIsPreparingAttachment] = useState(false);
+const [preparingSendChannel, setPreparingSendChannel] = useState("");
 const [isViewMode, setIsViewMode] = useState(false);
 const [isCustomerView, setIsCustomerView] = useState(false);
 const [loadedBookingNumber, setLoadedBookingNumber] = useState("");
@@ -3346,7 +3347,7 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
       const captureHeight = Math.ceil(pageRect.height || page.offsetHeight || 1123);
 
       const canvas = await html2canvas(page, {
-        scale: 1.5,
+        scale: 1.35,
         useCORS: true,
         allowTaint: true,
         backgroundColor: "#ffffff",
@@ -3595,9 +3596,16 @@ const sendBookingEmail = async () => {
     return;
   }
 
+  setPreparingSendChannel("email");
   setIsSendOptionsOpen(false);
   attachmentLockRef.current = true;
   setIsPreparingAttachment(true);
+
+  await new Promise((resolve) =>
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(resolve)
+    )
+  );
 
   let pdfAttachment;
 
@@ -3606,6 +3614,7 @@ const sendBookingEmail = async () => {
   } catch (error) {
     console.error("Cannot create booking PDF attachment", error);
     window.alert(error.message || "ไม่สามารถสร้างไฟล์ PDF แนบอีเมลได้");
+    setPreparingSendChannel("");
     attachmentLockRef.current = false;
     setIsPreparingAttachment(false);
     return;
@@ -3622,6 +3631,7 @@ const sendBookingEmail = async () => {
   });
   setEmailSendMessage("");
   setEmailSendStatus("idle");
+  setPreparingSendChannel("");
   attachmentLockRef.current = false;
   setIsPreparingAttachment(false);
 };
@@ -3650,8 +3660,16 @@ const sendBookingSms = async () => {
   setIsSendOptionsOpen(false);
 
   try {
+    setPreparingSendChannel("sms");
     attachmentLockRef.current = true;
     setIsPreparingAttachment(true);
+
+    await new Promise((resolve) =>
+      window.requestAnimationFrame(() =>
+        window.requestAnimationFrame(resolve)
+      )
+    );
+
     const pdfAttachment = await createBookingPdfAttachment();
     const pdfFile =
       typeof File === "function"
@@ -3683,6 +3701,7 @@ const sendBookingSms = async () => {
     console.error("Cannot create booking PDF for SMS", error);
     window.alert(error.message || "ไม่สามารถสร้างไฟล์ PDF สำหรับ SMS ได้");
   } finally {
+    setPreparingSendChannel("");
     attachmentLockRef.current = false;
     setIsPreparingAttachment(false);
   }
@@ -5991,8 +6010,8 @@ const confirmSendBookingEmail = async () => {
               >
                 <span className="text-lg">@</span>
                 <span>
-                  {isPreparingAttachment
-                    ? emailSendMessage || "กำลังเตรียมไฟล์..."
+                  {preparingSendChannel === "email"
+                    ? "กำลังเตรียมไฟล์..."
                     : "ส่งอีเมลให้ลูกค้า"}
                 </span>
               </button>
@@ -6003,9 +6022,8 @@ const confirmSendBookingEmail = async () => {
                 disabled={isPreparingAttachment}
                 className={actionSendButtonClass}
               >
-                <span className={`${actionSendButtonClass} ${isPreparingAttachment ? "cursor-not-allowed opacity-70" : ""}`}
                 <span>
-                  {isPreparingAttachment ? emailSendMessage || "กำลังเตรียมไฟล์..." : "ส่งทาง SMS"}
+                  {preparingSendChannel === "sms" ? "กำลังเตรียมไฟล์..." : "ส่งทาง SMS"}
                 </span>
               </button>
             </div>
