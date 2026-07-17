@@ -3,7 +3,7 @@ export const pharadolTheme = {
   name: "PHARADOL PRODUCTION",
   shortName: "PHARADOL",
   tagline: "FILM & STILL",
-  logo: "/pharadol-logo.png",
+  logo: "/customer-form/pharadol-logo-gold-transparent-v2.png",
   primary: "#183024",
   primaryDark: "#102018",
   accent: "#C8A060",

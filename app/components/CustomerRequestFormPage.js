@@ -13,7 +13,7 @@ const ALLOWED_FILE_TYPES = new Set([
 const BRAND_CONFIG = {
   pharadol: {
     name: "Pharadol Production",
-    logo: "/customer-form/pharadol-logo-black.png",
+    logo: "/customer-form/pharadol-logo-gold-transparent-v2.png",
     accent: "#143321",
     logoDark: true,
   },
