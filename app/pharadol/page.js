@@ -462,23 +462,23 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
 };
 
 const actionDownloadButtonClass =
-  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-zinc-950 bg-zinc-950 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(24,24,27,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 hover:shadow-[0_16px_34px_rgba(24,24,27,0.22)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#0F3D31] bg-[#0F3D31] px-5 py-3 text-sm font-extrabold text-white shadow-[0_12px_26px_rgba(15,61,49,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#082E25] hover:shadow-[0_14px_30px_rgba(15,61,49,0.22)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
 const actionSaveButtonClass =
-  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-emerald-700 bg-emerald-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(4,120,87,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-800 hover:shadow-[0_16px_34px_rgba(4,120,87,0.26)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#0F3D31] bg-[#0F3D31] px-5 py-3 text-sm font-extrabold text-white shadow-[0_12px_26px_rgba(15,61,49,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#082E25] hover:shadow-[0_14px_30px_rgba(15,61,49,0.22)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
 const actionCreateButtonClass =
-  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-blue-700 bg-blue-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(29,78,216,0.20)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-blue-800 hover:shadow-[0_16px_34px_rgba(29,78,216,0.24)] sm:min-w-[170px]";
+  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#CDAE77] bg-[#CDAE77] px-5 py-3 text-sm font-extrabold text-[#10231C] shadow-[0_12px_26px_rgba(205,174,119,0.24)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#B9965D] hover:shadow-[0_14px_30px_rgba(205,174,119,0.28)] sm:min-w-[150px]";
 const actionSendButtonClass =
-  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-teal-800 hover:shadow-[0_16px_34px_rgba(15,118,110,0.24)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#DDE5DC] bg-[#F6EFD7] px-5 py-3 text-sm font-extrabold text-[#10231C] shadow-[0_10px_22px_rgba(16,35,28,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#CDAE77] hover:bg-[#F1E4C4] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
 const actionEditButtonClass =
-  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-orange-600 bg-orange-600 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(234,88,12,0.20)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-orange-700 hover:shadow-[0_16px_34px_rgba(234,88,12,0.24)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#CDAE77] bg-white px-5 py-3 text-sm font-extrabold text-[#10231C] shadow-[0_10px_22px_rgba(16,35,28,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#F6EFD7] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
 const actionSecondaryButtonClass =
-  "flex min-h-[60px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[22px] border border-zinc-300 bg-white px-6 py-4 text-base font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[170px]";
+  "flex min-h-[50px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[20px] border border-[#DDE5DC] bg-white px-5 py-3 text-sm font-extrabold text-[#10231C] shadow-[0_10px_22px_rgba(16,35,28,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#CDAE77] hover:bg-[#F6EFD7] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[150px]";
 const actionDangerButtonClass =
-  "flex min-h-[52px] items-center justify-center gap-2 rounded-[22px] border border-red-300 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 shadow-sm transition-all duration-200 hover:bg-red-100";
+  "flex min-h-[48px] items-center justify-center gap-2 rounded-[20px] border border-red-300 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 shadow-sm transition-all duration-200 hover:bg-red-100";
 const actionMenuButtonClass =
-  "flex min-h-[52px] items-center justify-center gap-2 rounded-[22px] border border-zinc-300 bg-white px-5 py-3 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500 hover:bg-zinc-50";
+  "flex min-h-[48px] items-center justify-center gap-2 rounded-[20px] border border-[#DDE5DC] bg-white px-5 py-3 text-sm font-extrabold text-[#10231C] shadow-[0_10px_22px_rgba(16,35,28,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#CDAE77] hover:bg-[#F6EFD7]";
 const actionMenuSmallButtonClass =
-  "flex min-h-[50px] items-center justify-center gap-2 rounded-[22px] border border-zinc-300 bg-white px-5 py-2.5 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-500 hover:bg-zinc-50";
+  "flex min-h-[46px] items-center justify-center gap-2 rounded-[20px] border border-[#DDE5DC] bg-white px-5 py-2.5 text-sm font-extrabold text-[#10231C] shadow-[0_10px_22px_rgba(16,35,28,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#CDAE77] hover:bg-[#F6EFD7]";
 
 const slipIsPdf = Boolean(slipImage) && isPdfSlipFile(slipImage, slipFileType, slipFileName);
 const slipIsImage = Boolean(slipImage) && isImageSlipFile(slipImage, slipFileType, slipFileName);
@@ -3747,25 +3747,40 @@ const confirmSendBookingEmail = async () => {
 
   return (
 
-    <div className="min-h-screen bg-zinc-100">
+    <div
+      className={`booking-workspace min-h-screen overflow-x-hidden ${
+        isViewMode ? "booking-workspace-view" : ""
+      } ${isSidebarCollapsed ? "booking-workspace-collapsed" : ""}`}
+      style={{
+        "--booking-bg": "#F6F7F3",
+        "--booking-card": "#FFFFFF",
+        "--booking-border": "#DDE5DC",
+        "--booking-text": "#10231C",
+        "--booking-muted": "#66756D",
+        "--booking-primary": "#0F3D31",
+        "--booking-primary-dark": "#082E25",
+        "--booking-accent": "#CDAE77",
+        "--booking-accent-soft": "#F6EFD7",
+      }}
+    >
 
       {/* ========================= */}
       {/* BACK OFFICE */}
       {/* ========================= */}
 
       <div
-        className={`no-print fixed left-0 top-0 h-screen bg-white border-r shadow-xl z-50 transition-all duration-300 ${
+        className={`booking-form-panel no-print bg-white border shadow-xl z-30 transition-all duration-300 ${
           isViewMode
             ? "hidden"
             : isSidebarCollapsed
               ? "w-14 overflow-hidden p-2"
-              : "w-[calc(100vw-24px)] max-w-[360px] overflow-y-auto p-5 md:p-8"
+              : "w-full overflow-y-auto p-5 md:p-6"
         }`}
       >
         <button
           type="button"
           onClick={() => setIsSidebarCollapsed((current) => !current)}
-          className={`sticky top-0 z-10 mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-black text-xl font-bold text-white shadow ${
+          className={`booking-form-toggle sticky top-0 z-10 mb-4 flex h-10 w-10 items-center justify-center rounded-xl text-xl font-bold text-white shadow ${
             isSidebarCollapsed ? "mx-auto" : "ml-auto"
           }`}
           aria-label={isSidebarCollapsed ? "เปิดระบบสร้างใบจอง" : "ย่อระบบสร้างใบจอง"}
@@ -4503,12 +4518,8 @@ const confirmSendBookingEmail = async () => {
       </div>
 
       <div
-        className={`no-print fixed top-0 right-0 z-40 border-b border-zinc-200/70 bg-white/90 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-300 sm:px-5 ${
-          isViewMode
-            ? "hidden"
-            : isSidebarCollapsed
-              ? "left-14"
-              : "left-0 md:left-[360px]"
+        className={`booking-action-panel no-print z-20 border border-zinc-200/70 bg-white/90 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-300 sm:px-5 ${
+          isViewMode ? "hidden" : ""
         }`}
       >
         <div className="mx-auto max-w-[1180px]">
@@ -4523,17 +4534,17 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={() => setIsMoreMenuOpen((current) => !current)}
-              className={`rounded-[22px] border bg-white px-5 py-3 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:border-zinc-500 hover:bg-zinc-50 ${
+              className={`booking-more-toggle rounded-[20px] border bg-white px-5 py-3 text-sm font-extrabold shadow-[0_10px_22px_rgba(16,35,28,0.08)] transition-all duration-200 hover:bg-[#F6EFD7] ${
                 isMoreMenuOpen
-                  ? "border-zinc-900 ring-1 ring-zinc-900"
-                  : "border-zinc-300"
+                  ? "booking-more-toggle-active"
+                  : "border-[#DDE5DC] text-[#10231C]"
               }`}
             >
               {isMoreMenuOpen ? "ซ่อนเมนูเพิ่มเติม" : "เมนูเพิ่มเติม"}
             </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          <div className="booking-action-grid grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 min-[1580px]:grid-cols-6">
             <div className="relative min-w-[170px] flex-1">
               <button
                 type="button"
@@ -4807,10 +4818,10 @@ const confirmSendBookingEmail = async () => {
       {/* ========================= */}
 
       <div
-        className={`print-container overflow-x-auto px-4 pb-10 transition-all duration-300 md:px-10 ${
+        className={`booking-preview-panel print-container min-w-0 overflow-x-auto pb-10 transition-all duration-300 ${
           isViewMode
-            ? "ml-0 pt-0"
-            : `${isSidebarCollapsed ? "ml-14" : "ml-0 md:ml-[380px]"} pt-[520px] sm:pt-[360px] md:pt-[300px] xl:pt-[260px] 2xl:pt-[190px]`
+            ? "col-span-full px-4 pt-0"
+            : "px-0 pt-0"
         }`}
       >
         {isViewMode && (
@@ -4818,7 +4829,7 @@ const confirmSendBookingEmail = async () => {
             <button
               type="button"
               onClick={() => goTo(ROUTES.customers)}
-              className="rounded-[22px] border border-zinc-300 bg-white px-6 py-4 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:border-zinc-500 hover:bg-zinc-50"
+              className={actionSecondaryButtonClass}
             >
               ← กลับหน้าข้อมูลลูกค้า
             </button>
@@ -4832,7 +4843,7 @@ const confirmSendBookingEmail = async () => {
                   setIsEditingBooking(true);
                   window.history.replaceState({}, "", ROUTES.home);
                 }}
-                className="rounded-[22px] border border-orange-600 bg-orange-600 px-6 py-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(234,88,12,0.20)] transition-all duration-200 hover:bg-orange-700"
+                className={actionEditButtonClass}
               >
                 ✏️ แก้ไขใบจอง
               </button>
@@ -4841,7 +4852,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={openCustomerSendOptions}
                 disabled={isPreparingAttachment}
-                className="rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className={actionSendButtonClass}
               >
                 {isPreparingAttachment ? "กำลังเตรียมไฟล์..." : "ส่งให้ลูกค้า"}
               </button>
@@ -4851,7 +4862,7 @@ const confirmSendBookingEmail = async () => {
                   type="button"
                   onClick={() => setIsDownloadMenuOpen((current) => !current)}
                   disabled={isExporting}
-                  className="rounded-[22px] border border-zinc-950 bg-zinc-950 px-6 py-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(24,24,27,0.18)] transition-all duration-200 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={actionDownloadButtonClass}
                 >
                   {isExporting ? "กำลังสร้างไฟล์..." : "ดาวน์โหลด"}
                 </button>
@@ -5923,7 +5934,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={sendBookingEmail}
                 disabled={isPreparingAttachment}
-                className="flex min-h-[60px] items-center justify-center gap-3 rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className={actionSendButtonClass}
               >
                 <span className="text-lg">@</span>
                 <span>
@@ -5937,7 +5948,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={sendBookingSms}
                 disabled={isPreparingAttachment}
-                className="flex min-h-[60px] items-center justify-center gap-3 rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-base font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className={actionSendButtonClass}
               >
                 <span className="text-lg">SMS</span>
                 <span>
@@ -6017,7 +6028,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={() => setEmailPreview(null)}
                 disabled={isSendingEmail}
-                className="rounded-[22px] border border-zinc-300 bg-white px-6 py-4 text-sm font-extrabold text-zinc-900 shadow-[0_10px_24px_rgba(24,24,27,0.08)] transition-all duration-200 hover:border-zinc-500 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className={actionSecondaryButtonClass}
               >
                 ยกเลิก
               </button>
@@ -6025,7 +6036,7 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={confirmSendBookingEmail}
                 disabled={isSendingEmail}
-                className="rounded-[22px] border border-teal-700 bg-teal-700 px-6 py-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(15,118,110,0.20)] transition-all duration-200 hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className={actionSendButtonClass}
               >
                 {isSendingEmail ? "กำลังส่งอีเมล..." : "ส่งอีเมลทันที"}
               </button>
@@ -6099,12 +6110,141 @@ const confirmSendBookingEmail = async () => {
       )}
       {/* PRINT STYLE */}
       <style jsx global>{`
+        .booking-workspace {
+          width: 100%;
+          min-height: 100vh;
+          display: grid;
+          grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+          align-items: start;
+          gap: 24px;
+          padding: 28px;
+          background: var(--booking-bg);
+          color: var(--booking-text);
+          overflow-x: hidden;
+        }
+
+        .booking-workspace-collapsed {
+          grid-template-columns: 64px minmax(0, 1fr);
+        }
+
+        .booking-workspace-view {
+          display: block;
+          padding: 24px;
+        }
+
+        .booking-form-panel {
+          grid-column: 1;
+          grid-row: 1 / span 2;
+          width: 100%;
+          max-width: 420px;
+          align-self: start;
+          position: sticky;
+          top: 24px;
+          max-height: calc(100vh - 48px);
+          overflow-y: auto;
+          overflow-x: hidden;
+          border-color: var(--booking-border);
+          border-radius: 24px;
+          background: var(--booking-card);
+          box-shadow: 0 18px 50px rgba(16, 35, 28, 0.09);
+        }
+
+        .booking-form-panel input,
+        .booking-form-panel select,
+        .booking-form-panel textarea {
+          min-height: 52px;
+        }
+
+        .booking-form-toggle {
+          background: var(--booking-primary);
+        }
+
+        .booking-action-panel {
+          grid-column: 2;
+          grid-row: 1;
+          min-width: 0;
+          width: 100%;
+          border-color: var(--booking-border);
+          border-radius: 24px;
+        }
+
+        .booking-more-toggle {
+          color: var(--booking-text);
+          border-color: var(--booking-border);
+        }
+
+        .booking-more-toggle-active {
+          color: #ffffff;
+          border-color: var(--booking-primary);
+          background: var(--booking-primary);
+          box-shadow: 0 12px 26px rgba(15, 61, 49, 0.18);
+        }
+
+        .booking-preview-panel {
+          grid-column: 2;
+          grid-row: 2;
+          min-width: 0;
+          width: 100%;
+          padding: 32px 24px 80px;
+          border-radius: 24px;
+          background: rgba(255, 255, 255, 0.38);
+          box-shadow: inset 0 0 0 1px rgba(221, 229, 220, 0.72);
+        }
+
+        .booking-preview-panel .print-area {
+          margin-left: auto;
+          margin-right: auto;
+          box-shadow: 0 20px 60px rgba(16, 35, 28, 0.10);
+        }
+
+        @media (max-width: 1024px) {
+          .booking-workspace,
+          .booking-workspace-collapsed {
+            grid-template-columns: 1fr;
+            gap: 16px;
+            padding: 16px;
+          }
+
+          .booking-form-panel {
+            grid-column: auto;
+            grid-row: auto;
+            position: relative;
+            top: auto;
+            max-width: none;
+            max-height: none;
+          }
+
+          .booking-workspace-collapsed .booking-form-panel {
+            width: 100%;
+          }
+
+          .booking-preview-panel {
+            grid-column: auto;
+            grid-row: auto;
+            padding: 20px 0 72px;
+            border-radius: 20px;
+          }
+        }
+
         @page {
           size: A4 portrait;
           margin: 0;
         }
 
         @media print {
+          .booking-workspace {
+            display: block !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+
+          .booking-preview-panel {
+            padding: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+          }
+
           *,
           *::before,
           *::after {
