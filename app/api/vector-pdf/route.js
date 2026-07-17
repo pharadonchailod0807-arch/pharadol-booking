@@ -88,9 +88,12 @@ const launchBrowser = async (requestOrigin) => {
       );
 
     return puppeteerCore.launch({
-      args: chromium.args,
+      args: puppeteerCore.defaultArgs({
+        args: chromium.args,
+        headless: "shell",
+      }),
       executablePath,
-      headless: true,
+      headless: "shell",
       defaultViewport: {
         width: 1280,
         height: 1600,
@@ -131,8 +134,7 @@ const launchBrowser = async (requestOrigin) => {
 
 export async function POST(request) {
   let browser;
-  let browserContext;
-
+  let page;
   try {
     const payload = await request.json();
     const html = String(payload?.html || "");
@@ -205,9 +207,7 @@ export async function POST(request) {
 
     browser = await launchBrowser(requestOrigin);
 
-    browserContext = await browser.createBrowserContext();
-
-    const page = await browserContext.newPage();
+    page = await browser.newPage();
 
     page.setDefaultNavigationTimeout(30_000);
     page.setDefaultTimeout(30_000);
@@ -335,8 +335,8 @@ console.error(
       { status: 500 }
     );
   } finally {
-    if (browserContext) {
-      await browserContext.close().catch(() => {});
+    if (page) {
+      await page.close().catch(() => {});
     }
 
     if (browser) {

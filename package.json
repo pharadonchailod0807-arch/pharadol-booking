@@ -22,7 +22,7 @@
     "html2canvas-pro": "^2.2.0",
     "jszip": "^3.10.1",
     "next": "16.2.6",
-    "puppeteer-core": "^23.11.0",
+    "puppeteer-core": "^24.23.1",
     "react": "19.2.4",
     "react-barcode": "^1.6.1",
     "react-dom": "19.2.4",
@@ -33,7 +33,7 @@
     "@tailwindcss/postcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
-    "puppeteer": "^23.11.0",
+    "puppeteer": "^24.23.1",
     "tailwindcss": "^4"
   }
 }
