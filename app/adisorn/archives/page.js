@@ -1164,7 +1164,7 @@ export default function ArchivesPage() {
                           onClick={() => moveToTrash(booking)}
                           className="rounded-xl bg-[#DC2626] px-3 py-2 font-semibold text-white hover:bg-[#B91C1C]"
                         >
-                          ย้ายไปถังขยะ
+                          ถังขยะ
                         </button>
                       </div>
                     </div>

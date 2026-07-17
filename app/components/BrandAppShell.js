@@ -477,8 +477,31 @@ export default function BrandAppShell({ brandId, children }) {
 
   return (
     <div
-      className="min-h-screen overflow-x-hidden"
-      style={{ backgroundColor: theme.background, color: theme.text }}
+      className="brand-app-shell min-h-screen overflow-x-hidden"
+      data-brand-shell={brandId}
+      style={{
+        backgroundColor: theme.background,
+        color: theme.text,
+        "--brand-primary": theme.primary,
+        "--brand-primary-dark": theme.primaryDark,
+        "--brand-accent": theme.accent,
+        "--brand-accent-soft": theme.accentSoft,
+        "--brand-background": theme.background,
+        "--brand-card": theme.card,
+        "--brand-border": theme.border,
+        "--brand-text": theme.text,
+        "--brand-muted": theme.muted,
+        "--brand-danger": theme.actionDangerBg || theme.danger,
+        "--brand-danger-hover": theme.actionDangerHover || "#B91C1C",
+        "--brand-table-header": theme.tableHeaderBg,
+        "--brand-table-text": theme.tableHeaderText,
+        "--brand-shadow": theme.shadow,
+        "--brand-action-view": theme.actionViewBg || theme.buttonPrimary,
+        "--brand-action-view-hover": theme.actionViewHover || theme.primaryDark,
+        "--brand-action-secondary": theme.actionArchiveBg || theme.accent,
+        "--brand-action-secondary-hover": theme.actionArchiveHover || theme.accent,
+        "--brand-action-secondary-text": theme.actionArchiveText || "#0B0B0D",
+      }}
     >
       <aside
         className="fixed left-0 top-0 z-50 hidden h-screen w-[270px] overflow-y-auto overflow-x-hidden px-4 py-5 lg:block"
@@ -557,7 +580,7 @@ export default function BrandAppShell({ brandId, children }) {
           </div>
         )}
 
-        <main className="min-w-0 overflow-x-hidden">{children}</main>
+        <main className="brand-main-content min-w-0 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );

@@ -196,7 +196,7 @@ export default function ArchivesPage() {
                       onClick={() => moveToTrash(item)}
                       className="rounded-xl border border-[#DC2626] bg-red-50 px-4 py-2 font-semibold text-[#DC2626] hover:bg-red-100"
                     >
-                      ย้ายไปถังขยะ
+                      ถังขยะ
                     </button>
 
                     <button

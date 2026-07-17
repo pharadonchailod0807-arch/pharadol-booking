@@ -687,7 +687,7 @@ export default function CustomersPage() {
                     onClick={moveSelectedToArchive}
                     className="h-12 whitespace-nowrap rounded-2xl bg-amber-500 px-5 text-sm font-semibold text-white transition hover:bg-amber-600"
                   >
-                    จัดเก็บที่เลือก
+                    จัดเก็บ
                   </button>
 
                   <button
@@ -695,7 +695,7 @@ export default function CustomersPage() {
                     onClick={moveSelectedToTrash}
                     className="h-12 whitespace-nowrap rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-700"
                   >
-                    ย้ายที่เลือกไปถังขยะ
+                    ถังขยะ
                   </button>
                 </div>
               )}
@@ -919,7 +919,7 @@ export default function CustomersPage() {
                         onClick={() => moveToArchive(customer)}
                         className="min-h-10 rounded-xl bg-amber-500 px-3 py-2 font-semibold text-white hover:bg-amber-600"
                       >
-                        จัดเก็บข้อมูล
+                        จัดเก็บ
                       </button>
 
                       <button
@@ -927,7 +927,7 @@ export default function CustomersPage() {
                         onClick={() => moveToTrash(customer)}
                         className="min-h-10 rounded-xl bg-red-600 px-3 py-2 font-semibold text-white hover:bg-red-700"
                       >
-                        ย้ายไปถังขยะ
+                        ถังขยะ
                       </button>
                     </div>
                   </div>

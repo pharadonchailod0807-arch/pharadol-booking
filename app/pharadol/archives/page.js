@@ -1159,7 +1159,7 @@ export default function ArchivesPage() {
                           onClick={() => moveToTrash(booking)}
                           className="rounded-xl bg-red-600 px-3 py-2 font-semibold text-white"
                         >
-                          ย้ายไปถังขยะ
+                          ถังขยะ
                         </button>
                       </div>
                     </div>
