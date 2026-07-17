@@ -3352,7 +3352,7 @@ const withTimeout = (promise, timeoutMs, message) =>
     ),
   ]);
 
-const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
+const captureBookingPagesAsJpegs = async (jpegQuality = 0.962) => {
   const html2canvas = (await import("html2canvas-pro")).default;
   const pages = Array.from(document.querySelectorAll(".print-area"));
 
@@ -3416,7 +3416,7 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
       );
 
       const canvas = await html2canvas(page, {
-        scale: 1.35,
+        scale: 1.6,
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#ffffff",
@@ -3485,7 +3485,7 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
 };;;
 
 const createBookingPdfAttachment = async () => {
-  const images = await captureBookingPagesAsJpegs(0.92);
+  const images = await captureBookingPagesAsJpegs(0.96);
   const filename = `${bookingNumber || "booking"}-booking.pdf`;
   const blob = createPdfBlobFromJpegs(images);
   const base64 = await blobToBase64(blob);
