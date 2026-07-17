@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const BRAND_ID = "adisorn";
 const ARCHIVES_KEY = "adisorn_archives";
@@ -64,6 +65,7 @@ const getBookingData = (booking, updates = {}) => {
 
 export default function ArchivesPage() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(BRAND_ID);
 
   const [bookings, setBookings] = useState([]);
   const [receipts, setReceipts] = useState([]);
@@ -900,7 +902,8 @@ export default function ArchivesPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/dashboard")}
-              className="min-h-12 rounded-xl bg-black px-4 py-2 font-semibold text-white"
+              className="min-h-12 rounded-xl px-4 py-2 font-semibold text-white transition"
+              style={brandChrome.primaryButton}
             >
               เมนูหลัก
             </button>
@@ -916,9 +919,10 @@ export default function ArchivesPage() {
             }}
             className={`rounded-xl px-5 py-3 font-semibold transition ${
               activeTab === "bookings"
-                ? "bg-zinc-900 text-white"
+                ? "text-white"
                 : "text-zinc-600 hover:bg-zinc-100"
             }`}
+            style={activeTab === "bookings" ? brandChrome.activeControl : undefined}
           >
             ใบจอง ({bookings.length})
           </button>
@@ -930,9 +934,10 @@ export default function ArchivesPage() {
             }}
             className={`rounded-xl px-5 py-3 font-semibold transition ${
               activeTab === "receipts"
-                ? "bg-zinc-900 text-white"
+                ? "text-white"
                 : "text-zinc-600 hover:bg-zinc-100"
             }`}
+            style={activeTab === "receipts" ? brandChrome.activeControl : undefined}
           >
             ใบรับชำระเงิน ({receipts.length})
           </button>
@@ -976,9 +981,10 @@ export default function ArchivesPage() {
                         onClick={() => setSortBy(value)}
                         className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
                           sortBy === value
-                            ? "bg-zinc-900 text-white shadow-sm"
+                            ? "text-white shadow-sm"
                             : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                         }`}
+                        style={sortBy === value ? brandChrome.activeControl : undefined}
                       >
                         {label}
                       </button>
@@ -1086,7 +1092,10 @@ export default function ArchivesPage() {
 
           <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
             <div className="min-w-[1250px]">
-              <div className="grid grid-cols-[1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-4 bg-zinc-900 px-5 py-4 text-sm font-semibold tracking-wide text-zinc-100">
+              <div
+                className="grid grid-cols-[1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-4 px-5 py-4 text-sm font-semibold tracking-wide text-zinc-100"
+                style={brandChrome.tableHeader}
+              >
                 <div>เลขที่การจอง</div>
                 <div>ชื่อลูกค้า</div>
                 <div>ประเภทงาน</div>
@@ -1207,7 +1216,8 @@ export default function ArchivesPage() {
                         <button
                           type="button"
                           onClick={() => downloadReceipt(receipt)}
-                          className="min-h-11 rounded-xl bg-zinc-900 px-3 py-2 text-sm font-semibold text-white"
+                          className="min-h-11 rounded-xl px-3 py-2 text-sm font-semibold text-white transition"
+                          style={brandChrome.primaryButton}
                         >
                           ดาวน์โหลด
                         </button>
@@ -1231,7 +1241,10 @@ export default function ArchivesPage() {
 
           <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
             <div className="min-w-[1180px]">
-              <div className="grid grid-cols-[1.25fr_1fr_0.7fr_0.8fr_0.9fr_320px] gap-4 bg-zinc-900 px-5 py-4 text-sm font-semibold tracking-wide text-zinc-100">
+              <div
+                className="grid grid-cols-[1.25fr_1fr_0.7fr_0.8fr_0.9fr_320px] gap-4 px-5 py-4 text-sm font-semibold tracking-wide text-zinc-100"
+                style={brandChrome.tableHeader}
+              >
                 <div>เลขที่ใบรับชำระ</div>
                 <div>ลูกค้า / ใบจอง</div>
                 <div>งวดที่</div>
@@ -1285,7 +1298,8 @@ export default function ArchivesPage() {
                       <button
                         type="button"
                         onClick={() => downloadReceipt(receipt)}
-                        className="rounded-xl bg-zinc-900 px-3 py-2 font-semibold text-white"
+                        className="rounded-xl px-3 py-2 font-semibold text-white transition"
+                        style={brandChrome.primaryButton}
                       >
                         ดาวน์โหลด
                       </button>
@@ -1381,7 +1395,8 @@ export default function ArchivesPage() {
               <button
                 type="button"
                 onClick={() => downloadReceipt(selectedReceipt)}
-                className="rounded-2xl bg-zinc-950 px-5 py-3 font-bold text-white"
+                className="rounded-2xl px-5 py-3 font-bold text-white transition"
+                style={brandChrome.primaryButton}
               >
                 ดาวน์โหลด
               </button>

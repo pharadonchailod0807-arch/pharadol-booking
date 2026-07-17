@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const BRAND_ID = "adisorn";
 const CUSTOMERS_KEY = `${BRAND_ID}_customers`;
@@ -22,6 +23,7 @@ const ROUTES = {
 
 export default function CustomersPage() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(BRAND_ID);
 
   const goTo = (route) => {
     router.push(route);
@@ -606,7 +608,8 @@ export default function CustomersPage() {
             <button
               type="button"
               onClick={() => goTo(ROUTES.dashboard)}
-              className="min-h-12 rounded-xl bg-black px-4 py-2 font-semibold text-white"
+              className="min-h-12 rounded-xl px-4 py-2 font-semibold text-white transition"
+              style={brandChrome.primaryButton}
             >
               เมนูหลัก
             </button>
@@ -646,9 +649,10 @@ export default function CustomersPage() {
                       onClick={() => setSortBy(value)}
                       className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                         sortBy === value
-                          ? "bg-zinc-950 text-white shadow-sm"
+                          ? "text-white shadow-sm"
                           : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                       }`}
+                      style={sortBy === value ? brandChrome.activeControl : undefined}
                     >
                       {label}
                     </button>
@@ -676,9 +680,10 @@ export default function CustomersPage() {
               disabled={visibleBookingNumbers.length === 0}
               className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                 allVisibleSelected
-                  ? "bg-zinc-900 text-white"
+                  ? "text-white"
                   : "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
               } disabled:cursor-not-allowed disabled:opacity-40`}
+              style={allVisibleSelected ? brandChrome.activeControl : undefined}
             >
               {allVisibleSelected ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมด"}
             </button>
@@ -821,7 +826,10 @@ export default function CustomersPage() {
 
         <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
           <div className="min-w-[980px] lg:min-w-[1320px]">
-            <div className="grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-3 bg-zinc-900 px-4 py-4 text-sm font-semibold text-white lg:grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_430px] lg:gap-4 lg:px-5">
+            <div
+              className="grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-3 px-4 py-4 text-sm font-semibold text-white lg:grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_430px] lg:gap-4 lg:px-5"
+              style={brandChrome.tableHeader}
+            >
               <div className="flex items-center justify-center">
                 <input
                   type="checkbox"

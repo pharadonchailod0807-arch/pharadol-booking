@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import RevenueTradingChart from "@/app/components/RevenueTradingChart";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const BRAND_ID = "adisorn";
 const ARCHIVES_KEY = "adisorn_archives";
@@ -89,6 +90,7 @@ const normalizeArchivedBookingRow = (row) => {
 
 export default function IncomePage() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(BRAND_ID);
   const currentDate = useMemo(() => new Date(), []);
   const [totalIncome, setTotalIncome] = useState(0);
   const [jobCount, setJobCount] = useState(0);
@@ -341,9 +343,10 @@ export default function IncomePage() {
                     onClick={() => setChartMode(mode)}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                       chartMode === mode
-                        ? "bg-zinc-900 text-white"
+                        ? "text-white"
                         : "text-zinc-600 hover:bg-white"
                     }`}
+                    style={chartMode === mode ? brandChrome.activeControl : undefined}
                   >
                     {label}
                   </button>

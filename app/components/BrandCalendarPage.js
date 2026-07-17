@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WEEK_DAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -104,6 +105,7 @@ const getReadableTextColor = (backgroundColor) => {
 export default function BrandCalendarPage({ brandId }) {
   const router = useRouter();
   const brand = BRAND_CONFIG[brandId];
+  const brandChrome = getBrandChromeStyles(brandId);
   const customersKey = `${brandId}_customers`;
   const selectedBookingKey = `${brandId}_selectedBooking`;
   const currentBookingKey = `${brandId}_currentBooking`;
@@ -320,7 +322,8 @@ export default function BrandCalendarPage({ brandId }) {
                 <button
                   type="button"
                   onClick={goToday}
-                  className="min-h-9 rounded-lg bg-zinc-900 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700 sm:px-3 md:text-sm"
+                  className="min-h-9 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white transition sm:px-3 md:text-sm"
+                  style={brandChrome.primaryButton}
                 >
                   วันนี้
                 </button>
@@ -363,11 +366,12 @@ export default function BrandCalendarPage({ brandId }) {
                         <span
                           className={`flex h-5 w-5 items-center justify-center rounded-full text-[13px] font-semibold md:h-7 md:w-7 md:text-sm ${
                             isToday
-                              ? "bg-zinc-900 text-white"
+                              ? "text-white"
                               : isSelected
                                 ? "bg-blue-600 text-white"
                                 : "text-zinc-700"
                           }`}
+                          style={isToday ? brandChrome.activeControl : undefined}
                         >
                           {date.getDate()}
                         </span>
@@ -460,7 +464,8 @@ export default function BrandCalendarPage({ brandId }) {
                     <button
                       type="button"
                       onClick={() => openBooking(event)}
-                      className="mt-4 w-full rounded-xl bg-zinc-900 px-4 py-2.5 font-semibold text-white hover:bg-zinc-700"
+                      className="mt-4 w-full rounded-xl px-4 py-2.5 font-semibold text-white transition"
+                      style={brandChrome.primaryButton}
                     >
                       ดูใบจอง
                     </button>

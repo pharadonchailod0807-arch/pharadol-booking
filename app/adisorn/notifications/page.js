@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
+
+const BRAND_ID = "adisorn";
 
 export default function ArchivesPage() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(BRAND_ID);
   const ARCHIVES_KEY = "adisorn_archives";
   const [archives, setArchives] = useState([]);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -133,7 +137,8 @@ export default function ArchivesPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/dashboard")}
-              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
+              className="min-h-12 rounded-xl px-5 py-3 font-semibold text-white transition"
+              style={brandChrome.primaryButton}
             >
               กลับสู่หน้าหลัก
             </button>
@@ -142,7 +147,7 @@ export default function ArchivesPage() {
 
         <table className="w-full table-auto border-collapse border border-zinc-300 bg-white shadow-sm">
           <thead>
-            <tr>
+            <tr style={brandChrome.tableHeader}>
               <th className="border border-zinc-300 px-4 py-2">เลขที่จอง</th>
               <th className="border border-zinc-300 px-4 py-2">ชื่อลูกค้า</th>
               <th className="border border-zinc-300 px-4 py-2">วันที่งาน</th>

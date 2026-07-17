@@ -2,12 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
+const BRAND_ID = "adisorn";
 const CUSTOMERS_KEY = "adisorn_customers";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 export default function ReportsPage() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(BRAND_ID);
 
   const [customers, setCustomers] = useState([]);
   const [filterStatus, setFilterStatus] = useState("ทั้งหมด");
@@ -257,7 +260,8 @@ export default function ReportsPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/dashboard")}
-              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white"
+              className="min-h-12 rounded-xl px-5 py-3 font-semibold text-white transition"
+              style={brandChrome.primaryButton}
             >
               เมนูหลัก
             </button>
@@ -425,7 +429,10 @@ export default function ReportsPage() {
 
         <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
           <div className="min-w-[1040px]">
-          <div className="grid grid-cols-[1fr_1.2fr_1fr_1fr_1fr_1fr_auto] gap-4 bg-zinc-900 px-5 py-4 font-semibold text-white">
+          <div
+            className="grid grid-cols-[1fr_1.2fr_1fr_1fr_1fr_1fr_auto] gap-4 px-5 py-4 font-semibold text-white"
+            style={brandChrome.tableHeader}
+          >
             <div>เลขที่จอง</div>
             <div>ชื่อลูกค้า</div>
             <div>ประเภทงาน</div>

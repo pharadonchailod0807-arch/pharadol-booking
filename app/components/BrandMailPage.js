@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -67,6 +68,7 @@ const formatSentDateTime = (value) => {
 export default function BrandMailPage({ brandId }) {
   const router = useRouter();
   const brand = BRAND_COPY[brandId];
+  const brandChrome = getBrandChromeStyles(brandId);
   const customersKey = `${brandId}_customers`;
   const emailHistoryKey = `${brandId}_email_history`;
   const mailTrashKey = `${brandId}_mail_trash`;
@@ -561,7 +563,8 @@ export default function BrandMailPage({ brandId }) {
             <button
               type="button"
               onClick={() => router.push(brand.dashboardPath)}
-              className="min-h-11 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
+              className="min-h-11 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
+              style={brandChrome.primaryButton}
             >
               กลับสู่หน้าหลัก
             </button>
@@ -606,9 +609,10 @@ export default function BrandMailPage({ brandId }) {
                   }}
                   className={`rounded-xl px-3 py-2 text-sm font-semibold ${
                     activeFolder === "sent"
-                      ? "bg-zinc-950 text-white"
+                      ? "text-white"
                       : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                   }`}
+                  style={activeFolder === "sent" ? brandChrome.activeControl : undefined}
                 >
                   ส่งแล้ว {emailHistory.length}
                 </button>
@@ -621,9 +625,10 @@ export default function BrandMailPage({ brandId }) {
                   }}
                   className={`rounded-xl px-3 py-2 text-sm font-semibold ${
                     activeFolder === "trash"
-                      ? "bg-zinc-950 text-white"
+                      ? "text-white"
                       : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                   }`}
+                  style={activeFolder === "trash" ? brandChrome.activeControl : undefined}
                 >
                   ขยะเมล {mailTrash.length}
                 </button>
@@ -633,7 +638,7 @@ export default function BrandMailPage({ brandId }) {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="ค้นหาอีเมล"
-                className="mt-3 w-full rounded-xl border border-zinc-300 px-4 py-2.5 outline-none focus:border-black"
+                className="mt-3 w-full rounded-xl border border-zinc-300 px-4 py-2.5 outline-none focus:border-zinc-500"
               />
             </div>
 
@@ -746,9 +751,15 @@ export default function BrandMailPage({ brandId }) {
                     className={`w-full rounded-xl border p-3 text-left transition ${
                       selectedBookingNumber === customer.bookingNumber &&
                       isComposerOpen
-                        ? "border-black bg-zinc-950 text-white"
+                        ? "text-white"
                         : "border-zinc-200 hover:border-zinc-400"
                     }`}
+                    style={
+                      selectedBookingNumber === customer.bookingNumber &&
+                      isComposerOpen
+                        ? brandChrome.activeControl
+                        : undefined
+                    }
                   >
                     <p className="font-bold">
                       {customer.customerName || "ไม่ระบุชื่อลูกค้า"}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const BRAND_ID = "adisorn";
 const TRASH_KEY = "adisorn_trash";
@@ -34,6 +35,7 @@ const getBookingData = (booking, updates = {}) => {
 
 export default function TrashPage() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(BRAND_ID);
 
   const [trash, setTrash] = useState([]);
   const [mailTrash, setMailTrash] = useState([]);
@@ -385,7 +387,8 @@ export default function TrashPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/dashboard")}
-              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
+              className="min-h-12 rounded-xl px-5 py-3 font-semibold text-white transition"
+              style={brandChrome.primaryButton}
             >
               เมนูหลัก
             </button>

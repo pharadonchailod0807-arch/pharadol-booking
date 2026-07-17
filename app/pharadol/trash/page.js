@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const BRAND_ID = "pharadol";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -33,6 +34,7 @@ const getBookingData = (booking, updates = {}) => {
 
 export default function TrashPage() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(BRAND_ID);
   const TRASH_KEY = "pharadol_trash";
   const MAIL_TRASH_KEY = "pharadol_mail_trash";
 
@@ -465,7 +467,8 @@ export default function TrashPage() {
             <button
               type="button"
               onClick={() => router.push("/pharadol/dashboard")}
-              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
+              className="min-h-12 rounded-xl px-5 py-3 font-semibold text-white transition"
+              style={brandChrome.primaryButton}
             >
               เมนูหลัก
             </button>

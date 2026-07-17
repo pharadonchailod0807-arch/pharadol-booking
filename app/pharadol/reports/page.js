@@ -2,13 +2,16 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
+const BRAND_ID = "pharadol";
 const NOTIFICATIONS_KEY = "pharadol_notifications";
 const ARCHIVE_KEY = "pharadol_notifications_archive";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 export default function ReportsPage() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(BRAND_ID);
 
   const [notifications, setNotifications] = useState([]);
   const [archive, setArchive] = useState([]);
@@ -186,7 +189,8 @@ export default function ReportsPage() {
             <button
               type="button"
               onClick={() => router.push("/pharadol/dashboard")}
-              className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white"
+              className="min-h-12 rounded-xl px-5 py-3 font-semibold text-white transition"
+              style={brandChrome.primaryButton}
             >
               เมนูหลัก
             </button>
@@ -243,7 +247,10 @@ export default function ReportsPage() {
 
         <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
           <div className="min-w-[680px]">
-            <div className="grid grid-cols-[auto_1fr_auto] gap-4 bg-zinc-900 px-5 py-4 font-semibold text-white">
+            <div
+              className="grid grid-cols-[auto_1fr_auto] gap-4 px-5 py-4 font-semibold text-white"
+              style={brandChrome.tableHeader}
+            >
               <div>วันที่</div>
               <div>ข้อความ</div>
               <div className="text-center">จัดการ</div>

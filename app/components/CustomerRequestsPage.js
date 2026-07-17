@@ -12,6 +12,7 @@ import {
   updateLocalCustomerRequest,
   deleteLocalCustomerRequest,
 } from "@/app/lib/customerRequests";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const BRAND_NAMES = {
   pharadol: "PHARADOL PRODUCTION",
@@ -53,6 +54,7 @@ const getStatusClassName = (status) => {
 
 export default function CustomerRequestsPage({ brand }) {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(brand);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [requests, setRequests] = useState([]);
   const [message, setMessage] = useState("");
@@ -237,7 +239,8 @@ export default function CustomerRequestsPage({ brand }) {
           <button
             type="button"
             onClick={() => router.push(`/${brand}/dashboard`)}
-            className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700"
+            className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition"
+            style={brandChrome.primaryButton}
           >
             กลับเมนูหลัก
           </button>
@@ -252,7 +255,8 @@ export default function CustomerRequestsPage({ brand }) {
             <button
               type="button"
               onClick={copyLink}
-              className="rounded-xl border border-zinc-200 bg-zinc-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700"
+              className="rounded-xl border px-4 py-2.5 text-sm font-semibold text-white transition"
+              style={brandChrome.primaryButton}
             >
               คัดลอกลิงก์
             </button>

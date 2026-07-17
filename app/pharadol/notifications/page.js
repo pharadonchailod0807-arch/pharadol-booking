@@ -2,11 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
+const BRAND_ID = "pharadol";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const brandChrome = getBrandChromeStyles(BRAND_ID);
   const CUSTOMERS_KEY = "pharadol_customers";
   const ARCHIVES_KEY = "pharadol_archives";
 
@@ -240,7 +243,8 @@ export default function NotificationsPage() {
           <button
             type="button"
             onClick={() => router.push("/pharadol/dashboard")}
-            className="min-h-12 rounded-xl bg-black px-5 py-3 font-semibold text-white hover:bg-zinc-800"
+            className="min-h-12 rounded-xl px-5 py-3 font-semibold text-white transition"
+            style={brandChrome.primaryButton}
           >
             กลับสู่หน้าหลัก
           </button>
