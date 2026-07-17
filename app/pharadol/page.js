@@ -439,6 +439,7 @@ const [emailSendMessage, setEmailSendMessage] = useState("");
 const [emailSendStatus, setEmailSendStatus] = useState("idle");
 const [isSendingEmail, setIsSendingEmail] = useState(false);
 const [isPreparingAttachment, setIsPreparingAttachment] = useState(false);
+const [isSendingSmsLink, setIsSendingSmsLink] = useState(false);
 const [preparingSendChannel, setPreparingSendChannel] = useState("");
 const [isViewMode, setIsViewMode] = useState(false);
 const [isCustomerView, setIsCustomerView] = useState(false);
@@ -3806,6 +3807,131 @@ const sendBookingSms = async () => {
   )}`;
 };
 
+const sendBookingSmsLink = async () => {
+  if (
+    isSendingSmsLink ||
+    isPreparingAttachment ||
+    attachmentLockRef.current
+  ) {
+    return;
+  }
+
+  const customerPhone = normalizeThaiMobileNumber(phone);
+
+  if (!phone.trim()) {
+    window.alert("กรุณากรอกเบอร์โทรศัพท์ลูกค้าก่อนส่ง SMS");
+    return;
+  }
+
+  if (!customerPhone) {
+    window.alert(
+      "เบอร์โทรไม่ถูกต้อง กรุณากรอกเบอร์มือถือไทย 10 หลัก เช่น 0812345678"
+    );
+    return;
+  }
+
+  setIsSendingSmsLink(true);
+  setPreparingSendChannel("sms-link");
+  attachmentLockRef.current = true;
+  setIsPreparingAttachment(true);
+
+  await new Promise((resolve) =>
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(resolve)
+    )
+  );
+
+  try {
+    const pdfAttachment = await createBookingPdfAttachment();
+    const uploadData = new FormData();
+
+    uploadData.append(
+      "file",
+      pdfAttachment.blob,
+      pdfAttachment.filename
+    );
+    uploadData.append("brand", BRAND_ID);
+    uploadData.append(
+      "bookingNumber",
+      bookingNumber || "booking"
+    );
+
+    const response = await fetch("/api/booking-document-link", {
+      method: "POST",
+      body: uploadData,
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.url) {
+      throw new Error(
+        result.error ||
+          "ไม่สามารถสร้างลิงก์ Google Drive ได้"
+      );
+    }
+
+    const brandName =
+      BRAND_ID === "adisorn"
+        ? "ADISORN WEDDING STUDIO"
+        : "PHARADOL PRODUCTION";
+
+    const smsBody = [
+      brandName,
+      "",
+      customerName.trim()
+        ? `เรียน คุณ${customerName.trim()}`
+        : "เรียน ลูกค้า",
+      `เอกสารยืนยันการจองเลขที่ ${
+        bookingNumber || "-"
+      } พร้อมแล้ว`,
+      "",
+      eventDate
+        ? `วันจัดงาน: ${formattedEventDate}`
+        : null,
+      service.trim()
+        ? `ประเภทงาน: ${service.trim()}`
+        : null,
+      "",
+      "ดูรายละเอียดและดาวน์โหลดเอกสาร:",
+      result.url,
+      "",
+      "หากต้องการแก้ไขข้อมูล สามารถติดต่อทีมงานได้เลยครับ",
+    ]
+      .filter((line) => line !== null)
+      .join("\n");
+
+    const bodySeparator =
+      /iPad|iPhone|iPod|Macintosh/i.test(
+        window.navigator.userAgent
+      )
+        ? "&"
+        : "?";
+
+    setIsSendOptionsOpen(false);
+
+    window.location.href =
+      `sms:${customerPhone}${bodySeparator}body=` +
+      encodeURIComponent(smsBody);
+  } catch (error) {
+    console.error(
+      "Cannot send SMS with Google Drive link",
+      error
+    );
+
+    window.alert(
+      error?.message ||
+        "ไม่สามารถส่ง SMS พร้อมลิงก์เอกสารได้"
+    );
+  } finally {
+    setPreparingSendChannel("");
+    attachmentLockRef.current = false;
+    setIsPreparingAttachment(false);
+    setIsSendingSmsLink(false);
+  }
+};
+
+;
+
 const confirmSendBookingEmail = async () => {
   if (!emailPreview) return;
   if (isSendingEmail || emailSendLockRef.current) return;
@@ -6141,6 +6267,20 @@ const confirmSendBookingEmail = async () => {
               >
                 <span>
                   {preparingSendChannel === "sms" ? "กำลังเตรียมไฟล์..." : "ส่งทาง SMS"}
+                </span>
+              </button>
+                            <button
+                type="button"
+                onClick={sendBookingSmsLink}
+                disabled={
+                  isPreparingAttachment || isSendingSmsLink
+                }
+                className={`${actionSendButtonClass} sm:col-span-2`}
+              >
+                <span>
+                  {isSendingSmsLink
+                    ? "กำลังสร้างลิงก์ Google Drive..."
+                    : "ส่ง SMS พร้อมลิงก์ Google Drive"}
                 </span>
               </button>
             </div>
