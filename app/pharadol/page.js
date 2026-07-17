@@ -3349,7 +3349,34 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
       window.requestAnimationFrame(resolve)
     );
 
-    await waitForCaptureImages(document);
+    const captureImages = pages.flatMap((page) =>
+      Array.from(page.querySelectorAll("img"))
+    );
+
+    await Promise.allSettled(
+      captureImages.map(
+        (image) =>
+          new Promise((resolve) => {
+            if (image.complete) {
+              resolve();
+              return;
+            }
+
+            let timer;
+
+            const finish = () => {
+              window.clearTimeout(timer);
+              image.removeEventListener("load", finish);
+              image.removeEventListener("error", finish);
+              resolve();
+            };
+
+            timer = window.setTimeout(finish, 4000);
+            image.addEventListener("load", finish, { once: true });
+            image.addEventListener("error", finish, { once: true });
+          })
+      )
+    );
 
     const images = [];
 
@@ -3368,10 +3395,10 @@ const captureBookingPagesAsJpegs = async (jpegQuality = 0.92) => {
       const canvas = await html2canvas(page, {
         scale: 1.35,
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         backgroundColor: "#ffffff",
         logging: false,
-        imageTimeout: 0,
+        imageTimeout: 5000,
         width: captureWidth,
         height: captureHeight,
         windowWidth: Math.max(
