@@ -4556,11 +4556,12 @@ const confirmSendBookingEmail = async () => {
         </div>
       </div>
 
-      <div
-        className={`booking-action-panel no-print z-20 border border-zinc-200/70 bg-white/90 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-300 sm:px-5 ${
-          isViewMode ? "hidden" : ""
-        }`}
-      >
+      <div className={`booking-right-panel ${isViewMode ? "booking-right-panel-view" : ""}`}>
+        <div
+          className={`booking-action-panel no-print z-20 border border-zinc-200/70 bg-white/90 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl transition-all duration-300 sm:px-5 ${
+            isViewMode ? "hidden" : ""
+          }`}
+        >
         <div className="mx-auto max-w-[1180px]">
           <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -4850,21 +4851,21 @@ const confirmSendBookingEmail = async () => {
             </div>
           )}
         </div>
-      </div>
+        </div>
 
       {/* ========================= */}
       {/* FRONT DOCUMENT */}
       {/* ========================= */}
 
-      <div
-        ref={bookingPreviewPanelRef}
-        className={`booking-preview-panel print-container min-w-0 overflow-x-auto pb-10 transition-all duration-300 ${
-          isViewMode
-            ? "col-span-full px-4 pt-0"
-            : "px-0 pt-0"
-        }`}
-        style={{ "--booking-preview-scale": bookingPreviewScale }}
-      >
+        <div
+          ref={bookingPreviewPanelRef}
+          className={`booking-preview-panel print-container min-w-0 overflow-x-auto pb-10 transition-all duration-300 ${
+            isViewMode
+              ? "px-4 pt-0"
+              : "px-0 pt-0"
+          }`}
+          style={{ "--booking-preview-scale": bookingPreviewScale }}
+        >
         {isViewMode && (
           <div className="no-print mx-auto mb-5 flex w-full min-w-[min(210mm,calc(100vw-32px))] max-w-[210mm] flex-col gap-3 rounded-[22px] border border-zinc-200 bg-white/90 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
             <button
@@ -5788,6 +5789,7 @@ const confirmSendBookingEmail = async () => {
           </>
         )}
 
+        </div>
       </div>
 
       {showServiceModal && (
@@ -6153,15 +6155,16 @@ const confirmSendBookingEmail = async () => {
       <style jsx global>{`
         .booking-workspace {
           width: 100%;
+          height: 100vh;
           min-height: 100vh;
           display: grid;
           grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
-          align-items: start;
+          align-items: stretch;
           gap: 22px;
           padding: 22px;
           background: var(--booking-bg);
           color: var(--booking-text);
-          overflow-x: hidden;
+          overflow: hidden;
           box-sizing: border-box;
         }
 
@@ -6182,19 +6185,22 @@ const confirmSendBookingEmail = async () => {
 
         .booking-workspace-view {
           display: block;
+          height: auto;
+          min-height: 100vh;
+          overflow: visible;
           padding: 20px;
         }
 
         .booking-form-panel {
           grid-column: 1;
-          grid-row: 1 / span 2;
+          grid-row: 1;
           width: 100%;
+          height: calc(100vh - 44px);
           min-width: 0;
           max-width: 380px;
+          max-height: calc(100vh - 44px);
           align-self: start;
-          position: sticky;
-          top: 20px;
-          max-height: calc(100vh - 40px);
+          position: relative;
           overflow-y: auto;
           overflow-x: hidden;
           border-color: var(--booking-border);
@@ -6224,15 +6230,35 @@ const confirmSendBookingEmail = async () => {
           background: var(--booking-primary);
         }
 
-        .booking-action-panel {
+        .booking-right-panel {
           grid-column: 2;
           grid-row: 1;
+          min-width: 0;
+          width: 100%;
+          height: calc(100vh - 44px);
+          max-height: calc(100vh - 44px);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .booking-right-panel-view {
+          grid-column: 1 / -1;
+          height: auto;
+          max-height: none;
+          display: block;
+          overflow: visible;
+        }
+
+        .booking-action-panel {
+          flex: 0 0 auto;
           min-width: 0;
           width: 100%;
           padding: 18px 20px;
           border-color: var(--booking-border);
           border-radius: 22px;
           overflow: visible;
+          margin-bottom: 18px;
         }
 
         .booking-action-grid {
@@ -6253,12 +6279,13 @@ const confirmSendBookingEmail = async () => {
         }
 
         .booking-preview-panel {
-          grid-column: 2;
-          grid-row: 2;
+          flex: 1 1 auto;
           min-width: 0;
+          min-height: 0;
           width: 100%;
+          height: auto;
           overflow-x: auto;
-          overflow-y: visible;
+          overflow-y: auto;
           padding: 24px 20px 96px;
           border-radius: 22px;
           background: rgba(255, 255, 255, 0.38);
@@ -6311,9 +6338,12 @@ const confirmSendBookingEmail = async () => {
         @media (max-width: 1100px) {
           .booking-workspace,
           .booking-workspace-collapsed {
+            height: auto;
+            min-height: 100vh;
             grid-template-columns: 1fr;
             gap: 16px;
             padding: 16px;
+            overflow: visible;
           }
 
           .booking-form-panel {
@@ -6321,8 +6351,19 @@ const confirmSendBookingEmail = async () => {
             grid-row: auto;
             position: relative;
             top: auto;
+            height: auto;
             max-width: none;
             max-height: none;
+            overflow: visible;
+          }
+
+          .booking-right-panel,
+          .booking-right-panel-view {
+            grid-column: auto;
+            grid-row: auto;
+            height: auto;
+            max-height: none;
+            overflow: visible;
           }
 
           .booking-workspace-collapsed .booking-form-panel {
@@ -6332,6 +6373,10 @@ const confirmSendBookingEmail = async () => {
           .booking-preview-panel {
             grid-column: auto;
             grid-row: auto;
+            flex: none;
+            min-height: auto;
+            overflow-x: auto;
+            overflow-y: visible;
             padding: 18px 0 80px;
             border-radius: 20px;
           }
@@ -6349,8 +6394,16 @@ const confirmSendBookingEmail = async () => {
         @media print {
           .booking-workspace {
             display: block !important;
+            height: auto !important;
             padding: 0 !important;
             background: white !important;
+          }
+
+          .booking-right-panel {
+            display: block !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
           }
 
           .booking-preview-panel {
