@@ -250,6 +250,9 @@ const isActiveMenu = (pathname, item) => {
   );
 };
 
+const colorWithAlpha = (color, alphaHex, fallback) =>
+  typeof color === "string" && color.startsWith("#") ? `${color}${alphaHex}` : fallback;
+
 const Badge = ({ count, theme }) => {
   const numericCount = Number(count || 0);
   if (numericCount <= 0) return null;
@@ -267,6 +270,11 @@ const Badge = ({ count, theme }) => {
 const BrandSidebar = ({ brandId, onNavigate }) => {
   const pathname = usePathname();
   const theme = getBrandTheme(brandId);
+  const sidebarText = theme.sidebarText || "#FFFFFF";
+  const sidebarMuted = theme.sidebarMuted || "rgba(255, 255, 255, 0.5)";
+  const sidebarSignedInBg = theme.sidebarSignedInBg || "rgba(255, 255, 255, 0.1)";
+  const sidebarSignedInBorder =
+    theme.sidebarSignedInBorder || "rgba(255, 255, 255, 0.1)";
   const [currentUser, setCurrentUser] = useState(null);
   const [counts, setCounts] = useState({
     ...emptyDashboardCounts,
@@ -349,7 +357,10 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
           <p className="truncate text-[15px] font-black text-white">
             {theme.shortName}
           </p>
-          <p className="mt-0.5 truncate text-[10px] font-semibold uppercase text-white/50">
+          <p
+            className="mt-0.5 truncate text-[10px] font-semibold uppercase"
+            style={{ color: sidebarMuted }}
+          >
             {theme.tagline}
           </p>
         </div>
@@ -368,7 +379,13 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
               className="relative flex min-h-[54px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[14px] font-bold transition hover:bg-white/10"
               style={{
                 backgroundColor: active ? theme.sidebarActiveBg : "transparent",
-                color: active ? "#FFFFFF" : "rgba(255, 255, 255, 0.68)",
+                color: active
+                  ? sidebarText
+                  : colorWithAlpha(
+                      sidebarText,
+                      "B3",
+                      "rgba(255, 255, 255, 0.68)"
+                    ),
               }}
             >
               {active && (
@@ -381,16 +398,33 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                 style={{
                   backgroundColor: active
-                    ? theme.accent
+                    ? theme.sidebarIconActiveBg || theme.accent
                     : "rgba(255, 255, 255, 0.08)",
-                  color: active ? theme.primaryDark : "rgba(255, 255, 255, 0.82)",
+                  color: active
+                    ? theme.sidebarIconActiveColor || theme.primaryDark
+                    : colorWithAlpha(
+                        sidebarText,
+                        "D9",
+                        "rgba(255, 255, 255, 0.82)"
+                      ),
                 }}
               >
                 <Icon name={item.icon} className="h-[18px] w-[18px]" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{item.title}</span>
-                <span className="mt-0.5 block truncate text-[11px] font-semibold text-white/34">
+                <span
+                  className="mt-0.5 block truncate text-[11px] font-semibold"
+                  style={{
+                    color: active
+                      ? sidebarMuted
+                      : colorWithAlpha(
+                          sidebarMuted,
+                          "A6",
+                          "rgba(255, 255, 255, 0.34)"
+                        ),
+                  }}
+                >
                   {item.subtitle}
                 </span>
               </span>
@@ -401,11 +435,26 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
       </nav>
 
       <div className="mt-auto pt-5">
-        <div className="rounded-xl border border-white/10 bg-white/10 p-3">
-          <p className="text-[10px] font-semibold uppercase text-white/42">
+        <div
+          className="rounded-xl border p-3"
+          style={{
+            backgroundColor: sidebarSignedInBg,
+            borderColor: sidebarSignedInBorder,
+          }}
+        >
+          <p
+            className="text-[10px] font-semibold uppercase"
+            style={{
+              color: colorWithAlpha(
+                sidebarMuted,
+                "B3",
+                "rgba(255, 255, 255, 0.42)"
+              ),
+            }}
+          >
             Signed in
           </p>
-          <p className="mt-1 truncate text-[13px] font-bold text-white">
+          <p className="mt-1 truncate text-[13px] font-bold" style={{ color: sidebarText }}>
             {currentUser?.name || currentUser?.username || "Admin"}
           </p>
         </div>

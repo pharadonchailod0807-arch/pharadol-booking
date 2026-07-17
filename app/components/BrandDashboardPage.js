@@ -196,6 +196,18 @@ const BrandButton = ({ children, onClick, disabled, variant = "primary", theme }
       onClick={onClick}
       disabled={disabled}
       className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+      onMouseEnter={(event) => {
+        if (isPrimary && !disabled && theme.buttonPrimaryHover) {
+          event.currentTarget.style.backgroundColor = theme.buttonPrimaryHover;
+          event.currentTarget.style.borderColor = theme.buttonPrimaryHover;
+        }
+      }}
+      onMouseLeave={(event) => {
+        if (isPrimary && theme.buttonPrimaryHover) {
+          event.currentTarget.style.backgroundColor = theme.buttonPrimary;
+          event.currentTarget.style.borderColor = theme.buttonPrimary;
+        }
+      }}
       style={{
         backgroundColor: isPrimary ? theme.buttonPrimary : theme.buttonSecondary,
         borderColor: isPrimary ? theme.buttonPrimary : theme.border,
@@ -593,6 +605,16 @@ export default function BrandDashboardPage({ brandId }) {
                       type="button"
                       onClick={() => navigate(href)}
                       className="group relative min-h-[154px] rounded-[16px] border p-4 pr-12 text-left transition hover:-translate-y-1"
+                      onMouseEnter={(event) => {
+                        if (brandId === "adisorn") {
+                          event.currentTarget.style.borderColor = theme.accent;
+                        }
+                      }}
+                      onMouseLeave={(event) => {
+                        if (brandId === "adisorn") {
+                          event.currentTarget.style.borderColor = theme.border;
+                        }
+                      }}
                       style={{
                         backgroundColor: theme.card,
                         borderColor: theme.border,
@@ -631,6 +653,18 @@ export default function BrandDashboardPage({ brandId }) {
                         type="button"
                         onClick={() => navigate(href)}
                         className="flex min-h-12 items-center gap-3 rounded-2xl border px-3 text-left text-sm font-bold transition hover:-translate-y-0.5"
+                        onMouseEnter={(event) => {
+                          if (brandId === "adisorn") {
+                            event.currentTarget.style.borderColor = theme.accent;
+                            event.currentTarget.style.backgroundColor = theme.accentSoft;
+                          }
+                        }}
+                        onMouseLeave={(event) => {
+                          if (brandId === "adisorn") {
+                            event.currentTarget.style.borderColor = theme.border;
+                            event.currentTarget.style.backgroundColor = "transparent";
+                          }
+                        }}
                         style={{ borderColor: theme.border, color: theme.text }}
                       >
                         <span
