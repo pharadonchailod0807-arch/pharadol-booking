@@ -13,7 +13,6 @@ import {
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WEEK_DAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-const DEFAULT_EVENT_COLOR = "#111827";
 const BRAND_CONFIG = {
   pharadol: {
     name: "PHARADOL PRODUCTION",
@@ -127,19 +126,52 @@ const buildCalendarCells = (visibleDate) => {
   });
 };
 
-const getEventColor = (event, fallbackColor = DEFAULT_EVENT_COLOR) => {
-  const color = String(event?.calendarColor || "").trim();
-  return /^#[0-9a-f]{6}$/i.test(color) ? color : fallbackColor;
-};
+const getCalendarEventTone = (event) => {
+  const syncStatus = getGoogleCalendarSyncStatus(event);
+  const statusText = [
+    event?.jobStatus,
+    event?.status,
+    event?.googleCalendarSyncStatus,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
-const getReadableTextColor = (backgroundColor) => {
-  const hex = backgroundColor.replace("#", "");
-  const red = parseInt(hex.slice(0, 2), 16);
-  const green = parseInt(hex.slice(2, 4), 16);
-  const blue = parseInt(hex.slice(4, 6), 16);
-  const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+  if (
+    event?.deleted ||
+    statusText.includes("trash") ||
+    statusText.includes("cancel") ||
+    statusText.includes("ยกเลิก") ||
+    statusText.includes("ถังขยะ")
+  ) {
+    return {
+      background: "#9CA3AF",
+      text: "#FFFFFF",
+      shadow: "rgba(107, 114, 128, 0.16)",
+    };
+  }
 
-  return luminance > 0.62 ? "#111827" : "#ffffff";
+  if (syncStatus === "ซิงก์แล้ว") {
+    return {
+      background: "#0F8F68",
+      text: "#FFFFFF",
+      shadow: "rgba(15, 143, 104, 0.18)",
+    };
+  }
+
+  if (syncStatus === "ซิงก์ไม่สำเร็จ") {
+    return {
+      background: "#EF4444",
+      text: "#FFFFFF",
+      shadow: "rgba(239, 68, 68, 0.18)",
+    };
+  }
+
+  return {
+    background: "#D6B56D",
+    text: "#10231C",
+    shadow: "rgba(214, 181, 109, 0.20)",
+  };
 };
 
 const getCalendarSyncBadgeClass = (booking) => {
@@ -687,23 +719,39 @@ export default function BrandCalendarPage({ brandId }) {
                   const isCurrentMonth = date.getMonth() === visibleDate.getMonth();
                   const isSelected = isSameDay(date, selectedDate);
                   const isToday = isSameDay(date, new Date());
+                  const hasEvents = dayEvents.length > 0;
+                  const visibleDayEvents = dayEvents.slice(0, 2);
+                  const hiddenEventCount = Math.max(dayEvents.length - visibleDayEvents.length, 0);
 
                   return (
-                    <button
+                    <div
                       key={date.toISOString()}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setSelectedDate(date)}
-                      className={`group min-h-[74px] min-w-0 p-1.5 text-left transition duration-200 hover:z-10 hover:-translate-y-0.5 hover:shadow-md sm:min-h-[90px] sm:p-2 md:min-h-[112px] md:p-3 xl:min-h-[122px] ${
-                        isCurrentMonth ? "" : "opacity-45"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedDate(date);
+                        }
+                      }}
+                      className={`group min-h-[88px] min-w-0 cursor-pointer p-1.5 text-left transition duration-200 hover:z-10 hover:-translate-y-0.5 hover:shadow-md sm:min-h-[96px] sm:p-2 md:min-h-[142px] md:p-3 lg:min-h-[150px] lg:p-3.5 ${
+                        isCurrentMonth ? "" : "opacity-30"
                       }`}
                       style={{
-                        backgroundColor: isSelected ? palette.accentSoft : palette.dayBackground,
+                        backgroundColor: isSelected
+                          ? palette.accentSoft
+                          : hasEvents
+                            ? "#FFFFFF"
+                            : palette.dayBackground,
                         boxShadow: isSelected
                           ? `inset 0 0 0 2px ${palette.primary}`
+                          : hasEvents && isCurrentMonth
+                            ? `inset 0 0 0 1px ${palette.softBorder}`
                           : "none",
                       }}
                     >
-                      <div className="mb-1 flex items-center justify-between gap-1 md:mb-2">
+                      <div className="mb-1.5 flex items-center justify-between gap-1 md:mb-2.5">
                         <span
                           className="flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-black md:h-8 md:w-8 md:text-sm"
                           style={{
@@ -714,56 +762,93 @@ export default function BrandCalendarPage({ brandId }) {
                         >
                           {date.getDate()}
                         </span>
-                        {dayEvents.length > 0 && (
+                        {dayEvents.length > 1 && (
                           <span
-                            className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black text-white shadow-sm"
-                            style={{ backgroundColor: palette.accent }}
+                            className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full px-1.5 text-[10px] font-black shadow-sm"
+                            style={{
+                              backgroundColor: "rgba(214, 181, 109, 0.24)",
+                              color: palette.primary,
+                            }}
                           >
                             {dayEvents.length}
                           </span>
                         )}
                       </div>
 
-                      <div className="space-y-1">
-                        {dayEvents.length > 0 && (
-                          <div className="flex flex-wrap gap-1 sm:hidden">
-                            {dayEvents.slice(0, 3).map((event) => (
+                      <div className="space-y-1.5">
+                        {hasEvents && (
+                          <div className="grid gap-1 sm:hidden">
+                            {dayEvents.slice(0, 2).map((event) => {
+                              const tone = getCalendarEventTone(event);
+
+                              return (
+                                <div
+                                  key={`${event.bookingNumber}-${event.startTime}-${event.customerName}-mobile`}
+                                  className="flex min-w-0 items-center gap-1.5"
+                                  title={`${event.startTime || "ทั้งวัน"} ${event.customerName || event.service || "งาน"}`}
+                                >
+                                  <span
+                                    className="h-2 w-2 shrink-0 rounded-full"
+                                    style={{ backgroundColor: tone.background }}
+                                  />
+                                  <span className="min-w-0 truncate text-[10px] font-black" style={{ color: palette.text }}>
+                                    {event.startTime || "ทั้งวัน"}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                            {dayEvents.length > 2 && (
                               <span
-                                key={`${event.bookingNumber}-${event.startTime}-${event.customerName}-dot`}
-                                className="h-2 w-2 rounded-full"
-                                style={{ backgroundColor: getEventColor(event, palette.primary) }}
-                              />
-                            ))}
+                                className="text-[10px] font-black"
+                                style={{ color: palette.primary }}
+                              >
+                                +{dayEvents.length - 2}
+                              </span>
+                            )}
                           </div>
                         )}
-                        {dayEvents.slice(0, 3).map((event) => {
-                          const eventColor = getEventColor(event, palette.primary);
-                          const textColor = getReadableTextColor(eventColor);
+                        {visibleDayEvents.map((event) => {
+                          const tone = getCalendarEventTone(event);
+                          const eventTitle = `${event.startTime || "ทั้งวัน"} ${event.customerName || event.service || "งาน"} ${event.bookingNumber || ""}`.trim();
 
                           return (
                             <div
                               key={`${event.bookingNumber}-${event.startTime}-${event.customerName}`}
-                              className="hidden h-[28px] min-w-0 items-center gap-1.5 rounded-full px-2 text-[11px] font-black shadow-sm transition group-hover:shadow-md sm:flex md:text-xs"
+                              className="hidden min-h-[38px] min-w-0 transform-gpu grid-rows-[auto_auto] gap-0.5 overflow-hidden rounded-[14px] px-2.5 py-1.5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:grid"
                               style={{
-                                backgroundColor: eventColor,
-                                color: textColor,
+                                backgroundColor: tone.background,
+                                color: tone.text,
+                                boxShadow: `0 6px 14px ${tone.shadow}`,
                               }}
-                              title={`${event.startTime || "--:--"} ${event.customerName || event.service || "งาน"}`}
+                              title={eventTitle}
                             >
-                              <span className="shrink-0 opacity-90">{event.startTime || "--:--"}</span>
-                              <span className="min-w-0 truncate">
+                              <span className="min-w-0 truncate text-[11px] font-black leading-tight">
+                                {event.startTime || "ทั้งวัน"}
+                              </span>
+                              <span className="min-w-0 truncate text-[11px] font-bold leading-tight md:text-[12px]">
                                 {event.customerName || event.service || "งาน"}
                               </span>
                             </div>
                           );
                         })}
-                        {dayEvents.length > 3 && (
-                          <p className="hidden truncate text-[10px] font-black sm:block md:text-xs" style={{ color: palette.muted }}>
-                            +{dayEvents.length - 3} เพิ่มเติม
-                          </p>
+                        {hiddenEventCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedDate(date);
+                            }}
+                            className="hidden w-full rounded-full px-2 py-1 text-center text-[11px] font-black transition hover:-translate-y-0.5 sm:block"
+                            style={{
+                              backgroundColor: "rgba(205, 174, 119, 0.18)",
+                              color: palette.primary,
+                            }}
+                          >
+                            + อีก {hiddenEventCount} งาน
+                          </button>
                         )}
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -785,6 +870,10 @@ export default function BrandCalendarPage({ brandId }) {
                 <span className="inline-flex items-center gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-red-600" />
                   ซิงก์ไม่สำเร็จ
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-gray-400" />
+                  ยกเลิก/ถังขยะ
                 </span>
               </div>
               <span className="text-[11px] font-black" style={{ color: palette.primary }}>
@@ -817,6 +906,10 @@ export default function BrandCalendarPage({ brandId }) {
                 selectedEvents.map((event) => {
                   const eventSyncStatus = getGoogleCalendarSyncStatus(event);
                   const shouldShowRetry = eventSyncStatus !== "ซิงก์แล้ว";
+                  const eventTone = getCalendarEventTone(event);
+                  const eventTimeLabel = event.startTime
+                    ? `${event.startTime} - ${event.endTime || "ไม่ระบุเวลาจบ"}`
+                    : "ทั้งวัน";
 
                   return (
                     <article
@@ -826,27 +919,29 @@ export default function BrandCalendarPage({ brandId }) {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-lg font-black">
+                          <p className="break-words text-lg font-black leading-snug">
                             {event.customerName || "ไม่ระบุชื่อลูกค้า"}
                           </p>
-                          <p className="mt-1 text-sm font-semibold" style={{ color: palette.muted }}>
+                          <p className="mt-1 break-words text-sm font-semibold" style={{ color: palette.muted }}>
                             {event.bookingNumber || "-"} · {event.jobStatus || "รอยืนยัน"}
                           </p>
                         </div>
                         <span
                           className="shrink-0 rounded-full px-3 py-1.5 text-xs font-black shadow-sm"
                           style={{
-                            backgroundColor: getEventColor(event, palette.primary),
-                            color: getReadableTextColor(getEventColor(event, palette.primary)),
+                            backgroundColor: eventTone.background,
+                            color: eventTone.text,
                           }}
                         >
-                          {event.startTime || "-"} - {event.endTime || "-"}
+                          {eventTimeLabel}
                         </span>
                       </div>
 
                       <div className="mt-4 space-y-2 text-sm font-semibold" style={{ color: palette.muted }}>
+                        <p>เลขใบจอง: {event.bookingNumber || "-"}</p>
+                        <p>เวลา: {eventTimeLabel}</p>
                         <p>ประเภทงาน: {event.service || "-"}</p>
-                        <p>สถานที่: {event.location || "-"}</p>
+                        <p className="break-words">สถานที่: {event.location || "-"}</p>
                         <p>โทร: {event.phone || "-"}</p>
                       </div>
 
