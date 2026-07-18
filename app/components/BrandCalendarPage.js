@@ -28,27 +28,33 @@ const BRAND_CONFIG = {
 const CALENDAR_PALETTES = {
   pharadol: {
     primary: "#0F3D31",
+    primaryDark: "#082E25",
     primaryHover: "#123F33",
     accent: "#CDAE77",
+    accentDark: "#B88A2E",
     accentSoft: "#F6EFD7",
     background: "#F6F7F3",
+    card: "#FFFFFF",
     dayBackground: "#FBF7EC",
     text: "#10231C",
-    muted: "#66756D",
-    border: "rgba(15, 61, 49, 0.11)",
+    muted: "#68766F",
+    border: "rgba(15, 61, 49, 0.10)",
     softBorder: "rgba(205, 174, 119, 0.34)",
     shadow: "0 18px 48px rgba(16, 35, 28, 0.08)",
   },
   adisorn: {
     primary: "#4A2E22",
+    primaryDark: "#2B1A14",
     primaryHover: "#5A3828",
     accent: "#C9A46A",
+    accentDark: "#B88A55",
     accentSoft: "#F3E6CF",
     background: "#FAF7F1",
+    card: "#FFFFFF",
     dayBackground: "#FFF9F0",
-    text: "#2B1A14",
+    text: "#2B211B",
     muted: "#7A6A5D",
-    border: "rgba(74, 46, 34, 0.11)",
+    border: "rgba(74, 46, 34, 0.10)",
     softBorder: "rgba(201, 164, 106, 0.34)",
     shadow: "0 18px 48px rgba(43, 26, 20, 0.08)",
   },
@@ -306,29 +312,59 @@ export default function BrandCalendarPage({ brandId }) {
       ),
     [events]
   );
-  const syncStatusStyle =
-    calendarSyncSummary.failed > 0
-      ? {
-          backgroundColor: "#FEF2F2",
-          borderColor: "#FECACA",
-          color: "#B91C1C",
-        }
-      : calendarSyncSummary.pending > 0
-        ? {
-            backgroundColor: "#FFFBEB",
-            borderColor: palette.accent,
-            color: palette.text,
-          }
-        : {
-            backgroundColor: "#ECFDF5",
-            borderColor: "#A7F3D0",
-            color: "#047857",
-          };
   const selectedDateLabel = selectedDate.toLocaleDateString("th-TH", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+  const syncStatusHeadline =
+    calendarSyncSummary.failed > 0
+      ? "มีงานซิงก์ไม่สำเร็จ"
+      : calendarSyncSummary.pending > 0
+        ? "มีงานรอซิงก์"
+        : "ซิงก์เรียบร้อย";
+  const summaryCards = [
+    {
+      label: "Google Calendar Sync",
+      value: syncStatusHeadline,
+      detail: `ซิงก์แล้ว ${calendarSyncSummary.synced} งาน / ยังไม่ซิงก์ ${calendarSyncSummary.pending} งาน`,
+      icon: "G",
+      tone: calendarSyncSummary.failed > 0 ? "#DC2626" : palette.primary,
+      soft: calendarSyncSummary.failed > 0 ? "#FEF2F2" : palette.accentSoft,
+    },
+    {
+      label: "งานทั้งหมดในเดือนนี้",
+      value: monthEvents.length,
+      detail: `${formatThaiMonth(visibleDate)}`,
+      icon: "M",
+      tone: palette.primary,
+      soft: palette.accentSoft,
+    },
+    {
+      label: "ซิงก์แล้ว",
+      value: calendarSyncSummary.synced,
+      detail: "พร้อมใน Google Calendar",
+      icon: "S",
+      tone: "#047857",
+      soft: "#ECFDF5",
+    },
+    {
+      label: "ยังไม่ซิงก์",
+      value: calendarSyncSummary.pending,
+      detail: "รอส่งข้อมูลขึ้น Calendar",
+      icon: "P",
+      tone: palette.accentDark,
+      soft: "#FFFBEB",
+    },
+    {
+      label: "ซิงก์ไม่สำเร็จ",
+      value: calendarSyncSummary.failed,
+      detail: "ต้องลองซิงก์อีกครั้ง",
+      icon: "!",
+      tone: "#B91C1C",
+      soft: "#FEF2F2",
+    },
+  ];
 
   const goToMonth = (amount) => {
     setVisibleDate((current) => {
@@ -347,6 +383,10 @@ export default function BrandCalendarPage({ brandId }) {
     localStorage.setItem(selectedBookingKey, JSON.stringify(booking));
     localStorage.setItem(currentBookingKey, JSON.stringify(booking));
     router.push(brand.bookingPath, { scroll: false });
+  };
+
+  const openNewBooking = () => {
+    router.push(`/${brandId}`, { scroll: false });
   };
 
   const persistCalendarSyncBooking = async (booking) => {
@@ -458,7 +498,7 @@ export default function BrandCalendarPage({ brandId }) {
     >
       <div className="mx-auto max-w-[1540px]">
         <header
-          className="rounded-[24px] border bg-white p-4 shadow-sm transition md:rounded-[28px] md:p-7"
+          className="rounded-[24px] border bg-white p-4 shadow-sm transition md:rounded-[28px] md:p-8"
           style={{
             borderColor: palette.border,
             boxShadow: palette.shadow,
@@ -488,77 +528,73 @@ export default function BrandCalendarPage({ brandId }) {
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:items-end">
-              <div
-                className="inline-flex min-h-[44px] items-center justify-center rounded-2xl border px-4 text-sm font-black"
-                style={{
-                  borderColor: palette.softBorder,
-                  backgroundColor: "#FFFFFF",
-                  color: palette.primary,
-                }}
+            <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+              <button
+                type="button"
+                onClick={() => router.push(brand.dashboardPath)}
+                className="min-h-[44px] rounded-2xl border bg-white px-4 text-sm font-black transition hover:-translate-y-0.5 hover:bg-white/80 disabled:opacity-50 sm:px-5"
+                style={{ borderColor: palette.border, color: palette.text }}
               >
-                {monthEvents.length} งานเดือนนี้
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => router.push(brand.dashboardPath)}
-                  className="min-h-[44px] rounded-2xl px-4 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 disabled:opacity-50 sm:px-5"
-                  style={{ backgroundColor: palette.primary }}
-                >
-                  กลับเมนูหลัก
-                </button>
-                <button
-                  type="button"
-                  onClick={() => loadBookings({ manual: true })}
-                  disabled={isRefreshingBookings}
-                  className="min-h-[44px] rounded-2xl border bg-white px-4 text-sm font-black transition hover:-translate-y-0.5 hover:bg-white/80 disabled:opacity-50 sm:px-5"
-                  style={{ borderColor: palette.border, color: palette.text }}
-                >
-                  {isRefreshingBookings ? "กำลังรีเฟรช" : "รีเฟรช"}
-                </button>
-                <button
-                  type="button"
-                  onClick={syncVisibleCalendarBookings}
-                  disabled={isSyncingCalendar}
-                  className="min-h-[44px] rounded-2xl border bg-white px-4 text-sm font-black transition hover:-translate-y-0.5 hover:bg-white/80 disabled:opacity-50 sm:px-5"
-                  style={{ borderColor: palette.softBorder, color: palette.primary }}
-                >
-                  {isSyncingCalendar ? "กำลังซิงก์" : "ซิงก์ Google Calendar"}
-                </button>
-              </div>
+                กลับเมนูหลัก
+              </button>
+              <button
+                type="button"
+                onClick={() => loadBookings({ manual: true })}
+                disabled={isRefreshingBookings}
+                className="min-h-[44px] rounded-2xl border bg-white px-4 text-sm font-black transition hover:-translate-y-0.5 hover:bg-white/80 disabled:opacity-50 sm:px-5"
+                style={{ borderColor: palette.border, color: palette.text }}
+              >
+                {isRefreshingBookings ? "กำลังรีเฟรช" : "รีเฟรช"}
+              </button>
+              <button
+                type="button"
+                onClick={syncVisibleCalendarBookings}
+                disabled={isSyncingCalendar}
+                className="min-h-[44px] rounded-2xl px-4 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5 disabled:opacity-50 sm:px-5"
+                style={{ backgroundColor: palette.primaryDark || palette.primary }}
+              >
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/15 text-[11px]">
+                  G
+                </span>
+                {isSyncingCalendar ? "กำลังซิงก์" : "ซิงก์ Google Calendar"}
+              </button>
             </div>
           </div>
         </header>
 
-        <div
-          className="mt-5 rounded-[22px] border bg-white p-4 shadow-sm transition md:flex md:items-center md:justify-between md:gap-4"
-          style={{
-            borderColor: syncStatusStyle.borderColor,
-            backgroundColor: syncStatusStyle.backgroundColor,
-            color: syncStatusStyle.color,
-          }}
-        >
-          <div className="flex min-w-0 items-start gap-3">
-            <span
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-black text-white"
-              style={{ backgroundColor: calendarSyncSummary.failed > 0 ? "#B91C1C" : palette.primary }}
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {summaryCards.map((card) => (
+            <article
+              key={card.label}
+              className="group rounded-[22px] border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              style={{ borderColor: palette.border }}
             >
-              G
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-black">Google Calendar Sync</p>
-              <p className="mt-1 text-sm font-semibold opacity-85">
-                ซิงก์แล้ว {calendarSyncSummary.synced} งาน / ยังไม่ซิงก์ {calendarSyncSummary.pending} งาน
-                {calendarSyncSummary.failed > 0 ? ` / ไม่สำเร็จ ${calendarSyncSummary.failed} งาน` : ""}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color: palette.muted }}>
+                    {card.label}
+                  </p>
+                  <p className="mt-2 truncate text-2xl font-black" style={{ color: palette.text }}>
+                    {card.value}
+                  </p>
+                </div>
+                <span
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-black"
+                  style={{ backgroundColor: card.soft, color: card.tone }}
+                >
+                  {card.icon}
+                </span>
+              </div>
+              <p className="mt-3 min-h-9 text-sm font-semibold leading-relaxed" style={{ color: palette.muted }}>
+                {card.detail}
               </p>
-              {calendarSyncMessage && (
-                <p className="mt-1 text-xs font-bold opacity-80 sm:text-sm">
+              {card.label === "Google Calendar Sync" && calendarSyncMessage && (
+                <p className="mt-2 text-xs font-bold" style={{ color: calendarSyncSummary.failed > 0 ? "#B91C1C" : palette.primary }}>
                   {calendarSyncMessage}
                 </p>
               )}
-            </div>
-          </div>
+            </article>
+          ))}
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
@@ -723,6 +759,29 @@ export default function BrandCalendarPage({ brandId }) {
                 })}
               </div>
             </div>
+
+            <div
+              className="flex flex-col gap-3 border-t px-4 py-3 text-xs font-bold sm:flex-row sm:items-center sm:justify-between md:px-5"
+              style={{ borderColor: palette.border, color: palette.muted }}
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
+                  ซิงก์แล้ว
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: palette.accent }} />
+                  ยังไม่ซิงก์
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-600" />
+                  ซิงก์ไม่สำเร็จ
+                </span>
+              </div>
+              <span className="text-[11px] font-black" style={{ color: palette.primary }}>
+                คู่มือการใช้งาน: เลือกวันที่เพื่อดูรายละเอียดงานด้านขวา
+              </span>
+            </div>
           </section>
 
           <aside
@@ -746,72 +805,79 @@ export default function BrandCalendarPage({ brandId }) {
 
             <div className="space-y-3">
               {selectedEvents.length > 0 ? (
-                selectedEvents.map((event) => (
-                  <article
-                    key={`${event.bookingNumber}-${event.startTime}-${event.customerName}`}
-                    className="rounded-[22px] border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                    style={{ borderColor: palette.border }}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-lg font-black">
-                          {event.customerName || "ไม่ระบุชื่อลูกค้า"}
-                        </p>
-                        <p className="mt-1 text-sm font-semibold" style={{ color: palette.muted }}>
-                          {event.bookingNumber || "-"} · {event.jobStatus || "รอยืนยัน"}
-                        </p>
-                      </div>
-                      <span
-                        className="shrink-0 rounded-full px-3 py-1.5 text-xs font-black shadow-sm"
-                        style={{
-                          backgroundColor: getEventColor(event, palette.primary),
-                          color: getReadableTextColor(getEventColor(event, palette.primary)),
-                        }}
-                      >
-                        {event.startTime || "-"} - {event.endTime || "-"}
-                      </span>
-                    </div>
+                selectedEvents.map((event) => {
+                  const eventSyncStatus = getGoogleCalendarSyncStatus(event);
+                  const shouldShowRetry = eventSyncStatus !== "ซิงก์แล้ว";
 
-                    <div className="mt-4 space-y-2 text-sm font-semibold" style={{ color: palette.muted }}>
-                      <p>ประเภทงาน: {event.service || "-"}</p>
-                      <p>สถานที่: {event.location || "-"}</p>
-                      <p>โทร: {event.phone || "-"}</p>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full border px-3 py-1 text-xs font-bold ${getCalendarSyncBadgeClass(event)}`}
-                      >
-                        {getGoogleCalendarSyncStatus(event)}
-                      </span>
-                      {event.googleCalendarSyncError && (
-                        <span className="text-xs font-semibold text-red-600">
-                          {event.googleCalendarSyncError}
+                  return (
+                    <article
+                      key={`${event.bookingNumber}-${event.startTime}-${event.customerName}`}
+                      className="rounded-[22px] border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      style={{ borderColor: palette.border }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-lg font-black">
+                            {event.customerName || "ไม่ระบุชื่อลูกค้า"}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold" style={{ color: palette.muted }}>
+                            {event.bookingNumber || "-"} · {event.jobStatus || "รอยืนยัน"}
+                          </p>
+                        </div>
+                        <span
+                          className="shrink-0 rounded-full px-3 py-1.5 text-xs font-black shadow-sm"
+                          style={{
+                            backgroundColor: getEventColor(event, palette.primary),
+                            color: getReadableTextColor(getEventColor(event, palette.primary)),
+                          }}
+                        >
+                          {event.startTime || "-"} - {event.endTime || "-"}
                         </span>
-                      )}
-                    </div>
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={() => openBooking(event)}
-                      className="mt-4 min-h-[44px] w-full rounded-2xl px-4 font-black text-white shadow-sm transition hover:-translate-y-0.5"
-                      style={{ backgroundColor: palette.primary }}
-                    >
-                      เปิดใบจอง
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => syncCalendarBooking(event)}
-                      disabled={syncingBookingNumber === event.bookingNumber}
-                      className="mt-2 min-h-[44px] w-full rounded-2xl border bg-white px-4 font-black transition hover:-translate-y-0.5 hover:bg-white/80 disabled:opacity-50"
-                      style={{ borderColor: palette.border, color: palette.text }}
-                    >
-                      {syncingBookingNumber === event.bookingNumber
-                        ? "กำลังซิงก์..."
-                        : "ซิงก์อีกครั้ง"}
-                    </button>
-                  </article>
-                ))
+                      <div className="mt-4 space-y-2 text-sm font-semibold" style={{ color: palette.muted }}>
+                        <p>ประเภทงาน: {event.service || "-"}</p>
+                        <p>สถานที่: {event.location || "-"}</p>
+                        <p>โทร: {event.phone || "-"}</p>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-bold ${getCalendarSyncBadgeClass(event)}`}
+                        >
+                          {eventSyncStatus}
+                        </span>
+                        {event.googleCalendarSyncError && (
+                          <span className="text-xs font-semibold text-red-600">
+                            {event.googleCalendarSyncError}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => openBooking(event)}
+                        className="mt-4 min-h-[44px] w-full rounded-2xl px-4 font-black text-white shadow-sm transition hover:-translate-y-0.5"
+                        style={{ backgroundColor: palette.primary }}
+                      >
+                        เปิดใบจอง
+                      </button>
+                      {shouldShowRetry && (
+                        <button
+                          type="button"
+                          onClick={() => syncCalendarBooking(event)}
+                          disabled={syncingBookingNumber === event.bookingNumber}
+                          className="mt-2 min-h-[44px] w-full rounded-2xl border bg-white px-4 font-black transition hover:-translate-y-0.5 hover:bg-white/80 disabled:opacity-50"
+                          style={{ borderColor: palette.border, color: palette.text }}
+                        >
+                          {syncingBookingNumber === event.bookingNumber
+                            ? "กำลังซิงก์..."
+                            : "ซิงก์งานนี้อีกครั้ง"}
+                        </button>
+                      )}
+                    </article>
+                  );
+                })
               ) : (
                 <div
                   className="rounded-[22px] border p-8 text-center"
@@ -833,6 +899,14 @@ export default function BrandCalendarPage({ brandId }) {
                   <p className="mt-1 text-sm font-semibold" style={{ color: palette.muted }}>
                     เลือกวันที่อื่นหรือเพิ่มใบจองใหม่
                   </p>
+                  <button
+                    type="button"
+                    onClick={openNewBooking}
+                    className="mt-5 min-h-[44px] rounded-2xl px-5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5"
+                    style={{ backgroundColor: palette.primary }}
+                  >
+                    เพิ่มใบจองใหม่
+                  </button>
                 </div>
               )}
             </div>
