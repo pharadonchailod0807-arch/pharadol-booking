@@ -47,6 +47,9 @@ export async function POST(request) {
     return Response.json({
       success: true,
       ...result,
+      googleCalendarEventId: result.eventId || "",
+      googleCalendarSyncStatus:
+        mode === "delete" ? "deleted" : "synced",
     });
   } catch (error) {
     console.error("Google Calendar booking sync error:", error);

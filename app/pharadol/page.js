@@ -3068,11 +3068,13 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       setDraftStatus("");
 
       let calendarSyncErrorMessage = "";
+      let calendarSyncSucceeded = false;
 
       try {
         const calendarResult = await syncBookingGoogleCalendar({
           brand: BRAND_ID,
           booking: customer,
+          timeoutMs: 8000,
         });
 
         customer = applyGoogleCalendarSyncResult(customer, calendarResult);
@@ -3091,6 +3093,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
             calendarSaveError
           );
         }
+
+        calendarSyncSucceeded = true;
       } catch (calendarError) {
         calendarSyncErrorMessage =
           calendarError?.message || "ซิงก์ Google Calendar ไม่สำเร็จ";
@@ -3151,6 +3155,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       alert(
         calendarSyncErrorMessage
           ? `${saveSuccessMessage}\nบันทึกใบจองแล้ว แต่ซิงก์ Google Calendar ไม่สำเร็จ: ${calendarSyncErrorMessage}`
+          : calendarSyncSucceeded
+            ? "บันทึกใบจองและซิงก์ Google Calendar สำเร็จ"
           : saveSuccessMessage
       );
     } catch (error) {

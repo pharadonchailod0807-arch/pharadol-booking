@@ -422,7 +422,10 @@ export default function BrandCalendarPage({ brandId }) {
     for (const booking of itemsToSync) {
       const syncedBooking = await syncCalendarBooking(booking, { silent: true });
 
-      if (syncedBooking?.googleCalendarSyncStatus === "error") {
+      if (
+        syncedBooking?.googleCalendarSyncStatus === "failed" ||
+        syncedBooking?.googleCalendarSyncStatus === "error"
+      ) {
         failedCount += 1;
       } else {
         successCount += 1;
