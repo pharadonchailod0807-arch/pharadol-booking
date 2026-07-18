@@ -17,13 +17,19 @@ const BRAND_CONFIG = {
   pharadol: {
     name: "Pharadol Production",
     logo: "/customer-form/pharadol-logo-gold-transparent-v2.png",
-    accent: "#143321",
+    primary: "#0F3D31",
+    accent: "#CDAE77",
+    background: "#F6F7F3",
+    paymentQr: "/pharadol-payment-qr.png",
     logoDark: true,
   },
   adisorn: {
     name: "Adisorn Wedding Studio",
     logo: "/adisorn-logo.png",
-    accent: "#5b3117",
+    primary: "#4A2E22",
+    accent: "#C9A46A",
+    background: "#FAF7F1",
+    paymentQr: "/adisorn-payment-qr.png",
     logoDark: false,
   },
 };
@@ -40,6 +46,9 @@ const initialForm = {
 export default function CustomerRequestFormPage({ brand }) {
   const config = BRAND_CONFIG[brand] || BRAND_CONFIG.pharadol;
   const [form, setForm] = useState(initialForm);
+  const [step, setStep] = useState(1);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [qrImageAvailable, setQrImageAvailable] = useState(true);
   const [file, setFile] = useState(null);
   const [fileError, setFileError] = useState("");
   const [submitError, setSubmitError] = useState("");
@@ -48,6 +57,40 @@ export default function CustomerRequestFormPage({ brand }) {
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => ({ ...current, [field]: "" }));
+  };
+
+  const validateStepOne = () => {
+    const nextErrors = {};
+
+    if (!form.customerName.trim()) {
+      nextErrors.customerName = "กรุณากรอกชื่อ";
+    }
+
+    if (!form.phone.trim()) {
+      nextErrors.phone = "กรุณากรอกเบอร์โทร";
+    }
+
+    if (!form.eventLocation.trim()) {
+      nextErrors.eventLocation = "กรุณากรอกสถานที่จัดงาน";
+    }
+
+    if (!form.eventDate) {
+      nextErrors.eventDate = "กรุณาเลือกวันงาน";
+    }
+
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      nextErrors.email = "กรุณากรอกอีเมลให้ถูกต้อง";
+    }
+
+    setFieldErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const goNextStep = () => {
+    setSubmitError("");
+    if (!validateStepOne()) return;
+    setStep(2);
   };
 
   const validateFile = (nextFile) => {
@@ -157,6 +200,14 @@ const handleSubmit = async (event) => {
     setSubmitError("");
     setSuccessMessage("");
 
+    if (isSubmitting) return;
+
+    if (step !== 2) return;
+    if (!validateStepOne()) {
+      setStep(1);
+      return;
+    }
+
     if (fileError) return;
 
     const cooldownKey = `${brand}_customer_request_last_submit`;
@@ -184,7 +235,9 @@ const handleSubmit = async (event) => {
       await submitRequest(slipData);
       localStorage.setItem(cooldownKey, String(Date.now()));
       setForm(initialForm);
+      setFieldErrors({});
       setFile(null);
+      setStep(1);
       setSuccessMessage(
         slipUploadFailed
           ? "ส่งข้อมูลสำเร็จ แต่แนบสลิปไม่สำเร็จ กรุณาติดต่อทีมงาน"
@@ -197,9 +250,91 @@ const handleSubmit = async (event) => {
     }
   };
 
+  const inputClass = (field) =>
+    `min-h-[54px] rounded-2xl border px-4 text-base outline-none transition focus:border-[var(--form-primary)] ${
+      fieldErrors[field]
+        ? "border-red-300 bg-red-50/40"
+        : "border-zinc-200 bg-white"
+    }`;
+
+  const textareaClass = (field) =>
+    `resize-none rounded-2xl border px-4 py-3 text-base leading-7 outline-none transition focus:border-[var(--form-primary)] ${
+      fieldErrors[field]
+        ? "border-red-300 bg-red-50/40"
+        : "border-zinc-200 bg-white"
+    }`;
+
+  const FieldError = ({ field }) =>
+    fieldErrors[field] ? (
+      <span className="text-xs font-semibold text-red-600">
+        {fieldErrors[field]}
+      </span>
+    ) : null;
+
+  const StepIndicator = () => (
+    <div className="mb-5 grid grid-cols-2 gap-2 rounded-[20px] border border-zinc-200 bg-zinc-50 p-2">
+      {[
+        ["1", "ข้อมูลการจอง"],
+        ["2", "แนบสลิป"],
+      ].map(([number, label]) => {
+        const active = Number(number) === step;
+
+        return (
+          <div
+            key={number}
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-2xl px-3 text-sm font-black transition"
+            style={{
+              backgroundColor: active ? config.primary : "#FFFFFF",
+              color: active ? "#FFFFFF" : "#A1A1AA",
+              boxShadow: active ? "0 10px 24px rgba(15, 23, 42, 0.12)" : "none",
+            }}
+          >
+            <span
+              className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
+              style={{
+                backgroundColor: active ? config.accent : "#F4F4F5",
+                color: active ? config.primary : "#A1A1AA",
+              }}
+            >
+              {number}
+            </span>
+            {label}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const PaymentQrCard = () => (
+    <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 p-4 text-center">
+      <div className="mx-auto flex min-h-[240px] w-full max-w-[300px] items-center justify-center rounded-[24px] border border-dashed border-zinc-300 bg-white p-4 shadow-sm sm:min-h-[280px]">
+        {qrImageAvailable ? (
+          <img
+            src={config.paymentQr}
+            alt={`QR Code สำหรับโอนจอง ${config.name}`}
+            className="max-h-[260px] w-full max-w-[260px] object-contain sm:max-h-[280px] sm:max-w-[280px]"
+            onError={() => setQrImageAvailable(false)}
+          />
+        ) : (
+          <div className="flex h-[220px] w-[220px] flex-col items-center justify-center rounded-[20px] bg-zinc-100 px-5 text-center">
+            <span className="text-4xl font-black" style={{ color: config.primary }}>
+              QR
+            </span>
+            <span className="mt-3 text-sm font-bold text-zinc-500">
+              เพิ่มรูป QR Code ใน public
+            </span>
+          </div>
+        )}
+      </div>
+      <p className="mt-4 text-sm font-semibold leading-6 text-zinc-600">
+        สแกน QR Code เพื่อโอนจอง แล้วแนบสลิปด้านล่าง
+      </p>
+    </div>
+  );
+
   if (successMessage) {
     return (
-      <main className="min-h-screen bg-[#f8f7f4] px-4 py-8 text-zinc-950">
+      <main className="min-h-screen px-4 py-8 text-zinc-950" style={{ backgroundColor: config.background }}>
         <section className="mx-auto flex min-h-[calc(100vh-64px)] max-w-2xl flex-col items-center justify-center text-center">
           {renderLogo()}
           <h1 className="mt-8 text-3xl font-bold leading-tight sm:text-4xl">
@@ -219,61 +354,153 @@ const handleSubmit = async (event) => {
   }
 
   return (
-    <main className="min-h-screen bg-[#f8f7f4] px-4 py-6 text-zinc-950 sm:py-10">
+    <main
+      className="min-h-screen px-4 py-5 text-zinc-950 sm:py-8"
+      style={{
+        backgroundColor: config.background,
+        "--form-primary": config.primary,
+      }}
+    >
       <section className="mx-auto max-w-2xl">
-        <div className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-6 flex flex-col items-center text-center">
           {renderLogo(true)}
-          <p className="mt-4 text-xs font-bold uppercase tracking-[0.26em] text-zinc-400">
+          <p className="mt-3 text-xs font-bold uppercase tracking-[0.22em] text-zinc-400">
             {config.name}
           </p>
-          <h1 className="mt-3 text-3xl font-bold leading-tight sm:text-4xl">
-            กรอกข้อมูลเบื้องต้นสำหรับการจองงาน
+          <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
+            {step === 1
+              ? "กรอกข้อมูลเบื้องต้นสำหรับการจองงาน"
+              : "แนบหลักฐานการโอนจอง"}
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-8 text-zinc-600">
-            กรอกข้อมูลสั้น ๆ เพื่อให้ทีมงานติดต่อกลับและเตรียมรายละเอียดให้เหมาะกับงานของคุณ
+          <p className="mt-3 max-w-xl text-sm leading-7 text-zinc-600 sm:text-base">
+            {step === 1
+              ? "กรอกข้อมูลสั้น ๆ เพื่อให้ทีมงานติดต่อกลับและเตรียมรายละเอียดให้เหมาะกับงานของคุณ"
+              : "ตรวจสอบข้อมูลการจอง แนบหลักฐานการโอน แล้วส่งข้อมูลให้ทีมงาน"}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-[28px] border border-zinc-200 bg-white p-5 shadow-sm sm:p-8">
-          <div className="grid gap-4">
-            <label className="grid gap-2 text-sm font-semibold text-zinc-700">
-              ชื่อ *
-              <input required value={form.customerName} onChange={(event) => updateField("customerName", event.target.value)} className="rounded-2xl border border-zinc-200 px-4 py-3 text-base outline-none transition focus:border-zinc-900" />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-zinc-700">
-              เบอร์โทร *
-              <input required value={form.phone} onChange={(event) => updateField("phone", event.target.value)} className="rounded-2xl border border-zinc-200 px-4 py-3 text-base outline-none transition focus:border-zinc-900" />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-zinc-700">
-              อีเมล
-              <input type="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} className="rounded-2xl border border-zinc-200 px-4 py-3 text-base outline-none transition focus:border-zinc-900" />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-zinc-700">
-              สถานที่จัดงาน *
-              <input required value={form.eventLocation} onChange={(event) => updateField("eventLocation", event.target.value)} className="rounded-2xl border border-zinc-200 px-4 py-3 text-base outline-none transition focus:border-zinc-900" />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-zinc-700">
-              วันงาน *
-              <input required type="date" value={form.eventDate} onChange={(event) => updateField("eventDate", event.target.value)} className="rounded-2xl border border-zinc-200 px-4 py-3 text-base outline-none transition focus:border-zinc-900" />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-zinc-700">
-              รายละเอียดเพิ่มเติม
-              <textarea value={form.note} onChange={(event) => updateField("note", event.target.value)} rows={5} placeholder="เช่น ประเภทงาน เวลาโดยประมาณ จำนวนแขก หรือสิ่งที่อยากแจ้งทีมงาน" className="resize-none rounded-2xl border border-zinc-200 px-4 py-3 text-base leading-7 outline-none transition focus:border-zinc-900" />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-zinc-700">
-              แนบสลิปการโอนจอง
-              <span className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center text-sm font-medium text-zinc-500">
-                รองรับ JPG, PNG, WEBP, PDF ขนาดไม่เกิน 10MB
-                <input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" onChange={handleFileChange} className="mt-3 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white" />
-              </span>
-            </label>
-            {fileError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{fileError}</p>}
-            {submitError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{submitError}</p>}
-          </div>
+        <form onSubmit={handleSubmit} className="rounded-[26px] border border-zinc-200 bg-white p-5 shadow-sm sm:p-7">
+          <StepIndicator />
 
-          <button type="submit" disabled={isSubmitting || Boolean(fileError)} className="mt-6 w-full rounded-2xl px-5 py-4 text-base font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-60" style={{ backgroundColor: config.accent }}>
-            {isSubmitting ? "กำลังส่งข้อมูล..." : "ส่งข้อมูล"}
-          </button>
+          {step === 1 ? (
+            <>
+              <div className="grid gap-4">
+                <label className="grid gap-2 text-sm font-semibold text-zinc-700">
+                  ชื่อ *
+                  <input
+                    value={form.customerName}
+                    onChange={(event) => updateField("customerName", event.target.value)}
+                    className={inputClass("customerName")}
+                  />
+                  <FieldError field="customerName" />
+                </label>
+                <label className="grid gap-2 text-sm font-semibold text-zinc-700">
+                  เบอร์โทร *
+                  <input
+                    value={form.phone}
+                    onChange={(event) => updateField("phone", event.target.value)}
+                    className={inputClass("phone")}
+                  />
+                  <FieldError field="phone" />
+                </label>
+                <label className="grid gap-2 text-sm font-semibold text-zinc-700">
+                  อีเมล
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => updateField("email", event.target.value)}
+                    className={inputClass("email")}
+                  />
+                  <FieldError field="email" />
+                </label>
+                <label className="grid gap-2 text-sm font-semibold text-zinc-700">
+                  สถานที่จัดงาน *
+                  <input
+                    value={form.eventLocation}
+                    onChange={(event) => updateField("eventLocation", event.target.value)}
+                    className={inputClass("eventLocation")}
+                  />
+                  <FieldError field="eventLocation" />
+                </label>
+                <label className="grid gap-2 text-sm font-semibold text-zinc-700">
+                  วันงาน *
+                  <input
+                    type="date"
+                    value={form.eventDate}
+                    onChange={(event) => updateField("eventDate", event.target.value)}
+                    className={inputClass("eventDate")}
+                  />
+                  <FieldError field="eventDate" />
+                </label>
+                <label className="grid gap-2 text-sm font-semibold text-zinc-700">
+                  รายละเอียดเพิ่มเติม
+                  <textarea
+                    value={form.note}
+                    onChange={(event) => updateField("note", event.target.value)}
+                    rows={4}
+                    placeholder="เช่น ประเภทงาน เวลาโดยประมาณ จำนวนแขก หรือสิ่งที่อยากแจ้งทีมงาน"
+                    className={textareaClass("note")}
+                  />
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={goNextStep}
+                className="mt-6 min-h-[56px] w-full rounded-2xl px-5 text-base font-bold text-white transition hover:-translate-y-0.5"
+                style={{ backgroundColor: config.primary }}
+              >
+                ถัดไป
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="grid gap-4">
+                <PaymentQrCard />
+                <label className="grid gap-2 text-sm font-semibold text-zinc-700">
+                  แนบสลิปการโอนจอง
+                  <span className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center text-sm font-medium text-zinc-500">
+                    รองรับ JPG, PNG, WEBP, PDF ขนาดไม่เกิน 10MB
+                    <input
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+                      onChange={handleFileChange}
+                      className="mt-3 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-[var(--form-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                    />
+                  </span>
+                  {file && !fileError && (
+                    <span className="text-xs font-semibold text-zinc-500">
+                      ไฟล์ที่เลือก: {file.name}
+                    </span>
+                  )}
+                </label>
+                {fileError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{fileError}</p>}
+                {submitError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{submitError}</p>}
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubmitError("");
+                    setStep(1);
+                  }}
+                  disabled={isSubmitting}
+                  className="min-h-[56px] rounded-2xl border border-zinc-200 bg-white px-5 text-base font-bold text-zinc-700 transition hover:-translate-y-0.5 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  ย้อนกลับ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || Boolean(fileError)}
+                  className="min-h-[56px] rounded-2xl px-5 text-base font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                  style={{ backgroundColor: config.primary }}
+                >
+                  {isSubmitting ? "กำลังส่งข้อมูล..." : "ส่งข้อมูล"}
+                </button>
+              </div>
+            </>
+          )}
         </form>
       </section>
     </main>
