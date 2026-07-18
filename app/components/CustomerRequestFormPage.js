@@ -26,7 +26,8 @@ const BRAND_CONFIG = {
     paymentQrFileName: "pharadol-payment-qr.png",
     paymentName: "PHARADOL PRODUCTION",
     paymentHeaderBackground:
-      "radial-gradient(circle at 88% 10%, rgba(205,174,119,0.26), transparent 30%), linear-gradient(135deg, #082E25 0%, #0F3D31 42%, #123B30 72%, #061F19 100%)",
+      "radial-gradient(circle at 88% 18%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 32%), linear-gradient(180deg, #334C45 0%, #142D25 100%)",
+    paymentPillText: "#142D25",
     logoDark: true,
   },
   adisorn: {
@@ -409,7 +410,7 @@ const handleSubmit = async (event) => {
           className="inline-flex h-[38px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-[18px] text-[15px] font-black leading-none sm:h-11 sm:px-[22px] sm:text-[17px]"
           style={{
             backgroundColor: config.accent,
-            color: config.primary,
+            color: config.paymentPillText || config.primary,
           }}
         >
           รอแนบสลิป
