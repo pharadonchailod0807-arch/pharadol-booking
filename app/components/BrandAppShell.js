@@ -4,27 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  calculateDashboardCounts,
-  emptyDashboardCounts,
-} from "@/app/lib/dashboardCounts";
 import { getBrandTheme } from "@/app/lib/brandThemes";
 import {
   CUSTOMER_REQUESTS_EVENT,
-  countNewCustomerRequests,
-  readLocalCustomerRequests,
 } from "@/app/lib/customerRequests";
+import {
+  emptySidebarCounts,
+  getBrandSidebarCounts,
+  installSidebarCountsStorageBridge,
+  isBrandStorageKey,
+  SIDEBAR_COUNTS_EVENT,
+} from "@/app/lib/sidebarCounts";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
-
-const readArray = (key) => {
-  try {
-    const value = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
-};
 
 const isAdminRole = (role) => role === "ADMIN" || role === "super_admin";
 
@@ -207,7 +199,7 @@ const buildMenuItems = (brandId, counts) => {
       icon: "calendar",
       title: "ปฏิทินงาน",
       subtitle: "ตารางงานทั้งหมด",
-      badgeCount: counts.monthJobs,
+      badgeCount: counts.calendarJobs,
     },
     {
       href: `/${brandId}/income`,
@@ -227,7 +219,7 @@ const buildMenuItems = (brandId, counts) => {
       icon: "bell",
       title: "แจ้งเตือน",
       subtitle: "งานใกล้ถึงวัน",
-      badgeCount: counts.upcoming7Days,
+      badgeCount: counts.notificationsCount,
     },
     {
       href: `/${brandId}/mail`,
@@ -285,52 +277,47 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
   const sidebarSignedInBorder =
     theme.sidebarSignedInBorder || "rgba(255, 255, 255, 0.1)";
   const [currentUser, setCurrentUser] = useState(null);
-  const [counts, setCounts] = useState({
-    ...emptyDashboardCounts,
-    customerRequests: 0,
-  });
+  const [counts, setCounts] = useState(emptySidebarCounts);
 
   useEffect(() => {
+    installSidebarCountsStorageBridge();
+
+    let refreshFrame = 0;
+
     const loadShellState = () => {
       const savedUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
       setCurrentUser(savedUser);
-
-      const nextCounts = calculateDashboardCounts({
-        brandId,
-        customers: readArray(`${brandId}_customers`),
-        archiveItems: readArray(`${brandId}_archives`),
-        trashItems: readArray(`${brandId}_trash`),
-        emailHistory: readArray(`${brandId}_email_history`),
-        hasBookingDraft: Boolean(localStorage.getItem(`${brandId}_bookingDraft`)),
-      });
-
-      setCounts({
-        ...nextCounts,
-        customerRequests: countNewCustomerRequests(
-          readLocalCustomerRequests(brandId)
-        ),
-      });
+      setCounts(getBrandSidebarCounts(brandId));
     };
 
-    loadShellState();
+    const queueRefresh = () => {
+      if (refreshFrame) window.cancelAnimationFrame(refreshFrame);
+      refreshFrame = window.requestAnimationFrame(() => {
+        refreshFrame = 0;
+        loadShellState();
+      });
+    };
 
     const handleStorage = (event) => {
-      if (
-        !event.key ||
-        event.key === "central_admin_users" ||
-        event.key.startsWith(`${brandId}_`) ||
-        event.key.startsWith(`pendingBookingPrefill_${brandId}`)
-      ) {
-        loadShellState();
-      }
+      if (isBrandStorageKey(event.key, brandId)) queueRefresh();
     };
-    const handleCustomerRequestsEvent = () => loadShellState();
+    const handleSidebarCountsEvent = (event) => {
+      if (event?.detail?.brandId && event.detail.brandId !== brandId) return;
+      queueRefresh();
+    };
+    const handleCustomerRequestsEvent = () => queueRefresh();
 
+    loadShellState();
+    window.addEventListener(SIDEBAR_COUNTS_EVENT, handleSidebarCountsEvent);
     window.addEventListener("storage", handleStorage);
+    window.addEventListener("focus", queueRefresh);
     window.addEventListener(CUSTOMER_REQUESTS_EVENT, handleCustomerRequestsEvent);
 
     return () => {
+      if (refreshFrame) window.cancelAnimationFrame(refreshFrame);
+      window.removeEventListener(SIDEBAR_COUNTS_EVENT, handleSidebarCountsEvent);
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("focus", queueRefresh);
       window.removeEventListener(
         CUSTOMER_REQUESTS_EVENT,
         handleCustomerRequestsEvent
@@ -487,6 +474,8 @@ export default function BrandAppShell({ brandId, children }) {
   const [isAllowed, setIsAllowed] = useState(false);
 
   useEffect(() => {
+    installSidebarCountsStorageBridge();
+
     const denyAccess = () => {
       sessionStorage.clear();
       window.location.replace("/login");

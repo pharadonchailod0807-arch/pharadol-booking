@@ -2,17 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  calculateDashboardCounts,
-  emptyDashboardCounts,
-} from "@/app/lib/dashboardCounts";
+import { emptyDashboardCounts } from "@/app/lib/dashboardCounts";
 import { getBrandTheme } from "@/app/lib/brandThemes";
 import {
   CUSTOMER_REQUESTS_EVENT,
-  countNewCustomerRequests,
   loadCustomerRequests,
-  readLocalCustomerRequests,
 } from "@/app/lib/customerRequests";
+import {
+  countActiveCustomerRequests,
+  getBrandSidebarCounts,
+  installSidebarCountsStorageBridge,
+  isBrandStorageKey,
+  SIDEBAR_COUNTS_EVENT,
+} from "@/app/lib/sidebarCounts";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -223,8 +225,6 @@ const BrandButton = ({ children, onClick, disabled, variant = "primary", theme }
 export default function BrandDashboardPage({ brandId }) {
   const router = useRouter();
   const theme = getBrandTheme(brandId);
-  const bookingDraftKey = `${brandId}_bookingDraft`;
-  const customerRequestsKey = `${brandId}_customer_requests`;
   const dashboardPath = `/${brandId}/dashboard`;
   const bookingPath = `/${brandId}`;
 
@@ -248,26 +248,13 @@ export default function BrandDashboardPage({ brandId }) {
     setCurrentUser(parsedUser);
 
     const customers = readArray(`${brandId}_customers`);
-    const archiveItems = readArray(`${brandId}_archives`);
-    const trashItems = readArray(`${brandId}_trash`);
-    const emailHistory = readArray(`${brandId}_email_history`);
-
-    const nextCounts = calculateDashboardCounts({
-      brandId,
-      customers,
-      archiveItems,
-      trashItems,
-      emailHistory,
-      hasBookingDraft: Boolean(localStorage.getItem(bookingDraftKey)),
-    });
+    const nextCounts = getBrandSidebarCounts(brandId);
 
     setBrandCustomers(customers);
     setDashboardCounts(nextCounts);
-    setNewCustomerRequestCount(
-      countNewCustomerRequests(readLocalCustomerRequests(brandId))
-    );
+    setNewCustomerRequestCount(nextCounts.customerRequests || 0);
     setCountsReady(true);
-  }, [bookingDraftKey, brandId, theme.name]);
+  }, [brandId, theme.name]);
 
   const refreshDashboardCounts = async () => {
     if (!currentUser || isRefreshingCounts) return;
@@ -276,20 +263,23 @@ export default function BrandDashboardPage({ brandId }) {
     loadDashboardSnapshot(currentUser);
 
     try {
-      const result = await loadCustomerRequests(brandId, { forceRemote: true });
-      setNewCustomerRequestCount(countNewCustomerRequests(result.requests));
+      await loadCustomerRequests(brandId, { forceRemote: true });
+      setNewCustomerRequestCount(countActiveCustomerRequests(brandId));
+      loadDashboardSnapshot(currentUser);
     } finally {
       setIsRefreshingCounts(false);
     }
   };
 
   useEffect(() => {
+    installSidebarCountsStorageBridge();
+
     const loadDashboardData = (savedUser, { syncRemote = false } = {}) => {
       loadDashboardSnapshot(savedUser);
 
       if (syncRemote) {
-        loadCustomerRequests(brandId).then(({ requests }) => {
-          setNewCustomerRequestCount(countNewCustomerRequests(requests));
+        loadCustomerRequests(brandId).then(() => {
+          setNewCustomerRequestCount(countActiveCustomerRequests(brandId));
         });
       }
     };
@@ -360,27 +350,26 @@ export default function BrandDashboardPage({ brandId }) {
     };
 
     const handleStorage = (event) => {
-      const watchedKeys = [
-        "central_admin_users",
-        `${brandId}_customers`,
-        `${brandId}_archives`,
-        `${brandId}_trash`,
-        `${brandId}_email_history`,
-        bookingDraftKey,
-        customerRequestsKey,
-      ];
-
-      if (watchedKeys.includes(event.key)) {
+      if (isBrandStorageKey(event.key, brandId)) {
         verifyAccess({ refreshData: true });
       }
     };
     const handleCustomerRequestsEvent = () => verifyAccess({ refreshData: true });
+    const handleSidebarCountsEvent = (event) => {
+      if (event?.detail?.brandId && event.detail.brandId !== brandId) return;
+
+      const savedUser = JSON.parse(
+        sessionStorage.getItem("currentUser") || "null"
+      );
+      if (savedUser) loadDashboardSnapshot(savedUser);
+    };
     const activityEvents = ["mousedown", "keydown", "touchstart", "scroll"];
 
     activityEvents.forEach((eventName) =>
       window.addEventListener(eventName, updateActivity, { passive: true })
     );
     window.addEventListener("storage", handleStorage);
+    window.addEventListener(SIDEBAR_COUNTS_EVENT, handleSidebarCountsEvent);
     window.addEventListener(CUSTOMER_REQUESTS_EVENT, handleCustomerRequestsEvent);
 
     return () => {
@@ -389,12 +378,13 @@ export default function BrandDashboardPage({ brandId }) {
         window.removeEventListener(eventName, updateActivity)
       );
       window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(SIDEBAR_COUNTS_EVENT, handleSidebarCountsEvent);
       window.removeEventListener(
         CUSTOMER_REQUESTS_EVENT,
         handleCustomerRequestsEvent
       );
     };
-  }, [brandId, bookingDraftKey, customerRequestsKey, loadDashboardSnapshot]);
+  }, [brandId, loadDashboardSnapshot]);
 
   const navigate = (href) => {
     router.push(href);
@@ -409,6 +399,7 @@ export default function BrandDashboardPage({ brandId }) {
   const draftBookingCount = dashboardCounts.draftBookings;
   const pendingPaymentCount = dashboardCounts.pendingPayments;
   const emailAttentionCount = dashboardCounts.emailAttention;
+  const calendarJobCount = dashboardCounts.calendarJobs ?? monthJobs;
   const alerts = dashboardCounts.alerts;
 
   const statCards = [
@@ -424,7 +415,7 @@ export default function BrandDashboardPage({ brandId }) {
     [`/${brandId}/customer-requests`, "bell", "คำขอจากลูกค้า", "ข้อมูลที่ลูกค้ากรอกผ่านลิงก์", newCustomerRequestCount],
     [`/${brandId}/customers`, "customers", "ข้อมูลลูกค้า", "รายชื่อลูกค้าทั้งหมด", customerCount],
     [`/${brandId}/archives`, "archive", "คลังข้อมูล", "ข้อมูลที่จัดเก็บแล้ว", archiveCount],
-    [`/${brandId}/calendar`, "calendar", "ปฏิทินงาน", "ตารางงานทั้งหมด", monthJobs],
+    [`/${brandId}/calendar`, "calendar", "ปฏิทินงาน", "ตารางงานทั้งหมด", calendarJobCount],
     [`/${brandId}/trash`, "trash", "ถังขยะ", "รายการที่ถูกลบ", trashCount],
     [`/${brandId}/income`, "income", "รายได้", "รายได้ทั้งหมด", pendingPaymentCount],
     [`/${brandId}/reports`, "reports", "รายงาน", "สถิติและรายงานธุรกิจ", 0],
