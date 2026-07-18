@@ -4824,6 +4824,15 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
         "--send-progress-gradient":
           "linear-gradient(90deg, transparent, #4A2E22, #C9A46A, transparent)",
         "--send-loading-shadow": "rgba(74, 46, 34, 0.08)",
+        "--customer-send-overlay": "rgba(61, 49, 43, 0.62)",
+        "--customer-send-card-bg": "#FFFFFF",
+        "--customer-send-primary": "#4A2E22",
+        "--customer-send-deep": "#2B1A14",
+        "--customer-send-accent": "#B88A55",
+        "--customer-send-soft-bg": "#F7F0E6",
+        "--customer-send-muted": "#7A6A5D",
+        "--customer-send-progress-track": "#EFE3D3",
+        "--customer-send-progress-fill": "#8A5A38",
       }}
     >
 
@@ -7084,6 +7093,48 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
             >
               ยกเลิก
             </button>
+          </div>
+        </div>
+      )}
+      {isPreparingAttachment && (
+        <div className="customer-send-loading-overlay no-print">
+          <div className="customer-send-loading-card">
+            <div className="customer-send-spinner" aria-hidden="true" />
+
+            <p className="customer-send-brand">ADISORN WEDDING STUDIO</p>
+
+            <h2>{emailSendMessage || "กำลังสร้าง PDF คุณภาพสูง"}</h2>
+
+            <p className="customer-send-description">
+              กรุณาอย่าปิดหน้านี้ ระบบกำลังเตรียมไฟล์สำหรับส่งให้ลูกค้า
+            </p>
+
+            <div className="customer-send-progress-track" aria-hidden="true">
+              <div className="customer-send-progress-bar" />
+            </div>
+
+            <p className="customer-send-substatus">
+              {emailSendMessage || "กำลังสร้าง PDF คุณภาพสูง..."}
+            </p>
+
+            <div className="customer-send-meta">
+              <div>
+                <span>สถานะ</span>
+                <strong>กำลังทำงาน</strong>
+              </div>
+              <div>
+                <span>คุณภาพ</span>
+                <strong>ต้นฉบับ</strong>
+              </div>
+              <div>
+                <span>ไฟล์</span>
+                <strong>PDF คุณภาพสูง</strong>
+              </div>
+            </div>
+
+            <p className="customer-send-note">
+              PDF จะถูกสร้างด้วยคุณภาพต้นฉบับ อาจใช้เวลาสักครู่
+            </p>
           </div>
         </div>
       )}
