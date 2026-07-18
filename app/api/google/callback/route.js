@@ -5,6 +5,7 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const VALID_BRANDS = new Set(["pharadol", "adisorn"]);
+const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 const PRODUCTION_GOOGLE_REDIRECT_URI =
   "https://www.pharadolproduction.com/api/google/callback";
 const LOCAL_GOOGLE_REDIRECT_HOSTS = new Set(["localhost", "127.0.0.1"]);
@@ -82,6 +83,30 @@ const escapeHtml = (value) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+
+const tokenHasCalendarScope = async (tokens, oauth2Client) => {
+  const scopes = String(tokens?.scope || "").split(/\s+/).filter(Boolean);
+
+  if (scopes.includes(GOOGLE_CALENDAR_SCOPE)) return true;
+
+  if (tokens?.access_token) {
+    try {
+      const oauth2 = google.oauth2({ version: "v2", auth: oauth2Client });
+      const tokenInfo = await oauth2.tokeninfo({
+        access_token: tokens.access_token,
+      });
+      const tokenInfoScopes = String(tokenInfo.data.scope || "")
+        .split(/\s+/)
+        .filter(Boolean);
+
+      return tokenInfoScopes.includes(GOOGLE_CALENDAR_SCOPE);
+    } catch (scopeError) {
+      console.error("Cannot verify Google Calendar scope:", scopeError);
+    }
+  }
+
+  return false;
+};
 
 const renderHtml = ({ title, message, token, envName, brandName }) => {
   const escapedToken = escapeHtml(token);
@@ -212,6 +237,19 @@ export async function GET(request) {
       redirectUri
     );
     const { tokens } = await oauth2Client.getToken(code);
+
+    oauth2Client.setCredentials(tokens);
+
+    if (!(await tokenHasCalendarScope(tokens, oauth2Client))) {
+      return new Response(
+        renderHtml({
+          title: "Google Calendar ยังไม่ได้รับอนุญาต",
+          message:
+            `refresh token ที่ได้ยังไม่มีสิทธิ์ Google Calendar กรุณาเริ่มใหม่ที่ /api/google/auth?brand=${brand} และกดยินยอมสิทธิ์ Google Calendar`,
+        }),
+        { status: 400, headers: { "Content-Type": "text/html; charset=utf-8" } }
+      );
+    }
 
     return new Response(
       renderHtml({

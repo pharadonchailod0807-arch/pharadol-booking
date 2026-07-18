@@ -9,6 +9,8 @@ const GOOGLE_OAUTH_SCOPES = [
   "https://www.googleapis.com/auth/gmail.compose",
   "https://www.googleapis.com/auth/calendar",
 ];
+const GOOGLE_OAUTH_ACCESS_TYPE = "offline";
+const GOOGLE_OAUTH_PROMPT = "consent";
 
 const VALID_BRANDS = new Set(["pharadol", "adisorn"]);
 const PRODUCTION_GOOGLE_REDIRECT_URI =
@@ -118,8 +120,9 @@ export async function GET(request) {
   );
 
   const authUrl = oauth2Client.generateAuthUrl({
-    access_type: "offline",
-    prompt: "consent",
+    access_type: GOOGLE_OAUTH_ACCESS_TYPE,
+    prompt: GOOGLE_OAUTH_PROMPT,
+    include_granted_scopes: true,
     scope: GOOGLE_OAUTH_SCOPES,
     state: brand,
   });
