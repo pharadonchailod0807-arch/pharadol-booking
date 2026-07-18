@@ -34,6 +34,10 @@ const BRAND_NAMES = {
   pharadol: "Pharadol",
   adisorn: "Adisorn",
 };
+const HTML_HEADERS = {
+  "Content-Type": "text/html; charset=utf-8",
+  "Cache-Control": "no-store, max-age=0",
+};
 
 const isLocalGoogleRedirectHost = (hostname) =>
   LOCAL_GOOGLE_REDIRECT_HOSTS.has(String(hostname || "").toLowerCase());
@@ -109,10 +113,12 @@ const tokenHasCalendarScope = async (tokens, oauth2Client) => {
   return false;
 };
 
-const renderHtml = ({ title, message, token, envName, brandName }) => {
+const renderHtml = ({ title, message, token, envName, brandId, brandName }) => {
   const escapedToken = escapeHtml(token);
   const escapedEnvName = escapeHtml(envName);
+  const escapedBrandId = escapeHtml(brandId);
   const escapedBrandName = escapeHtml(brandName);
+  const hasToken = Boolean(token);
 
   return `<!doctype html>
 <html lang="th">
@@ -123,8 +129,8 @@ const renderHtml = ({ title, message, token, envName, brandName }) => {
     <style>
       body {
         margin: 0;
-        background: #f4f4f5;
-        color: #18181b;
+        background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+        color: #0f172a;
         font-family: Arial, sans-serif;
       }
       main {
@@ -134,27 +140,110 @@ const renderHtml = ({ title, message, token, envName, brandName }) => {
         padding: 24px;
       }
       section {
-        width: min(720px, 100%);
-        border-radius: 18px;
+        width: min(760px, 100%);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 24px;
         background: white;
-        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.12);
-        padding: 28px;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
+        padding: 32px;
       }
       h1 {
         margin: 0;
-        font-size: 28px;
+        font-size: clamp(24px, 5vw, 34px);
+        line-height: 1.2;
       }
       p {
-        color: #52525b;
+        color: #475569;
         line-height: 1.7;
       }
-      pre {
+      .meta {
+        display: grid;
+        gap: 10px;
+        margin: 22px 0;
+        border-radius: 18px;
+        background: #f8fafc;
+        padding: 18px;
+      }
+      .meta div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .label {
+        color: #64748b;
+        font-weight: 700;
+      }
+      code,
+      textarea {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      }
+      code {
+        border-radius: 999px;
+        background: #e2e8f0;
+        color: #0f172a;
+        padding: 4px 10px;
+        font-weight: 800;
+      }
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 150px;
+        resize: vertical;
         overflow-wrap: anywhere;
-        white-space: pre-wrap;
-        border-radius: 14px;
-        background: #18181b;
+        word-break: break-all;
+        border: 1px solid rgba(15, 23, 42, 0.14);
+        border-radius: 16px;
+        background: #0f172a;
         color: #f8fafc;
         padding: 16px;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      button {
+        margin-top: 14px;
+        min-height: 48px;
+        border: 0;
+        border-radius: 14px;
+        background: #0f3d31;
+        color: white;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 800;
+        padding: 0 18px;
+      }
+      button:hover {
+        filter: brightness(0.96);
+      }
+      .warning {
+        margin-top: 22px;
+        border: 1px solid #f59e0b;
+        border-radius: 16px;
+        background: #fffbeb;
+        color: #92400e;
+        padding: 14px 16px;
+        font-weight: 700;
+      }
+      .empty {
+        border: 1px solid #fecaca;
+        border-radius: 16px;
+        background: #fef2f2;
+        color: #991b1b;
+        padding: 14px 16px;
+        font-weight: 700;
+      }
+      .copied {
+        margin-left: 10px;
+        color: #047857;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      @media (max-width: 640px) {
+        main {
+          padding: 16px;
+        }
+        section {
+          padding: 22px;
+        }
       }
     </style>
   </head>
@@ -163,13 +252,53 @@ const renderHtml = ({ title, message, token, envName, brandName }) => {
       <section>
         <h1>${escapeHtml(title)}</h1>
         <p>${escapeHtml(message)}</p>
-        ${
-          token
-            ? `<p><strong>Brand:</strong> ${escapedBrandName}</p><pre>${escapedEnvName}=${escapedToken}</pre>`
-            : ""
-        }
+        <div class="meta">
+          <div><span class="label">Brand:</span> <strong>${escapedBrandId || escapedBrandName}</strong></div>
+          <div><span class="label">Vercel ENV:</span> <code>${escapedEnvName}</code></div>
+        </div>
+        ${hasToken
+          ? `<label class="label" for="refresh-token">Refresh token ที่ได้รับจาก Google ครั้งนี้</label>
+             <textarea id="refresh-token" readonly spellcheck="false">${escapedToken}</textarea>
+             <div>
+               <button id="copy-token" type="button">คัดลอก Token</button>
+               <span id="copy-status" class="copied" aria-live="polite"></span>
+             </div>
+             <p class="warning">Token นี้เป็นข้อมูลลับ ห้ามส่งให้ผู้อื่น หลังอัปเดตใน Vercel แล้วให้ redeploy</p>`
+          : `<p class="empty">ไม่ได้รับ refresh token ใหม่ กรุณาเชื่อม Google ใหม่โดยใช้ prompt=consent และ access_type=offline</p>`}
       </section>
     </main>
+    ${hasToken
+      ? `<script>
+        (function () {
+          var button = document.getElementById("copy-token");
+          var textarea = document.getElementById("refresh-token");
+          var status = document.getElementById("copy-status");
+          if (!button || !textarea) return;
+          button.addEventListener("click", function () {
+            var token = textarea.value;
+            var showCopied = function () {
+              if (status) status.textContent = "คัดลอกแล้ว";
+              window.setTimeout(function () {
+                if (status) status.textContent = "";
+              }, 1800);
+            };
+            if (navigator.clipboard && window.isSecureContext) {
+              navigator.clipboard.writeText(token).then(showCopied).catch(function () {
+                textarea.focus();
+                textarea.select();
+                document.execCommand("copy");
+                showCopied();
+              });
+              return;
+            }
+            textarea.focus();
+            textarea.select();
+            document.execCommand("copy");
+            showCopied();
+          });
+        })();
+      </script>`
+      : ""}
   </body>
 </html>`;
 };
@@ -192,8 +321,11 @@ export async function GET(request) {
       renderHtml({
         title: "Google authorization ไม่สำเร็จ",
         message: `Google ส่ง error กลับมา: ${error}`,
+        brandId: brand,
+        brandName: BRAND_NAMES[brand],
+        envName: BRAND_REFRESH_TOKEN_ENV[brand],
       }),
-      { status: 400, headers: { "Content-Type": "text/html; charset=utf-8" } }
+      { status: 400, headers: HTML_HEADERS }
     );
   }
 
@@ -253,8 +385,11 @@ export async function GET(request) {
           title: "Google Calendar ยังไม่ได้รับอนุญาต",
           message:
             `refresh token ที่ได้ยังไม่มีสิทธิ์ Google Calendar กรุณาเริ่มใหม่ที่ /api/google/auth?brand=${brand} และกดยินยอมสิทธิ์ Google Calendar`,
+          brandId: brand,
+          brandName: BRAND_NAMES[brand],
+          envName: BRAND_REFRESH_TOKEN_ENV[brand],
         }),
-        { status: 400, headers: { "Content-Type": "text/html; charset=utf-8" } }
+        { status: 400, headers: HTML_HEADERS }
       );
     }
 
@@ -263,13 +398,14 @@ export async function GET(request) {
         title: `เชื่อมต่อ Google สำเร็จ: ${BRAND_NAMES[brand]}`,
         message:
           tokens.refresh_token
-            ? `ได้รับ refresh token ที่มีสิทธิ์ Google Drive, Gmail และ Google Calendar แล้ว แต่ระบบไม่แสดง token ใน browser เพื่อความปลอดภัย กรุณาจัดเก็บ token ผ่านช่องทาง server ที่ปลอดภัย`
-            : `Google ไม่ส่ง refresh token กลับมา ถ้าเคยอนุญาตแล้ว ให้ revoke access แล้วลองเข้า /api/google/auth?brand=${brand} ใหม่`,
-        token: "",
+            ? `ได้รับ refresh token ใหม่สำหรับ ${brand} แล้ว ให้นำค่า token ด้านล่างไปใส่ใน Vercel ENV`
+            : `ไม่ได้รับ refresh token ใหม่ กรุณาเชื่อม Google ใหม่โดยใช้ prompt=consent และ access_type=offline`,
+        token: tokens.refresh_token || "",
         envName: BRAND_REFRESH_TOKEN_ENV[brand],
+        brandId: brand,
         brandName: BRAND_NAMES[brand],
       }),
-      { headers: { "Content-Type": "text/html; charset=utf-8" } }
+      { headers: HTML_HEADERS }
     );
   } catch (tokenError) {
     const googleError =
@@ -287,10 +423,13 @@ export async function GET(request) {
         message: isInvalidGrant
           ? `authorization code นี้หมดอายุหรือถูกใช้ไปแล้ว กรุณาเริ่มใหม่ที่ /api/google/auth?brand=${brand}`
           : `กรุณาตรวจสอบ ${GOOGLE_CREDENTIAL_ENV_NAMES[brand]} และ GOOGLE_REDIRECT_URI แล้วลองใหม่`,
+        brandId: brand,
+        brandName: BRAND_NAMES[brand],
+        envName: BRAND_REFRESH_TOKEN_ENV[brand],
       }),
       {
         status: isInvalidGrant ? 400 : 500,
-        headers: { "Content-Type": "text/html; charset=utf-8" },
+        headers: HTML_HEADERS,
       }
     );
   }
