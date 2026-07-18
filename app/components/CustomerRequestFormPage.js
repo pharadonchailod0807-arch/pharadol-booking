@@ -389,7 +389,7 @@ const handleSubmit = async (event) => {
   const PaymentQrCard = () => (
     <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
       <div
-        className="min-h-[132px] px-6 py-7 text-white sm:px-9 sm:py-8"
+        className="min-h-[142px] px-6 py-8 text-white sm:px-9 sm:py-8"
         style={{ background: config.paymentHeaderBackground }}
       >
         <div className="flex items-start justify-between gap-4">
@@ -397,7 +397,7 @@ const handleSubmit = async (event) => {
             <p className="text-[12px] font-black uppercase tracking-[0.28em] text-white/75 sm:text-[15px] sm:tracking-[0.32em]">
               QR PAYMENT
             </p>
-            <p className="mt-3 truncate text-[20px] font-black leading-none text-white sm:text-[25px]">
+            <p className="mt-3 truncate text-[18px] font-black leading-none text-white min-[400px]:text-[20px] sm:text-[25px]">
               {config.paymentName}
             </p>
           </div>
