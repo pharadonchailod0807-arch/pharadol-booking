@@ -26,7 +26,7 @@ const BRAND_CONFIG = {
     paymentQrFileName: "pharadol-payment-qr.png",
     paymentName: "PHARADOL PRODUCTION",
     paymentHeaderBackground:
-      "radial-gradient(circle at 88% 18%, rgba(205,174,119,0.22), transparent 34%), linear-gradient(135deg, #082E25 0%, #0F3D31 48%, #061F19 100%)",
+      "radial-gradient(circle at 88% 10%, rgba(205,174,119,0.26), transparent 30%), linear-gradient(135deg, #082E25 0%, #0F3D31 42%, #123B30 72%, #061F19 100%)",
     logoDark: true,
   },
   adisorn: {
@@ -41,7 +41,7 @@ const BRAND_CONFIG = {
     paymentQrFileName: "adisorn-payment-qr.png",
     paymentName: "ADISORN WEDDING STUDIO",
     paymentHeaderBackground:
-      "radial-gradient(circle at 88% 18%, rgba(201,164,106,0.22), transparent 34%), linear-gradient(135deg, #2B1A14 0%, #4A2E22 52%, #24120D 100%)",
+      "radial-gradient(circle at 88% 10%, rgba(201,164,106,0.24), transparent 30%), linear-gradient(135deg, #2B1A14 0%, #4A2E22 45%, #5A3828 72%, #24120D 100%)",
     logoDark: false,
   },
 };
@@ -388,25 +388,25 @@ const handleSubmit = async (event) => {
 
   const paymentBrandClass =
     brand === "adisorn"
-      ? "text-[22px] max-[390px]:text-[20px] sm:text-[26px]"
-      : "text-2xl max-[390px]:text-[22px] sm:text-[26px]";
+      ? "inline-block w-max text-[18px] min-[400px]:text-[19px] sm:text-[26px]"
+      : "inline-block w-max text-[20px] sm:text-[26px]";
 
   const PaymentQrCard = () => (
     <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:rounded-[32px]">
       <div
-        className="flex min-h-[128px] items-center justify-between gap-[14px] px-[26px] py-6 text-white max-[390px]:gap-2.5 max-[390px]:px-[22px] sm:min-h-[132px] sm:gap-[18px] sm:px-[34px] sm:py-7"
+        className="grid min-h-[108px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-6 py-5 text-white sm:min-h-[132px] sm:gap-[18px] sm:px-[34px] sm:py-7"
         style={{ background: config.paymentHeaderBackground }}
       >
-        <div className="min-w-0 flex-1">
-          <p className="mb-[9px] text-[13px] font-black uppercase leading-none tracking-[0.18em] text-white/75 sm:mb-2.5 sm:text-sm">
+        <div className="min-w-0">
+          <p className="mb-2.5 text-xs font-black uppercase leading-none tracking-[0.18em] text-white/75 sm:text-sm">
             QR PAYMENT
           </p>
-          <p className={`m-0 whitespace-normal break-words font-black leading-[1.1] tracking-[0.01em] text-white ${paymentBrandClass}`}>
+          <p className={`m-0 origin-left whitespace-nowrap font-black leading-[1.1] tracking-[0.01em] text-white ${paymentBrandClass}`}>
             {config.paymentName}
           </p>
         </div>
         <span
-          className="inline-flex h-10 min-w-[120px] shrink-0 items-center justify-center whitespace-nowrap rounded-full px-4 text-[15px] font-black leading-none max-[390px]:h-[38px] max-[390px]:min-w-[108px] max-[390px]:px-3 max-[390px]:text-sm sm:h-11 sm:min-w-[142px] sm:px-[22px] sm:text-[17px]"
+          className="inline-flex h-[38px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-[18px] text-[15px] font-black leading-none sm:h-11 sm:px-[22px] sm:text-[17px]"
           style={{
             backgroundColor: config.accent,
             color: config.primary,
