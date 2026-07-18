@@ -4607,6 +4607,16 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
         "--booking-primary-shadow": "rgba(15, 61, 49, 0.2)",
         "--booking-card-shadow": "rgba(16, 35, 28, 0.09)",
         "--booking-button-on-accent": "#0B0B0D",
+        "--send-loading-card-bg": "#FFF9EC",
+        "--send-loading-card-border": "#D6B56D",
+        "--send-loading-text": "#0B2F26",
+        "--send-loading-muted": "#6F766F",
+        "--send-loading-spinner-main": "#0F3D31",
+        "--send-loading-spinner-soft": "#E9D7A8",
+        "--send-progress-track": "#EFE7D6",
+        "--send-progress-gradient":
+          "linear-gradient(90deg, transparent, #0F3D31, #CDAE77, transparent)",
+        "--send-loading-shadow": "rgba(15, 61, 49, 0.08)",
       }}
     >
 
@@ -6791,7 +6801,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
       )}
       {isSendOptionsOpen && (
         <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4">
-          <div className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+          <div className="send-options-modal max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-zinc-900">
                 ส่งข้อมูลลูกค้า
@@ -6852,7 +6862,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
 
             {(isPreparingAttachment || emailSendMessage) && (
               <div
-                className={`send-loading-panel mt-4 ${emailSendMessageClass}`}
+                className={`send-loading-panel send-loading-card mt-4 ${emailSendMessageClass}`}
               >
                 <div className="flex items-center gap-3 text-sm font-bold">
                   {isPreparingAttachment && (

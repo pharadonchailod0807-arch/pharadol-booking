@@ -56,52 +56,59 @@ video {
 }
 
 .send-loading-spinner {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex: 0 0 auto;
   border-radius: 999px;
-  border: 3px solid rgba(255, 255, 255, 0.45);
-  border-top-color: currentColor;
+  border: 4px solid var(--send-loading-spinner-soft, #e9d7a8);
+  border-top-color: var(--send-loading-spinner-main, #0f3d31);
   animation: sendSpin 0.8s linear infinite;
+}
+
+.send-options-modal {
+  background: #ffffff !important;
+}
+
+.send-options-modal button:disabled:not(.send-action-button-active) {
+  opacity: 0.55 !important;
 }
 
 .send-action-button-active {
   opacity: 1 !important;
-  color: var(--booking-primary-dark, currentColor) !important;
-  border-color: var(--booking-accent, currentColor) !important;
+  color: var(--send-loading-text, var(--booking-primary-dark, currentColor)) !important;
+  border-color: var(--send-loading-card-border, var(--booking-accent, currentColor)) !important;
   background:
     linear-gradient(
       135deg,
-      var(--booking-accent-soft, #f6efd7) 0%,
-      #ffffff 54%,
-      var(--booking-accent-soft, #f6efd7) 100%
+      var(--send-loading-card-bg, #fff9ec) 0%,
+      #ffffff 56%,
+      var(--send-loading-card-bg, #fff9ec) 100%
     ) !important;
   box-shadow:
-    0 14px 30px color-mix(in srgb, var(--booking-primary, #0f3d31) 16%, transparent),
+    0 10px 24px var(--send-loading-shadow, rgba(15, 61, 49, 0.08)),
     inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
 }
 
 .send-action-button-active .send-loading-spinner,
 .send-loading-panel .send-loading-spinner {
-  border-color: color-mix(in srgb, var(--booking-accent, currentColor) 38%, transparent);
-  border-top-color: var(--booking-primary, currentColor);
+  border-color: var(--send-loading-spinner-soft, #e9d7a8);
+  border-top-color: var(--send-loading-spinner-main, #0f3d31);
 }
 
-.send-loading-panel {
-  border: 1px solid color-mix(in srgb, var(--booking-accent, #cdae77) 58%, #ffffff 42%) !important;
+.send-loading-panel,
+.send-loading-card {
+  border: 1.5px solid var(--send-loading-card-border, #d6b56d) !important;
   border-radius: 20px !important;
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--booking-accent-soft, #f6efd7) 88%, #ffffff 12%) 0%,
-      #ffffff 62%,
-      color-mix(in srgb, var(--booking-accent-soft, #f6efd7) 72%, #ffffff 28%) 100%
-    ) !important;
-  color: var(--booking-primary-dark, #10231c) !important;
+  background: var(--send-loading-card-bg, #fff9ec) !important;
+  color: var(--send-loading-text, #0b2f26) !important;
   padding: 14px 16px !important;
   box-shadow:
-    0 16px 32px color-mix(in srgb, var(--booking-primary, #0f3d31) 10%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    0 16px 36px var(--send-loading-shadow, rgba(15, 61, 49, 0.08)),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+}
+
+.send-loading-panel span {
+  color: var(--send-loading-text, #0b2f26);
 }
 
 .send-progress-track {
@@ -109,17 +116,21 @@ video {
   overflow: hidden;
   height: 6px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--booking-primary, #0f3d31) 10%, #ffffff 90%);
+  background: var(--send-progress-track, #efe7d6);
 }
 
 .send-progress-bar {
   position: absolute;
   inset: 0 auto 0 0;
-  width: 45%;
+  width: 48%;
+  height: 100%;
   border-radius: 999px;
-  color: var(--booking-primary, #0f3d31);
-  background: linear-gradient(90deg, transparent, currentColor, var(--booking-accent, currentColor), transparent);
-  animation: sendProgressMove 1.2s ease-in-out infinite;
+  background: var(
+    --send-progress-gradient,
+    linear-gradient(90deg, transparent, #0f3d31, #cdae77, transparent)
+  );
+  filter: saturate(0.92);
+  animation: sendProgressMove 1.25s ease-in-out infinite;
 }
 
 @keyframes sendSpin {
