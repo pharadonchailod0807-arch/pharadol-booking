@@ -383,41 +383,53 @@ const handleSubmit = async (event) => {
   );
 
   const PaymentQrCard = () => (
-    <div className="overflow-hidden rounded-[30px] border border-zinc-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+    <div className="overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-[0_22px_60px_rgba(15,23,42,0.10)]">
       <div
-        className="border-b border-zinc-100 bg-white px-5 py-4 sm:px-6"
+        className="px-5 py-5 text-white sm:px-7 sm:py-6"
+        style={{ backgroundColor: config.deep }}
       >
-        <div className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-75">
-            QR PAYMENT
-          </p>
-          <p className="mt-1 truncate text-sm font-black sm:text-base" style={{ color: config.deep }}>
-            {config.paymentName}
-          </p>
-          <p
-            className="mt-1 text-xs font-black leading-5 sm:whitespace-nowrap sm:text-sm"
-            style={{ color: config.primary }}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p
+              className="text-[11px] font-black uppercase tracking-[0.24em]"
+              style={{ color: config.accent }}
+            >
+              QR PAYMENT
+            </p>
+            <p className="mt-1 truncate text-lg font-black leading-tight sm:text-xl">
+              {config.paymentName}
+            </p>
+            <p className="mt-2 text-xs font-semibold leading-5 text-white/80 sm:hidden">
+              {paymentInstruction}
+            </p>
+          </div>
+          <span
+            className="hidden max-w-[430px] shrink-0 items-center rounded-full border px-4 py-2 text-[12px] font-black leading-none text-white sm:inline-flex sm:whitespace-nowrap"
+            style={{
+              borderColor: config.accent,
+              backgroundColor: "rgba(255, 255, 255, 0.12)",
+            }}
           >
             {paymentInstruction}
-          </p>
+          </span>
         </div>
       </div>
 
-      <div className="p-3 text-center sm:p-7">
+      <div className="px-3 py-5 text-center sm:px-7 sm:py-7">
         <div className="mx-auto mb-5 inline-flex rounded-full px-4 py-2 text-sm font-black" style={{ backgroundColor: config.soft, color: config.primary }}>
           {depositLabel}
         </div>
 
-        <div className="mx-auto flex min-h-[330px] w-full max-w-[460px] items-center justify-center rounded-[30px] border border-zinc-200 bg-white p-2 shadow-inner sm:min-h-[440px] sm:p-5">
+        <div className="mx-auto flex w-full max-w-[640px] items-center justify-center rounded-[26px] bg-white p-1 sm:p-2">
           {qrImageAvailable ? (
             <img
               src={config.paymentQr}
               alt={`QR Code สำหรับโอนจอง ${config.name}`}
-              className="h-auto w-full max-w-[330px] object-contain sm:max-w-[420px]"
+              className="h-auto w-full max-w-[360px] object-contain sm:max-w-[620px]"
               onError={() => setQrImageAvailable(false)}
             />
           ) : (
-            <div className="flex h-[280px] w-full max-w-[330px] flex-col items-center justify-center rounded-[26px] border border-dashed border-zinc-300 bg-zinc-50 px-5 text-center sm:h-[360px] sm:max-w-[420px]">
+            <div className="flex h-[300px] w-full max-w-[360px] flex-col items-center justify-center rounded-[26px] border border-dashed border-zinc-300 bg-zinc-50 px-5 text-center sm:h-[440px] sm:max-w-[540px]">
               <span className="text-5xl font-black" style={{ color: config.primary }}>
                 QR
               </span>
@@ -431,11 +443,11 @@ const handleSubmit = async (event) => {
           )}
         </div>
 
-        <div className="mx-auto mt-4 grid max-w-[460px] grid-cols-2 overflow-hidden rounded-[18px] border border-zinc-200 bg-white shadow-sm">
+        <div className="mx-auto mt-4 grid max-w-[620px] grid-cols-2 overflow-hidden rounded-[18px] border border-zinc-200 bg-white shadow-sm">
           <button
             type="button"
             onClick={sharePaymentQr}
-            className="min-h-[52px] px-3 text-sm font-black transition hover:bg-zinc-50"
+            className="min-h-[52px] px-3 text-[15px] font-black transition hover:bg-zinc-50 sm:text-base"
             style={{ color: config.primary }}
           >
             แชร์ QR
@@ -443,7 +455,7 @@ const handleSubmit = async (event) => {
           <button
             type="button"
             onClick={downloadPaymentQr}
-            className="min-h-[52px] border-l border-zinc-200 px-3 text-sm font-black transition hover:bg-zinc-50"
+            className="min-h-[52px] border-l border-zinc-200 px-3 text-[15px] font-black transition hover:bg-zinc-50 sm:text-base"
             style={{ color: config.primary }}
           >
             บันทึก QR
@@ -488,13 +500,13 @@ const handleSubmit = async (event) => {
 
   return (
     <main
-      className="min-h-screen px-4 py-5 text-zinc-950 sm:py-8"
+      className="min-h-screen px-4 pb-10 pt-5 text-zinc-950 sm:py-8"
       style={{
         backgroundColor: config.background,
         "--form-primary": config.primary,
       }}
     >
-      <section className={step === 2 ? "mx-auto max-w-[860px]" : "mx-auto max-w-2xl"}>
+      <section className={step === 2 ? "mx-auto max-w-[760px]" : "mx-auto max-w-2xl"}>
         <div className="mb-6 flex flex-col items-center text-center">
           {renderLogo(true)}
           <p className="mt-3 text-xs font-bold uppercase tracking-[0.22em] text-zinc-400">
@@ -514,9 +526,11 @@ const handleSubmit = async (event) => {
 
         <form
           onSubmit={handleSubmit}
-          className={`rounded-[26px] border border-zinc-200 bg-white shadow-sm sm:p-7 ${
-            step === 2 ? "p-3" : "p-5"
-          }`}
+          className={
+            step === 2
+              ? "rounded-[26px] border-0 bg-transparent p-0 shadow-none"
+              : "rounded-[26px] border border-zinc-200 bg-white p-5 shadow-sm sm:p-7"
+          }
         >
           <StepIndicator />
 
@@ -594,42 +608,11 @@ const handleSubmit = async (event) => {
           ) : (
             <>
               <div className="grid gap-4">
-                <div className="grid gap-3 rounded-[24px] border border-zinc-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">
-                      Payment for
-                    </p>
-                    <h2 className="mt-1 truncate text-lg font-black" style={{ color: config.primary }}>
-                      {config.paymentName}
-                    </h2>
-                    <p className="mt-1 text-sm font-semibold text-zinc-500">
-                      {depositLabel}
-                    </p>
-                    <p
-                      className="mt-1 text-xs font-black leading-5 sm:whitespace-nowrap sm:text-sm"
-                      style={{ color: config.primary }}
-                    >
-                      {paymentInstruction}
-                    </p>
-                  </div>
-                  {file && !fileError && (
-                    <span
-                      className="inline-flex min-h-[34px] items-center justify-center rounded-full px-4 text-sm font-black"
-                      style={{
-                        backgroundColor: config.primary,
-                        color: "#FFFFFF",
-                      }}
-                    >
-                      แนบสลิปแล้ว
-                    </span>
-                  )}
-                </div>
-
                 <PaymentQrCard />
 
                 <label
                   htmlFor={slipInputId}
-                  className="group block cursor-pointer rounded-[26px] border border-dashed border-zinc-300 bg-zinc-50 p-5 text-center transition hover:bg-white"
+                  className="group block cursor-pointer rounded-[26px] border border-dashed border-zinc-300 bg-[#F8FAFC] p-6 text-center transition hover:bg-white sm:p-7"
                   onMouseEnter={(event) => {
                     event.currentTarget.style.borderColor = config.accent;
                   }}
