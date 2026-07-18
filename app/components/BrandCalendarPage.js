@@ -33,14 +33,14 @@ const CALENDAR_PALETTES = {
     accent: "#CDAE77",
     accentDark: "#B88A2E",
     accentSoft: "#F6EFD7",
-    background: "#F6F7F3",
+    background: "#F8FAFC",
     card: "#FFFFFF",
-    dayBackground: "#FBF7EC",
+    dayBackground: "#FFFFFF",
     text: "#10231C",
     muted: "#68766F",
-    border: "rgba(15, 61, 49, 0.10)",
+    border: "rgba(15, 23, 42, 0.08)",
     softBorder: "rgba(205, 174, 119, 0.34)",
-    shadow: "0 18px 48px rgba(16, 35, 28, 0.08)",
+    shadow: "0 14px 36px rgba(15, 23, 42, 0.07)",
   },
   adisorn: {
     primary: "#4A2E22",
@@ -49,15 +49,33 @@ const CALENDAR_PALETTES = {
     accent: "#C9A46A",
     accentDark: "#B88A55",
     accentSoft: "#F3E6CF",
-    background: "#FAF7F1",
+    background: "#F8FAFC",
     card: "#FFFFFF",
-    dayBackground: "#FFF9F0",
+    dayBackground: "#FFFFFF",
     text: "#2B211B",
     muted: "#7A6A5D",
-    border: "rgba(74, 46, 34, 0.10)",
+    border: "rgba(15, 23, 42, 0.08)",
     softBorder: "rgba(201, 164, 106, 0.34)",
-    shadow: "0 18px 48px rgba(43, 26, 20, 0.08)",
+    shadow: "0 14px 36px rgba(15, 23, 42, 0.07)",
   },
+};
+
+const CALENDAR_SURFACE = {
+  card: "#FFFFFF",
+  page: "#F8FAFC",
+  weekday: "#F8FAFC",
+  grid: "rgba(15, 23, 42, 0.08)",
+  outside: "#F8FAFC",
+  sunday: "#FFFAFA",
+  eventDay: "#EFF6FF",
+  eventDayBorder: "#BFDBFE",
+  selected: "#2563EB",
+  event: "#2563EB",
+  eventHover: "#1D4ED8",
+  eventShadow: "rgba(37, 99, 235, 0.18)",
+  sundayText: "#DC2626",
+  slateText: "#0F172A",
+  mutedSlate: "#94A3B8",
 };
 
 const readArray = (key) => {
@@ -160,9 +178,9 @@ const getCalendarEventTone = (event) => {
 
   if (syncStatus === "ซิงก์แล้ว") {
     return {
-      background: "#0F8F68",
+      background: CALENDAR_SURFACE.event,
       text: "#FFFFFF",
-      shadow: "rgba(15, 143, 104, 0.18)",
+      shadow: CALENDAR_SURFACE.eventShadow,
     };
   }
 
@@ -175,9 +193,9 @@ const getCalendarEventTone = (event) => {
   }
 
   return {
-    background: "#D6B56D",
-    text: "#10231C",
-    shadow: "rgba(214, 181, 109, 0.20)",
+    background: CALENDAR_SURFACE.event,
+    text: "#FFFFFF",
+    shadow: CALENDAR_SURFACE.eventShadow,
   };
 };
 
@@ -558,24 +576,24 @@ export default function BrandCalendarPage({ brandId }) {
 
   return (
     <main
-      className="min-h-screen overflow-x-hidden p-3 sm:p-4 md:p-7"
+      className="min-h-screen overflow-x-hidden p-2 sm:p-3 md:p-4"
       style={{
         background: `linear-gradient(180deg, ${palette.background} 0%, #FFFFFF 100%)`,
         color: palette.text,
       }}
     >
-      <div className="mx-auto max-w-[1540px]">
+      <div className="mx-auto max-w-[1500px]">
         <header
-          className="rounded-[24px] border bg-white p-4 shadow-sm transition md:rounded-[28px] md:p-8"
+          className="rounded-[20px] border bg-white p-4 shadow-sm transition md:rounded-[24px] md:p-5"
           style={{
             borderColor: palette.border,
             boxShadow: palette.shadow,
           }}
         >
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0">
               <div
-                className="mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em]"
+                className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]"
                 style={{
                   borderColor: palette.softBorder,
                   backgroundColor: palette.accentSoft,
@@ -585,10 +603,10 @@ export default function BrandCalendarPage({ brandId }) {
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: palette.accent }} />
                 {brand.name}
               </div>
-              <h1 className="text-2xl font-black leading-tight sm:text-3xl md:text-4xl">
+              <h1 className="text-2xl font-black leading-tight sm:text-3xl">
                 ปฏิทินงาน
               </h1>
-              <p className="mt-2 max-w-2xl text-sm font-medium sm:text-base" style={{ color: palette.muted }}>
+              <p className="mt-1.5 max-w-2xl text-sm font-medium" style={{ color: palette.muted }}>
                 จัดตารางงานจากใบจองในระบบ พร้อมสถานะซิงก์ Google Calendar โดยใช้ข้อมูลเดิมเป็นหลัก
               </p>
               <p className="mt-1 text-xs font-semibold sm:text-sm" style={{ color: palette.muted }}>
@@ -630,11 +648,11 @@ export default function BrandCalendarPage({ brandId }) {
           </div>
         </header>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-3 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-5">
           {summaryCards.map((card) => (
             <article
               key={card.label}
-              className="group rounded-[22px] border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="group rounded-[18px] border bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               style={{ borderColor: palette.border }}
             >
               <div className="flex items-start justify-between gap-3">
@@ -642,18 +660,18 @@ export default function BrandCalendarPage({ brandId }) {
                   <p className="text-[12px] font-black uppercase tracking-[0.08em]" style={{ color: palette.muted }}>
                     {card.label}
                   </p>
-                  <p className="mt-2 truncate text-2xl font-black" style={{ color: palette.text }}>
+                  <p className="mt-1.5 truncate text-xl font-black" style={{ color: palette.text }}>
                     {card.value}
                   </p>
                 </div>
                 <span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-sm font-black"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-sm font-black"
                   style={{ backgroundColor: card.soft, color: card.tone }}
                 >
                   {card.icon}
                 </span>
               </div>
-              <p className="mt-3 min-h-9 text-sm font-semibold leading-relaxed" style={{ color: palette.muted }}>
+              <p className="mt-2 min-h-8 text-xs font-semibold leading-relaxed" style={{ color: palette.muted }}>
                 {card.detail}
               </p>
               {card.label === "Google Calendar Sync" && calendarSyncMessage && (
@@ -665,30 +683,30 @@ export default function BrandCalendarPage({ brandId }) {
           ))}
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
           <section
-            className="overflow-hidden rounded-[24px] border bg-white shadow-sm md:rounded-[28px]"
+            className="overflow-hidden rounded-[22px] border bg-white shadow-sm md:rounded-[24px] lg:max-h-[calc(100vh-238px)]"
             style={{
               borderColor: palette.border,
               boxShadow: palette.shadow,
             }}
           >
             <div
-              className="flex flex-wrap items-center justify-between gap-3 border-b p-4 md:p-5"
+              className="flex flex-wrap items-center justify-between gap-3 border-b p-3.5 md:p-4"
               style={{ borderColor: palette.border }}
             >
               <div className="min-w-0">
-                <h2 className="text-xl font-black md:text-3xl">
+                <h2 className="text-xl font-black md:text-2xl">
                   {formatThaiMonth(visibleDate)}
                 </h2>
-                <p className="mt-1 text-sm font-semibold" style={{ color: palette.muted }}>
+                <p className="mt-0.5 text-xs font-semibold md:text-sm" style={{ color: palette.muted }}>
                   มุมมองรายเดือนของงานทั้งหมดในระบบ
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
                 <span
-                  className="hidden min-h-[38px] items-center rounded-full border px-3 text-xs font-black md:inline-flex"
+                  className="hidden min-h-[34px] items-center rounded-full border px-3 text-xs font-black md:inline-flex"
                   style={{
                     borderColor: palette.softBorder,
                     backgroundColor: palette.accentSoft,
@@ -700,7 +718,7 @@ export default function BrandCalendarPage({ brandId }) {
                 <button
                   type="button"
                   onClick={() => goToMonth(-1)}
-                  className="min-h-[42px] rounded-2xl border bg-white px-3 text-xs font-black transition hover:-translate-y-0.5 sm:px-4 md:text-sm"
+                  className="min-h-[40px] rounded-[14px] border bg-white px-3 text-xs font-black transition hover:-translate-y-0.5 sm:px-4"
                   style={{ borderColor: palette.border, color: palette.text }}
                 >
                   ก่อนหน้า
@@ -708,7 +726,7 @@ export default function BrandCalendarPage({ brandId }) {
                 <button
                   type="button"
                   onClick={goToday}
-                  className="min-h-[42px] rounded-2xl px-4 text-xs font-black text-white shadow-sm transition hover:-translate-y-0.5 md:text-sm"
+                  className="min-h-[40px] rounded-[14px] px-4 text-xs font-black text-white shadow-sm transition hover:-translate-y-0.5"
                   style={{ backgroundColor: palette.primary }}
                 >
                   วันนี้
@@ -716,7 +734,7 @@ export default function BrandCalendarPage({ brandId }) {
                 <button
                   type="button"
                   onClick={() => goToMonth(1)}
-                  className="min-h-[42px] rounded-2xl border bg-white px-3 text-xs font-black transition hover:-translate-y-0.5 sm:px-4 md:text-sm"
+                  className="min-h-[40px] rounded-[14px] border bg-white px-3 text-xs font-black transition hover:-translate-y-0.5 sm:px-4"
                   style={{ borderColor: palette.border, color: palette.text }}
                 >
                   ถัดไป
@@ -726,29 +744,43 @@ export default function BrandCalendarPage({ brandId }) {
 
             <div className="w-full overflow-x-hidden">
               <div
-                className="grid grid-cols-7 border-b text-center text-[11px] font-black md:text-sm"
+                className="grid grid-cols-7 border-b text-center text-[11px] font-black md:text-xs"
                 style={{
-                  borderColor: palette.border,
-                  backgroundColor: palette.accentSoft,
-                  color: palette.primary,
+                  borderColor: CALENDAR_SURFACE.grid,
+                  backgroundColor: CALENDAR_SURFACE.weekday,
+                  color: CALENDAR_SURFACE.slateText,
                 }}
               >
-                {WEEK_DAYS.map((day) => (
-                  <div key={day} className="py-2.5 md:py-3.5">
+                {WEEK_DAYS.map((day, index) => (
+                  <div
+                    key={day}
+                    className="py-2 md:py-2.5"
+                    style={{ color: index === 0 ? CALENDAR_SURFACE.sundayText : undefined }}
+                  >
                     {day}
                   </div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-7 gap-px" style={{ backgroundColor: palette.border }}>
+              <div className="grid grid-cols-7 gap-px" style={{ backgroundColor: CALENDAR_SURFACE.grid }}>
                 {calendarCells.map((date) => {
                   const dayEvents = eventsByDate.get(getDateKey(date)) || [];
                   const isCurrentMonth = date.getMonth() === visibleDate.getMonth();
                   const isSelected = isSameDay(date, selectedDate);
                   const isToday = isSameDay(date, new Date());
+                  const isSunday = date.getDay() === 0;
                   const hasEvents = dayEvents.length > 0;
-                  const visibleDayEvents = dayEvents.slice(0, 2);
+                  const visibleDayEvents = dayEvents.slice(0, 1);
                   const hiddenEventCount = Math.max(dayEvents.length - visibleDayEvents.length, 0);
+                  const dayBackground = !isCurrentMonth
+                    ? CALENDAR_SURFACE.outside
+                    : isSelected
+                      ? CALENDAR_SURFACE.card
+                      : hasEvents
+                        ? CALENDAR_SURFACE.eventDay
+                        : isSunday
+                          ? CALENDAR_SURFACE.sunday
+                          : CALENDAR_SURFACE.card;
 
                   return (
                     <div
@@ -762,29 +794,41 @@ export default function BrandCalendarPage({ brandId }) {
                           setSelectedDate(date);
                         }
                       }}
-                      className={`group min-h-[88px] min-w-0 cursor-pointer p-1.5 text-left transition duration-200 hover:z-10 hover:-translate-y-0.5 hover:shadow-md sm:min-h-[96px] sm:p-2 md:min-h-[142px] md:p-3 lg:min-h-[150px] lg:p-3.5 ${
+                      className={`group min-h-[68px] min-w-0 cursor-pointer overflow-hidden p-1.5 text-left transition duration-200 hover:z-10 hover:-translate-y-0.5 hover:shadow-md sm:min-h-[76px] sm:p-2 md:h-[88px] md:p-2 lg:h-[clamp(62px,7.2vh,96px)] lg:min-h-[62px] ${
                         isCurrentMonth ? "" : "opacity-30"
                       }`}
                       style={{
-                        backgroundColor: isSelected
-                          ? palette.accentSoft
-                          : hasEvents
-                            ? "#FFFFFF"
-                            : palette.dayBackground,
+                        backgroundColor: dayBackground,
                         boxShadow: isSelected
-                          ? `inset 0 0 0 2px ${palette.primary}`
+                          ? `inset 0 0 0 2px ${CALENDAR_SURFACE.selected}`
                           : hasEvents && isCurrentMonth
-                            ? `inset 0 0 0 1px ${palette.softBorder}`
+                            ? `inset 0 0 0 1px ${CALENDAR_SURFACE.eventDayBorder}`
                           : "none",
                       }}
                     >
-                      <div className="mb-1.5 flex items-center justify-between gap-1 md:mb-2.5">
+                      <div className="mb-1 flex items-center justify-between gap-1 md:mb-1.5">
                         <span
-                          className="flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-black md:h-8 md:w-8 md:text-sm"
+                          className="flex h-6 w-6 items-center justify-center rounded-full text-[12px] font-black md:h-7 md:w-7 md:text-xs"
                           style={{
-                            backgroundColor: isToday || isSelected ? palette.primary : "#FFFFFF",
+                            backgroundColor: isToday ? palette.primary : "#FFFFFF",
                             color: isToday || isSelected ? "#FFFFFF" : palette.text,
-                            border: isToday || isSelected ? "none" : `1px solid ${palette.border}`,
+                            border: isToday
+                              ? `1px solid ${palette.primary}`
+                              : isSunday
+                                ? "1px solid #FECACA"
+                                : `1px solid ${CALENDAR_SURFACE.grid}`,
+                            ...(isSelected && !isToday
+                              ? {
+                                  backgroundColor: CALENDAR_SURFACE.selected,
+                                  borderColor: CALENDAR_SURFACE.selected,
+                                }
+                              : {}),
+                            ...(!isToday && !isSelected && isSunday
+                              ? { color: CALENDAR_SURFACE.sundayText }
+                              : {}),
+                            ...(!isCurrentMonth && !isToday && !isSelected
+                              ? { color: CALENDAR_SURFACE.mutedSlate }
+                              : {}),
                           }}
                         >
                           {date.getDate()}
@@ -793,8 +837,8 @@ export default function BrandCalendarPage({ brandId }) {
                           <span
                             className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full px-1.5 text-[10px] font-black shadow-sm"
                             style={{
-                              backgroundColor: "rgba(214, 181, 109, 0.24)",
-                              color: palette.primary,
+                              backgroundColor: CALENDAR_SURFACE.event,
+                              color: "#FFFFFF",
                             }}
                           >
                             {dayEvents.length}
@@ -802,10 +846,10 @@ export default function BrandCalendarPage({ brandId }) {
                         )}
                       </div>
 
-                      <div className="space-y-1.5">
+                      <div className="space-y-1">
                         {hasEvents && (
                           <div className="grid gap-1 sm:hidden">
-                            {dayEvents.slice(0, 2).map((event) => {
+                            {dayEvents.slice(0, 1).map((event) => {
                               const tone = getCalendarEventTone(event);
 
                               return (
@@ -818,18 +862,18 @@ export default function BrandCalendarPage({ brandId }) {
                                     className="h-2 w-2 shrink-0 rounded-full"
                                     style={{ backgroundColor: tone.background }}
                                   />
-                                  <span className="min-w-0 truncate text-[10px] font-black" style={{ color: palette.text }}>
+                                  <span className="min-w-0 truncate text-[10px] font-black" style={{ color: CALENDAR_SURFACE.slateText }}>
                                     {event.startTime || "ทั้งวัน"}
                                   </span>
                                 </div>
                               );
                             })}
-                            {dayEvents.length > 2 && (
+                            {dayEvents.length > 1 && (
                               <span
                                 className="text-[10px] font-black"
                                 style={{ color: palette.primary }}
                               >
-                                +{dayEvents.length - 2}
+                                +{dayEvents.length - 1}
                               </span>
                             )}
                           </div>
@@ -837,11 +881,12 @@ export default function BrandCalendarPage({ brandId }) {
                         {visibleDayEvents.map((event) => {
                           const tone = getCalendarEventTone(event);
                           const eventTitle = `${event.startTime || "ทั้งวัน"} ${event.customerName || event.service || "งาน"} ${event.bookingNumber || ""}`.trim();
+                          const eventLabel = `${event.startTime || "ทั้งวัน"} ${event.customerName || event.service || "งาน"}`;
 
                           return (
                             <div
                               key={`${event.bookingNumber}-${event.startTime}-${event.customerName}`}
-                              className="hidden min-h-[38px] min-w-0 transform-gpu grid-rows-[auto_auto] gap-0.5 overflow-hidden rounded-[14px] px-2.5 py-1.5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:grid"
+                              className="hidden h-[28px] min-w-0 transform-gpu items-center overflow-hidden rounded-[10px] px-2 text-[11px] font-black leading-none shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md sm:flex md:text-[11px]"
                               style={{
                                 backgroundColor: tone.background,
                                 color: tone.text,
@@ -849,12 +894,7 @@ export default function BrandCalendarPage({ brandId }) {
                               }}
                               title={eventTitle}
                             >
-                              <span className="min-w-0 truncate text-[11px] font-black leading-tight">
-                                {event.startTime || "ทั้งวัน"}
-                              </span>
-                              <span className="min-w-0 truncate text-[11px] font-bold leading-tight md:text-[12px]">
-                                {event.customerName || event.service || "งาน"}
-                              </span>
+                              <span className="min-w-0 truncate">{eventLabel}</span>
                             </div>
                           );
                         })}
@@ -865,10 +905,10 @@ export default function BrandCalendarPage({ brandId }) {
                               event.stopPropagation();
                               setSelectedDate(date);
                             }}
-                            className="hidden w-full rounded-full px-2 py-1 text-center text-[11px] font-black transition hover:-translate-y-0.5 sm:block"
+                            className="hidden w-full rounded-full px-2 py-0.5 text-center text-[10px] font-black transition hover:-translate-y-0.5 sm:block"
                             style={{
-                              backgroundColor: "rgba(205, 174, 119, 0.18)",
-                              color: palette.primary,
+                              backgroundColor: "#DBEAFE",
+                              color: CALENDAR_SURFACE.event,
                             }}
                           >
                             + อีก {hiddenEventCount} งาน
@@ -882,25 +922,25 @@ export default function BrandCalendarPage({ brandId }) {
             </div>
 
             <div
-              className="flex flex-col gap-3 border-t px-4 py-3 text-xs font-bold sm:flex-row sm:items-center sm:justify-between md:px-5"
-              style={{ borderColor: palette.border, color: palette.muted }}
+              className="flex flex-col gap-2 border-t px-3.5 py-2.5 text-xs font-bold sm:flex-row sm:items-center sm:justify-between md:px-4"
+              style={{ borderColor: CALENDAR_SURFACE.grid, color: palette.muted }}
             >
               <div className="flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
-                  ซิงก์แล้ว
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CALENDAR_SURFACE.event }} />
+                  งานในปฏิทิน
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: palette.accent }} />
-                  ยังไม่ซิงก์
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CALENDAR_SURFACE.eventDay }} />
+                  วันที่มีงาน
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-red-600" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
                   ซิงก์ไม่สำเร็จ
                 </span>
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-gray-400" />
-                  ยกเลิก/ถังขยะ
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CALENDAR_SURFACE.sundayText }} />
+                  วันอาทิตย์
                 </span>
               </div>
               <span className="text-[11px] font-black" style={{ color: palette.primary }}>
@@ -910,25 +950,25 @@ export default function BrandCalendarPage({ brandId }) {
           </section>
 
           <aside
-            className="rounded-[24px] border bg-white p-4 shadow-sm md:rounded-[28px] md:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)] lg:overflow-auto"
+            className="flex flex-col rounded-[22px] border bg-white p-4 shadow-sm md:rounded-[24px] md:p-4 lg:sticky lg:top-4 lg:h-[calc(100vh-238px)] lg:overflow-hidden"
             style={{
               borderColor: palette.border,
               boxShadow: palette.shadow,
             }}
           >
-            <div className="mb-5">
+            <div className="mb-4 shrink-0">
               <p className="text-sm font-black" style={{ color: palette.muted }}>
                 รายการวันที่เลือก
               </p>
-              <h2 className="mt-1 text-2xl font-black leading-tight">
+              <h2 className="mt-1 text-xl font-black leading-tight md:text-2xl">
                 {selectedDateLabel}
               </h2>
-              <p className="mt-2 text-sm font-semibold" style={{ color: palette.muted }}>
+              <p className="mt-1.5 text-sm font-semibold" style={{ color: palette.muted }}>
                 {selectedEvents.length} งานในวันนี้
               </p>
             </div>
 
-            <div className="space-y-3">
+            <div className="min-h-0 flex-1 space-y-3 lg:overflow-y-auto lg:pr-1">
               {selectedEvents.length > 0 ? (
                 selectedEvents.map((event) => {
                   const eventSyncStatus = getGoogleCalendarSyncStatus(event);
@@ -941,12 +981,15 @@ export default function BrandCalendarPage({ brandId }) {
                   return (
                     <article
                       key={`${event.bookingNumber}-${event.startTime}-${event.customerName}`}
-                      className="rounded-[22px] border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                      style={{ borderColor: palette.border }}
+                      className="rounded-[18px] border p-3.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      style={{
+                        borderColor: eventSyncStatus === "ซิงก์ไม่สำเร็จ" ? "#FECACA" : CALENDAR_SURFACE.eventDayBorder,
+                        backgroundColor: eventSyncStatus === "ซิงก์ไม่สำเร็จ" ? "#FEF2F2" : "#F8FBFF",
+                      }}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="break-words text-lg font-black leading-snug">
+                          <p className="break-words text-base font-black leading-snug">
                             {event.customerName || "ไม่ระบุชื่อลูกค้า"}
                           </p>
                           <p className="mt-1 break-words text-sm font-semibold" style={{ color: palette.muted }}>
@@ -954,7 +997,7 @@ export default function BrandCalendarPage({ brandId }) {
                           </p>
                         </div>
                         <span
-                          className="shrink-0 rounded-full px-3 py-1.5 text-xs font-black shadow-sm"
+                          className="shrink-0 rounded-full px-2.5 py-1.5 text-[11px] font-black shadow-sm"
                           style={{
                             backgroundColor: eventTone.background,
                             color: eventTone.text,
@@ -964,7 +1007,7 @@ export default function BrandCalendarPage({ brandId }) {
                         </span>
                       </div>
 
-                      <div className="mt-4 space-y-2 text-sm font-semibold" style={{ color: palette.muted }}>
+                      <div className="mt-3 space-y-1.5 text-sm font-semibold" style={{ color: palette.muted }}>
                         <p>เลขใบจอง: {event.bookingNumber || "-"}</p>
                         <p>เวลา: {eventTimeLabel}</p>
                         <p>ประเภทงาน: {event.service || "-"}</p>
@@ -988,7 +1031,7 @@ export default function BrandCalendarPage({ brandId }) {
                       <button
                         type="button"
                         onClick={() => openBooking(event)}
-                        className="mt-4 min-h-[44px] w-full rounded-2xl px-4 font-black text-white shadow-sm transition hover:-translate-y-0.5"
+                        className="mt-3 min-h-[40px] w-full rounded-[14px] px-4 font-black text-white shadow-sm transition hover:-translate-y-0.5"
                         style={{ backgroundColor: palette.primary }}
                       >
                         เปิดใบจอง
@@ -1001,7 +1044,7 @@ export default function BrandCalendarPage({ brandId }) {
                             isSyncingCalendar ||
                             syncingBookingNumber === event.bookingNumber
                           }
-                          className="mt-2 min-h-[44px] w-full rounded-2xl border bg-white px-4 font-black transition hover:-translate-y-0.5 hover:bg-white/80 disabled:opacity-50"
+                          className="mt-2 min-h-[40px] w-full rounded-[14px] border bg-white px-4 font-black transition hover:-translate-y-0.5 hover:bg-white/80 disabled:opacity-50"
                           style={{ borderColor: palette.border, color: palette.text }}
                         >
                           {syncingBookingNumber === event.bookingNumber
@@ -1014,17 +1057,17 @@ export default function BrandCalendarPage({ brandId }) {
                 })
               ) : (
                 <div
-                  className="rounded-[22px] border p-8 text-center"
+                  className="rounded-[18px] border p-6 text-center"
                   style={{
-                    borderColor: palette.border,
-                    backgroundColor: palette.dayBackground,
+                    borderColor: CALENDAR_SURFACE.grid,
+                    backgroundColor: CALENDAR_SURFACE.page,
                   }}
                 >
                   <div
-                    className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl text-2xl font-black"
+                    className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-xl font-black"
                     style={{
-                      backgroundColor: palette.accentSoft,
-                      color: palette.primary,
+                      backgroundColor: CALENDAR_SURFACE.eventDay,
+                      color: CALENDAR_SURFACE.event,
                     }}
                   >
                     31
@@ -1036,7 +1079,7 @@ export default function BrandCalendarPage({ brandId }) {
                   <button
                     type="button"
                     onClick={openNewBooking}
-                    className="mt-5 min-h-[44px] rounded-2xl px-5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5"
+                    className="mt-4 min-h-[40px] rounded-[14px] px-5 text-sm font-black text-white shadow-sm transition hover:-translate-y-0.5"
                     style={{ backgroundColor: palette.primary }}
                   >
                     เพิ่มใบจองใหม่
