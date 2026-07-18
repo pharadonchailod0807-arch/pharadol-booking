@@ -4,6 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
+import {
+  applyGoogleCalendarSyncResult,
+  getGoogleCalendarSyncStatus,
+  markGoogleCalendarSyncError,
+  syncBookingGoogleCalendar,
+} from "@/app/lib/googleCalendarClient";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const WEEK_DAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -102,6 +108,20 @@ const getReadableTextColor = (backgroundColor) => {
   return luminance > 0.62 ? "#111827" : "#ffffff";
 };
 
+const getCalendarSyncBadgeClass = (booking) => {
+  const status = getGoogleCalendarSyncStatus(booking);
+
+  if (status === "ซิงก์แล้ว") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "ซิงก์ไม่สำเร็จ") {
+    return "border-red-200 bg-red-50 text-red-700";
+  }
+
+  return "border-zinc-200 bg-zinc-50 text-zinc-600";
+};
+
 export default function BrandCalendarPage({ brandId }) {
   const router = useRouter();
   const brand = BRAND_CONFIG[brandId];
@@ -116,6 +136,9 @@ export default function BrandCalendarPage({ brandId }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [loadMessage, setLoadMessage] = useState("");
   const [isRefreshingBookings, setIsRefreshingBookings] = useState(false);
+  const [calendarSyncMessage, setCalendarSyncMessage] = useState("");
+  const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
+  const [syncingBookingNumber, setSyncingBookingNumber] = useState("");
 
   const loadBookings = useCallback(async ({ manual = false } = {}) => {
     if (manual) setIsRefreshingBookings(true);
@@ -261,6 +284,94 @@ export default function BrandCalendarPage({ brandId }) {
     router.push(brand.bookingPath, { scroll: false });
   };
 
+  const persistCalendarSyncBooking = async (booking) => {
+    const storedBookings = readArray(customersKey);
+    const sourceBookings = storedBookings.length > 0 ? storedBookings : bookings;
+    const updatedBookings = sourceBookings.map((item) =>
+      item.bookingNumber === booking.bookingNumber ? booking : item
+    );
+
+    setBookings(updatedBookings);
+    localStorage.setItem(customersKey, JSON.stringify(updatedBookings));
+
+    const updateQuery = supabase
+      .from("bookings")
+      .update({ booking_data: booking });
+
+    if (booking.supabaseId) {
+      await updateQuery.eq("id", booking.supabaseId);
+      return;
+    }
+
+    await updateQuery.eq("booking_number", booking.bookingNumber);
+  };
+
+  const syncCalendarBooking = async (booking, { silent = false } = {}) => {
+    if (!booking?.bookingNumber) return null;
+
+    setSyncingBookingNumber(booking.bookingNumber);
+    if (!silent) setCalendarSyncMessage("กำลังซิงก์ Google Calendar...");
+
+    try {
+      const result = await syncBookingGoogleCalendar({
+        brand: brandId,
+        booking,
+      });
+      const syncedBooking = applyGoogleCalendarSyncResult(booking, result);
+
+      await persistCalendarSyncBooking(syncedBooking);
+      if (!silent) setCalendarSyncMessage("ซิงก์ Google Calendar สำเร็จ");
+
+      return syncedBooking;
+    } catch (error) {
+      const message = error?.message || "ซิงก์ Google Calendar ไม่สำเร็จ";
+      const failedBooking = markGoogleCalendarSyncError(booking, message);
+
+      await persistCalendarSyncBooking(failedBooking);
+      if (!silent) {
+        setCalendarSyncMessage(`ซิงก์ Google Calendar ไม่สำเร็จ: ${message}`);
+      }
+
+      return failedBooking;
+    } finally {
+      setSyncingBookingNumber("");
+    }
+  };
+
+  const syncVisibleCalendarBookings = async () => {
+    if (isSyncingCalendar) return;
+
+    const itemsToSync = events.filter((event) => event.eventDate);
+
+    if (itemsToSync.length === 0) {
+      setCalendarSyncMessage("ยังไม่มีงานสำหรับซิงก์ Google Calendar");
+      return;
+    }
+
+    setIsSyncingCalendar(true);
+    setCalendarSyncMessage("กำลังซิงก์ Google Calendar...");
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const booking of itemsToSync) {
+      const syncedBooking = await syncCalendarBooking(booking, { silent: true });
+
+      if (syncedBooking?.googleCalendarSyncStatus === "error") {
+        failedCount += 1;
+      } else {
+        successCount += 1;
+      }
+    }
+
+    setCalendarSyncMessage(
+      failedCount > 0
+        ? `ซิงก์สำเร็จ ${successCount} งาน, ไม่สำเร็จ ${failedCount} งาน`
+        : `ซิงก์ Google Calendar สำเร็จ ${successCount} งาน`
+    );
+    setIsSyncingCalendar(false);
+  };
+
   if (!isAuthorized) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-zinc-100 text-zinc-500">
@@ -282,7 +393,7 @@ export default function BrandCalendarPage({ brandId }) {
               แสดงงานจากใบจองของ {brand.name} ในรูปแบบปฏิทินจริง
             </p>
             <p className="mt-1 text-xs text-zinc-400 sm:text-sm">
-              {loadMessage} · Google Calendar จะต่อได้หลังเพิ่ม Calendar scope/token
+              {loadMessage} · ใช้ข้อมูลในระบบเป็นหลักและซิงก์ Google Calendar เมื่อจำเป็น
             </p>
           </div>
 
@@ -303,7 +414,21 @@ export default function BrandCalendarPage({ brandId }) {
           >
             {isRefreshingBookings ? "กำลังรีเฟรช" : "รีเฟรช"}
           </button>
+          <button
+            type="button"
+            onClick={syncVisibleCalendarBookings}
+            disabled={isSyncingCalendar}
+            className="rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 md:px-5 md:py-3 md:text-base"
+          >
+            {isSyncingCalendar ? "กำลังซิงก์" : "ซิงก์ Google Calendar"}
+          </button>
         </div>
+
+        {calendarSyncMessage && (
+          <div className="mb-4 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 shadow-sm">
+            {calendarSyncMessage}
+          </div>
+        )}
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
           <section className="overflow-hidden rounded-[22px] bg-white shadow-sm ring-1 ring-zinc-200/70">
@@ -475,6 +600,19 @@ export default function BrandCalendarPage({ brandId }) {
                       <p>โทร: {event.phone || "-"}</p>
                     </div>
 
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-bold ${getCalendarSyncBadgeClass(event)}`}
+                      >
+                        {getGoogleCalendarSyncStatus(event)}
+                      </span>
+                      {event.googleCalendarSyncError && (
+                        <span className="text-xs font-semibold text-red-600">
+                          {event.googleCalendarSyncError}
+                        </span>
+                      )}
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => openBooking(event)}
@@ -482,6 +620,16 @@ export default function BrandCalendarPage({ brandId }) {
                       style={brandChrome.primaryButton}
                     >
                       ดูใบจอง
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => syncCalendarBooking(event)}
+                      disabled={syncingBookingNumber === event.bookingNumber}
+                      className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+                    >
+                      {syncingBookingNumber === event.bookingNumber
+                        ? "กำลังซิงก์..."
+                        : "ซิงก์งานนี้อีกครั้ง"}
                     </button>
                   </article>
                 ))

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
+import { deleteBookingGoogleCalendarEvent } from "@/app/lib/googleCalendarClient";
 
 const BRAND_ID = "adisorn";
 const TRASH_KEY = "adisorn_trash";
@@ -40,6 +41,21 @@ export default function TrashPage() {
   const [trash, setTrash] = useState([]);
   const [mailTrash, setMailTrash] = useState([]);
   const [search, setSearch] = useState("");
+
+  const deleteCalendarEventSafely = async (booking) => {
+    if (!booking?.googleCalendarEventId) return "";
+
+    try {
+      await deleteBookingGoogleCalendarEvent({
+        brand: BRAND_ID,
+        booking,
+      });
+      return "";
+    } catch (error) {
+      console.error("Cannot delete Google Calendar event", error);
+      return error?.message || "ลบ Google Calendar Event ไม่สำเร็จ";
+    }
+  };
 
   useEffect(() => {
     const loadTrashData = async () => {
@@ -260,7 +276,13 @@ export default function TrashPage() {
     );
     setTrash(updatedTrash);
 
-    alert("ลบถาวรเรียบร้อย");
+    const calendarError = await deleteCalendarEventSafely(customer);
+
+    alert(
+      calendarError
+        ? `ลบถาวรเรียบร้อย แต่ลบ Google Calendar Event ไม่สำเร็จ: ${calendarError}`
+        : "ลบถาวรเรียบร้อย"
+    );
   };
 
   const clearTrash = async () => {
@@ -284,7 +306,16 @@ export default function TrashPage() {
     localStorage.setItem(TRASH_KEY, "[]");
     setTrash([]);
 
-    alert("ล้างถังขยะเรียบร้อย");
+    const calendarResults = await Promise.all(
+      trash.map(deleteCalendarEventSafely)
+    );
+    const calendarError = calendarResults.find(Boolean);
+
+    alert(
+      calendarError
+        ? `ล้างถังขยะเรียบร้อย แต่ลบ Google Calendar Event ไม่สำเร็จ: ${calendarError}`
+        : "ล้างถังขยะเรียบร้อย"
+    );
   };
 
   const restoreMailTrash = (originalIndex) => {

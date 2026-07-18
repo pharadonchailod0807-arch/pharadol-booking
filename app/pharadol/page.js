@@ -23,6 +23,11 @@ import {
   getPendingBookingPrefillKey,
   updateLocalCustomerRequest,
 } from "@/app/lib/customerRequests";
+import {
+  applyGoogleCalendarSyncResult,
+  markGoogleCalendarSyncError,
+  syncBookingGoogleCalendar,
+} from "@/app/lib/googleCalendarClient";
 
 const BRAND_ID = "pharadol";
 const BRAND_BASE_PATH = "/pharadol";
@@ -3062,6 +3067,49 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       localStorage.removeItem(BOOKING_DRAFT_KEY);
       setDraftStatus("");
 
+      let calendarSyncErrorMessage = "";
+
+      try {
+        const calendarResult = await syncBookingGoogleCalendar({
+          brand: BRAND_ID,
+          booking: customer,
+        });
+
+        customer = applyGoogleCalendarSyncResult(customer, calendarResult);
+        oldData[customerIndex] = customer;
+        localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(oldData));
+        localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
+
+        const { error: calendarSaveError } = await supabase
+          .from("bookings")
+          .update({ booking_data: customer })
+          .eq("booking_number", customer.bookingNumber);
+
+        if (calendarSaveError) {
+          console.error(
+            "Cannot persist Google Calendar sync status",
+            calendarSaveError
+          );
+        }
+      } catch (calendarError) {
+        calendarSyncErrorMessage =
+          calendarError?.message || "ซิงก์ Google Calendar ไม่สำเร็จ";
+        console.error("Cannot sync booking to Google Calendar", calendarError);
+
+        customer = markGoogleCalendarSyncError(
+          customer,
+          calendarSyncErrorMessage
+        );
+        oldData[customerIndex] = customer;
+        localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(oldData));
+        localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
+
+        await supabase
+          .from("bookings")
+          .update({ booking_data: customer })
+          .eq("booking_number", customer.bookingNumber);
+      }
+
       if (pendingCustomerRequestId && existingIndex === -1) {
         try {
           updateLocalCustomerRequest(BRAND_ID, pendingCustomerRequestId, {
@@ -3095,10 +3143,15 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         setToday(now.toLocaleDateString("th-TH"));
       }
 
-      alert(
+      const saveSuccessMessage =
         existingIndex !== -1 || forceUpdate
           ? "แก้ไขข้อมูลสำเร็จ"
-          : "บันทึกข้อมูลสำเร็จ"
+          : "บันทึกข้อมูลสำเร็จ";
+
+      alert(
+        calendarSyncErrorMessage
+          ? `${saveSuccessMessage}\nบันทึกใบจองแล้ว แต่ซิงก์ Google Calendar ไม่สำเร็จ: ${calendarSyncErrorMessage}`
+          : saveSuccessMessage
       );
     } catch (error) {
       console.error("Cannot save booking", error);

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
+import { syncBookingGoogleCalendar } from "@/app/lib/googleCalendarClient";
 
 const BRAND_ID = "adisorn";
 const CUSTOMERS_KEY = `${BRAND_ID}_customers`;
@@ -27,6 +28,22 @@ export default function CustomersPage() {
 
   const goTo = (route) => {
     router.push(route);
+  };
+
+  const syncTrashCalendarEvent = async (booking) => {
+    if (!booking?.googleCalendarEventId) return "";
+
+    try {
+      await syncBookingGoogleCalendar({
+        brand: BRAND_ID,
+        booking,
+        mode: "trash",
+      });
+      return "";
+    } catch (error) {
+      console.error("Cannot update Google Calendar trash status", error);
+      return error?.message || "ซิงก์ Google Calendar ไม่สำเร็จ";
+    }
   };
 
   const normalizeBookingRow = (row) => {
@@ -407,8 +424,16 @@ export default function CustomersPage() {
       TRASH_KEY,
       JSON.stringify([...selectedCustomers, ...trashItems])
     );
+    const calendarResults = await Promise.all(
+      selectedCustomers.map(syncTrashCalendarEvent)
+    );
+    const calendarError = calendarResults.find(Boolean);
     setSelectedBookingNumbers([]);
-    alert("ย้ายข้อมูลที่เลือกไปถังขยะเรียบร้อย");
+    alert(
+      calendarError
+        ? `ย้ายข้อมูลที่เลือกไปถังขยะเรียบร้อย แต่ซิงก์ Google Calendar ไม่สำเร็จ: ${calendarError}`
+        : "ย้ายข้อมูลที่เลือกไปถังขยะเรียบร้อย"
+    );
   };
 
   const openBooking = (customer) => {
@@ -516,7 +541,12 @@ export default function CustomersPage() {
 
       localStorage.setItem(TRASH_KEY, JSON.stringify(updatedTrash));
       syncCustomers(updatedCustomers);
-      alert("ย้ายข้อมูลไปถังขยะเรียบร้อย");
+      const calendarError = await syncTrashCalendarEvent(trashRecord);
+      alert(
+        calendarError
+          ? `ย้ายข้อมูลไปถังขยะเรียบร้อย แต่ซิงก์ Google Calendar ไม่สำเร็จ: ${calendarError}`
+          : "ย้ายข้อมูลไปถังขยะเรียบร้อย"
+      );
     } catch (error) {
       console.error("Cannot move booking to trash", error);
       alert("ไม่สามารถย้ายข้อมูลไปถังขยะได้ กรุณาลองใหม่อีกครั้ง");

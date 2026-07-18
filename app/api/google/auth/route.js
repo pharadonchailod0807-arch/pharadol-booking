@@ -7,6 +7,7 @@ export const maxDuration = 15;
 const GOOGLE_OAUTH_SCOPES = [
   "https://www.googleapis.com/auth/drive",
   "https://www.googleapis.com/auth/gmail.compose",
+  "https://www.googleapis.com/auth/calendar",
 ];
 
 const VALID_BRANDS = new Set(["pharadol", "adisorn"]);
