@@ -1,4 +1,13 @@
 import { supabase } from "@/lib/supabase";
+import {
+  getClientIp,
+  normalizeBrand,
+  rateLimit,
+  rejectCrossSiteRequest,
+  rejectDocumentNavigation,
+  sanitizeMultilineText,
+  sanitizeText,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -11,8 +20,16 @@ const VALID_STATUSES = new Set([
   "created_booking",
 ]);
 
-const sanitize = (value, maxLength = 1000) =>
-  String(value || "").trim().slice(0, maxLength);
+const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
+const SAFE_FILE_TYPES = new Set([
+  "",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+]);
+
+const sanitize = sanitizeText;
 
 const normalizeRequest = (request) => ({
   id: request.id,
@@ -43,8 +60,11 @@ const getReadableError = (error) => {
 };
 
 export async function GET(request) {
+  const blockedNavigation = rejectDocumentNavigation(request);
+  if (blockedNavigation) return blockedNavigation;
+
   const { searchParams } = new URL(request.url);
-  const brand = sanitize(searchParams.get("brand"), 20);
+  const brand = normalizeBrand(searchParams.get("brand"));
 
   if (!VALID_BRANDS.has(brand)) {
     return Response.json({ success: false, error: "ไม่พบแบรนด์" }, { status: 400 });
@@ -77,17 +97,30 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const blockedCrossSite = rejectCrossSiteRequest(request);
+  if (blockedCrossSite) return blockedCrossSite;
+
   const payload = await request.json().catch(() => null);
-  const brand = sanitize(payload?.brand, 20);
+  const brand = normalizeBrand(payload?.brand);
 
   if (!VALID_BRANDS.has(brand)) {
     return Response.json({ success: false, error: "ไม่พบแบรนด์" }, { status: 400 });
   }
 
+  const limited = rateLimit({
+    key: `customer-request:${brand}:${getClientIp(request)}`,
+    limit: 5,
+    windowMs: 10 * 60 * 1000,
+    message: "ส่งข้อมูลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+  });
+  if (limited) return limited;
+
   const customerName = sanitize(payload?.customerName, 160);
   const phone = sanitize(payload?.phone, 80);
   const eventLocation = sanitize(payload?.eventLocation, 300);
   const eventDate = sanitize(payload?.eventDate, 20);
+  const email = sanitize(payload?.email, 180);
+  const slipFileType = sanitize(payload?.slipFileType, 120);
 
   if (!customerName || !phone || !eventLocation || !eventDate) {
     return Response.json(
@@ -96,17 +129,38 @@ export async function POST(request) {
     );
   }
 
+  if (email && !EMAIL_PATTERN.test(email)) {
+    return Response.json(
+      { success: false, error: "อีเมลไม่ถูกต้อง" },
+      { status: 400 }
+    );
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+    return Response.json(
+      { success: false, error: "วันที่งานไม่ถูกต้อง" },
+      { status: 400 }
+    );
+  }
+
+  if (!SAFE_FILE_TYPES.has(slipFileType)) {
+    return Response.json(
+      { success: false, error: "ประเภทไฟล์สลิปไม่ปลอดภัย" },
+      { status: 400 }
+    );
+  }
+
   const insertPayload = {
     brand,
     customer_name: customerName,
     phone,
-    email: sanitize(payload?.email, 180),
+    email,
     event_location: eventLocation,
     event_date: eventDate,
-    note: sanitize(payload?.note, 3000),
+    note: sanitizeMultilineText(payload?.note, 3000),
     slip_url: sanitize(payload?.slipUrl, 1200),
     slip_file_name: sanitize(payload?.slipFileName, 240),
-    slip_file_type: sanitize(payload?.slipFileType, 120),
+    slip_file_type: slipFileType,
     status: "new",
     source: "customer_form",
   };
@@ -128,9 +182,12 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
+  const blockedCrossSite = rejectCrossSiteRequest(request);
+  if (blockedCrossSite) return blockedCrossSite;
+
   const payload = await request.json().catch(() => null);
   const id = sanitize(payload?.id, 80);
-  const brand = sanitize(payload?.brand, 20);
+  const brand = normalizeBrand(payload?.brand);
   const status = sanitize(payload?.status, 40);
 
   if (!id || !VALID_BRANDS.has(brand) || !VALID_STATUSES.has(status)) {
@@ -164,9 +221,12 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
+  const blockedCrossSite = rejectCrossSiteRequest(request);
+  if (blockedCrossSite) return blockedCrossSite;
+
   const { searchParams } = new URL(request.url);
   const id = sanitize(searchParams.get("id"), 80);
-  const brand = sanitize(searchParams.get("brand"), 20);
+  const brand = normalizeBrand(searchParams.get("brand"));
 
   if (!id || !VALID_BRANDS.has(brand)) {
     return Response.json(

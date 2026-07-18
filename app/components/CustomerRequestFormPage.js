@@ -4,11 +4,14 @@ import { useState } from "react";
 import Image from "next/image";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const SUBMIT_COOLDOWN_MS = 30 * 1000;
 const ALLOWED_FILE_TYPES = new Set([
   "image/jpeg",
   "image/png",
+  "image/webp",
   "application/pdf",
 ]);
+const ALLOWED_FILE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "pdf"]);
 
 const BRAND_CONFIG = {
   pharadol: {
@@ -49,9 +52,13 @@ export default function CustomerRequestFormPage({ brand }) {
 
   const validateFile = (nextFile) => {
     if (!nextFile) return "";
+    const extension = String(nextFile.name || "")
+      .split(".")
+      .pop()
+      ?.toLowerCase();
 
-    if (!ALLOWED_FILE_TYPES.has(nextFile.type)) {
-      return "รองรับเฉพาะไฟล์ JPG, PNG หรือ PDF เท่านั้น";
+    if (!ALLOWED_FILE_TYPES.has(nextFile.type) || !ALLOWED_FILE_EXTENSIONS.has(extension)) {
+      return "รองรับเฉพาะไฟล์ JPG, PNG, WEBP หรือ PDF เท่านั้น";
     }
 
     if (nextFile.size > MAX_FILE_SIZE) {
@@ -152,6 +159,15 @@ const handleSubmit = async (event) => {
 
     if (fileError) return;
 
+    const cooldownKey = `${brand}_customer_request_last_submit`;
+    const lastSubmittedAt = Number(localStorage.getItem(cooldownKey) || 0);
+    const cooldownRemaining = SUBMIT_COOLDOWN_MS - (Date.now() - lastSubmittedAt);
+
+    if (cooldownRemaining > 0) {
+      setSubmitError("ส่งข้อมูลเร็วเกินไป กรุณารอสักครู่แล้วลองใหม่");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -166,6 +182,7 @@ const handleSubmit = async (event) => {
       }
 
       await submitRequest(slipData);
+      localStorage.setItem(cooldownKey, String(Date.now()));
       setForm(initialForm);
       setFile(null);
       setSuccessMessage(
@@ -246,8 +263,8 @@ const handleSubmit = async (event) => {
             <label className="grid gap-2 text-sm font-semibold text-zinc-700">
               แนบสลิปการโอนจอง
               <span className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center text-sm font-medium text-zinc-500">
-                รองรับ JPG, PNG, PDF ขนาดไม่เกิน 10MB
-                <input type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" onChange={handleFileChange} className="mt-3 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white" />
+                รองรับ JPG, PNG, WEBP, PDF ขนาดไม่เกิน 10MB
+                <input type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" onChange={handleFileChange} className="mt-3 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-zinc-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white" />
               </span>
             </label>
             {fileError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{fileError}</p>}

@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import puppeteerCore from "puppeteer-core";
+import {
+  getClientIp,
+  rateLimit,
+  rejectCrossSiteRequest,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -136,6 +141,17 @@ export async function POST(request) {
   let browser;
   let page;
   try {
+    const blockedCrossSite = rejectCrossSiteRequest(request);
+    if (blockedCrossSite) return blockedCrossSite;
+
+    const limited = rateLimit({
+      key: `vector-pdf:${getClientIp(request)}`,
+      limit: 20,
+      windowMs: 10 * 60 * 1000,
+      message: "สร้าง PDF บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+    });
+    if (limited) return limited;
+
     const payload = await request.json();
     const html = String(payload?.html || "");
     const suppliedOrigin = String(payload?.origin || "");

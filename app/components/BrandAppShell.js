@@ -15,6 +15,8 @@ import {
   readLocalCustomerRequests,
 } from "@/app/lib/customerRequests";
 
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
 const readArray = (key) => {
   try {
     const value = JSON.parse(localStorage.getItem(key) || "[]");
@@ -23,6 +25,13 @@ const readArray = (key) => {
     return [];
   }
 };
+
+const isAdminRole = (role) => role === "ADMIN" || role === "super_admin";
+
+const normalizeBrandList = (brands = []) =>
+  Array.isArray(brands)
+    ? brands.map((item) => (item === "pharadon" ? "pharadol" : item))
+    : [];
 
 const Icon = ({ name, className = "h-5 w-5" }) => {
   const paths = {
@@ -473,7 +482,65 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
 
 export default function BrandAppShell({ brandId, children }) {
   const theme = getBrandTheme(brandId);
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAllowed, setIsAllowed] = useState(false);
+
+  useEffect(() => {
+    const denyAccess = () => {
+      sessionStorage.clear();
+      window.location.replace("/login");
+    };
+
+    try {
+      const loggedIn = sessionStorage.getItem("loggedIn") === "true";
+      const currentUser = JSON.parse(
+        sessionStorage.getItem("currentUser") || "null"
+      );
+      const activeBrand = sessionStorage.getItem("activeBrand");
+      const lastActivity = Number(
+        sessionStorage.getItem("lastActivity") || Date.now()
+      );
+      const sessionExpired = Date.now() - lastActivity > SESSION_TIMEOUT_MS;
+      const normalizedBrands = normalizeBrandList(currentUser?.brands);
+      const accountIsActive = currentUser?.active !== false;
+      const accountIsAdmin = isAdminRole(currentUser?.role);
+      const hasBrandAccess = normalizedBrands.includes(brandId);
+      const brandIsCorrect =
+        activeBrand === brandId && (accountIsAdmin || hasBrandAccess);
+      const settingsRequiresAdmin =
+        pathname === `/${brandId}/settings` ||
+        pathname.startsWith(`/${brandId}/settings/`);
+
+      if (
+        !loggedIn ||
+        !currentUser ||
+        !accountIsActive ||
+        !brandIsCorrect ||
+        sessionExpired ||
+        (settingsRequiresAdmin && !accountIsAdmin)
+      ) {
+        denyAccess();
+        return;
+      }
+
+      sessionStorage.setItem("lastActivity", String(Date.now()));
+      setIsAllowed(true);
+    } catch {
+      denyAccess();
+    }
+  }, [brandId, pathname]);
+
+  if (!isAllowed) {
+    return (
+      <main
+        className="flex min-h-screen items-center justify-center px-4 text-center text-sm font-semibold"
+        style={{ backgroundColor: theme.background, color: theme.muted }}
+      >
+        กำลังตรวจสอบสิทธิ์การใช้งาน...
+      </main>
+    );
+  }
 
   return (
     <div

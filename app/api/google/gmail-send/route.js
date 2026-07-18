@@ -1,4 +1,10 @@
 import { google } from "googleapis";
+import {
+  getClientIp,
+  normalizeBrand,
+  rateLimit,
+  rejectCrossSiteRequest,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -176,9 +182,12 @@ export async function POST(request) {
   let brandId = "";
 
   try {
+    const blockedCrossSite = rejectCrossSiteRequest(request);
+    if (blockedCrossSite) return blockedCrossSite;
+
     const payload = await request.json().catch(() => null);
-    brandId = String(payload?.brandId || payload?.brand || "pharadol").trim();
-    const expectedBrandId = String(payload?.expectedBrandId || brandId).trim();
+    brandId = normalizeBrand(payload?.brandId || payload?.brand);
+    const expectedBrandId = normalizeBrand(payload?.expectedBrandId || brandId);
     const config = BRAND_CONFIG[brandId] || null;
     const to = String(payload?.to || "").trim();
     const subject = String(payload?.subject || "").trim();
@@ -197,6 +206,14 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    const limited = rateLimit({
+      key: `gmail-send:${brandId}:${getClientIp(request)}`,
+      limit: 10,
+      windowMs: 10 * 60 * 1000,
+      message: "ส่งอีเมลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+    });
+    if (limited) return limited;
 
     if (brandId !== expectedBrandId) {
       return Response.json(

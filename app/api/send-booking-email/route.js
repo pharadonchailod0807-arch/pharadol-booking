@@ -1,3 +1,10 @@
+import {
+  getClientIp,
+  normalizeBrand,
+  rateLimit,
+  rejectCrossSiteRequest,
+} from "@/lib/security";
+
 const RESEND_EMAIL_URL = "https://api.resend.com/emails";
 
 export const runtime = "nodejs";
@@ -94,9 +101,12 @@ export async function POST(request) {
     );
   }
 
+  const blockedCrossSite = rejectCrossSiteRequest(request);
+  if (blockedCrossSite) return blockedCrossSite;
+
   const payload = await request.json().catch(() => null);
-  const brand = String(payload?.brand || payload?.brandId || "").trim();
-  const expectedBrandId = String(payload?.expectedBrandId || brand).trim();
+  const brand = normalizeBrand(payload?.brand || payload?.brandId);
+  const expectedBrandId = normalizeBrand(payload?.expectedBrandId || brand);
   const sender = BRAND_SENDERS[brand];
   const to = String(payload?.to || "").trim();
   const subject = String(payload?.subject || "").trim();
@@ -113,6 +123,14 @@ export async function POST(request) {
   if (!VALID_BRANDS.has(brand) || !sender) {
     return Response.json({ error: "ไม่พบแบรนด์สำหรับส่งอีเมล" }, { status: 400 });
   }
+
+  const limited = rateLimit({
+    key: `send-booking-email:${brand}:${getClientIp(request)}`,
+    limit: 10,
+    windowMs: 10 * 60 * 1000,
+    message: "ส่งอีเมลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+  });
+  if (limited) return limited;
 
   if (brand !== expectedBrandId) {
     return Response.json(

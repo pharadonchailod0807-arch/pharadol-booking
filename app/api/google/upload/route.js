@@ -1,5 +1,11 @@
 import { google } from "googleapis";
 import { Readable } from "node:stream";
+import {
+  getClientIp,
+  normalizeBrand,
+  rateLimit,
+  rejectCrossSiteRequest,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -37,6 +43,13 @@ const BRAND_ENV_NAMES = {
   adisorn:
     `${GOOGLE_CREDENTIAL_ENV_NAMES.adisorn} และ ADISORN_GOOGLE_DRIVE_FOLDER_ID`,
 };
+const MAX_UPLOAD_BYTES = 24 * 1024 * 1024;
+const SAFE_UPLOAD_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 const getFolderIdFromValue = (value) => {
   const folderValue = String(value || "").trim();
@@ -52,10 +65,13 @@ export async function POST(request) {
   let requestBrandId = "";
 
   try {
+    const blockedCrossSite = rejectCrossSiteRequest(request);
+    if (blockedCrossSite) return blockedCrossSite;
+
     const formData = await request.formData();
-    const brandId = String(formData.get("brandId") || "").trim();
+    const brandId = normalizeBrand(formData.get("brandId"));
     requestBrandId = brandId;
-    const expectedBrandId = String(formData.get("expectedBrandId") || brandId).trim();
+    const expectedBrandId = normalizeBrand(formData.get("expectedBrandId") || brandId);
     const config = BRAND_CONFIG[brandId] || null;
 
     if (!config) {
@@ -71,6 +87,14 @@ export async function POST(request) {
         { status: 403 }
       );
     }
+
+    const limited = rateLimit({
+      key: `google-upload:${brandId}:${getClientIp(request)}`,
+      limit: 20,
+      windowMs: 10 * 60 * 1000,
+      message: "อัปโหลดไฟล์บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+    });
+    if (limited) return limited;
 
     const { clientId, clientSecret, refreshToken } = config;
     const folderId = getFolderIdFromValue(config.folderId);
@@ -91,6 +115,20 @@ export async function POST(request) {
       return Response.json(
         { success: false, error: "ไม่พบไฟล์" },
         { status: 400 }
+      );
+    }
+
+    if (!SAFE_UPLOAD_TYPES.has(file.type || "")) {
+      return Response.json(
+        { success: false, error: "รองรับเฉพาะไฟล์ PDF, JPG, PNG หรือ WEBP เท่านั้น" },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return Response.json(
+        { success: false, error: "ไฟล์มีขนาดใหญ่เกินไป กรุณาใช้ไฟล์ไม่เกิน 24MB" },
+        { status: 413 }
       );
     }
 

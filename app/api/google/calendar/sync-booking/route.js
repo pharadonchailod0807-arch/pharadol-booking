@@ -2,29 +2,44 @@ import {
   getReadableCalendarError,
   syncBookingToGoogleCalendar,
 } from "@/lib/google-calendar";
+import {
+  getClientIp,
+  normalizeBrand,
+  rateLimit,
+  rejectCrossSiteRequest,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-
-const VALID_BRANDS = new Set(["pharadol", "adisorn"]);
 
 export async function POST(request) {
   let brandId = "";
 
   try {
+    const blockedCrossSite = rejectCrossSiteRequest(request);
+    if (blockedCrossSite) return blockedCrossSite;
+
     const payload = await request.json().catch(() => ({}));
-    brandId = String(payload?.brand || payload?.brandId || "").trim();
+    brandId = normalizeBrand(payload?.brand || payload?.brandId);
     const booking = payload?.booking || {};
     const bookingNumber =
       String(payload?.bookingNumber || booking?.bookingNumber || "").trim();
     const mode = String(payload?.mode || "upsert").trim();
 
-    if (!VALID_BRANDS.has(brandId)) {
+    if (!brandId) {
       return Response.json(
         { success: false, error: "ไม่พบแบรนด์สำหรับ Google Calendar" },
         { status: 400 }
       );
     }
+
+    const limited = rateLimit({
+      key: `calendar-sync:${brandId}:${getClientIp(request)}`,
+      limit: 30,
+      windowMs: 10 * 60 * 1000,
+      message: "ซิงก์ Google Calendar บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+    });
+    if (limited) return limited;
 
     if (!bookingNumber) {
       return Response.json(
@@ -52,7 +67,10 @@ export async function POST(request) {
         mode === "delete" ? "deleted" : "synced",
     });
   } catch (error) {
-    console.error("Google Calendar booking sync error:", error);
+    console.error(
+      "Google Calendar booking sync error:",
+      error?.response?.data?.error || error?.response?.data?.message || error?.message || "unknown error"
+    );
 
     return Response.json(
       {

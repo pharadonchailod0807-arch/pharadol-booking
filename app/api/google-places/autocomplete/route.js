@@ -1,3 +1,9 @@
+import {
+  getClientIp,
+  rateLimit,
+  sanitizeText,
+} from "@/lib/security";
+
 const GOOGLE_PLACES_AUTOCOMPLETE_URL =
   "https://places.googleapis.com/v1/places:autocomplete";
 const GOOGLE_PLACES_TEXT_SEARCH_URL =
@@ -75,7 +81,15 @@ const dedupeSuggestions = (suggestions) => {
 export async function GET(request) {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
   const { searchParams } = new URL(request.url);
-  const input = String(searchParams.get("input") || "").trim();
+  const input = sanitizeText(searchParams.get("input"), 120);
+
+  const limited = rateLimit({
+    key: `google-places:${getClientIp(request)}`,
+    limit: 80,
+    windowMs: 10 * 60 * 1000,
+    message: "ค้นหาสถานที่บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+  });
+  if (limited) return limited;
 
   if (!apiKey || input.length < 2) {
     return Response.json({ suggestions: [], configured: Boolean(apiKey) });

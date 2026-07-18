@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { NextResponse } from "next/server";
+import { getClientIp, rateLimit } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
@@ -78,6 +79,13 @@ const getGoogleOAuthConfig = (brand, requestUrl) => {
 export async function GET(request) {
   const requestUrl = new URL(request.url);
   const brand = String(requestUrl.searchParams.get("brand") || "").trim();
+  const limited = rateLimit({
+    key: `google-auth:${brand || "unknown"}:${getClientIp(request)}`,
+    limit: 10,
+    windowMs: 10 * 60 * 1000,
+    message: "เริ่มเชื่อมต่อ Google บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+  });
+  if (limited) return limited;
 
   if (!VALID_BRANDS.has(brand)) {
     return NextResponse.json(

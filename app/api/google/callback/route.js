@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { NextResponse } from "next/server";
+import { getClientIp, rateLimit } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -178,6 +179,13 @@ export async function GET(request) {
   const code = requestUrl.searchParams.get("code");
   const error = requestUrl.searchParams.get("error");
   const brand = String(requestUrl.searchParams.get("state") || "").trim();
+  const limited = rateLimit({
+    key: `google-callback:${brand || "unknown"}:${getClientIp(request)}`,
+    limit: 10,
+    windowMs: 10 * 60 * 1000,
+    message: "เชื่อมต่อ Google บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+  });
+  if (limited) return limited;
 
   if (error) {
     return new Response(
@@ -237,7 +245,6 @@ export async function GET(request) {
       redirectUri
     );
     const { tokens } = await oauth2Client.getToken(code);
-
     oauth2Client.setCredentials(tokens);
 
     if (!(await tokenHasCalendarScope(tokens, oauth2Client))) {
@@ -256,9 +263,9 @@ export async function GET(request) {
         title: `เชื่อมต่อ Google สำเร็จ: ${BRAND_NAMES[brand]}`,
         message:
           tokens.refresh_token
-            ? `คัดลอกค่า refresh token ด้านล่างไปใส่ใน ${BRAND_REFRESH_TOKEN_ENV[brand]} (token นี้รวมสิทธิ์ Google Drive, Gmail และ Google Calendar)`
+            ? `ได้รับ refresh token ที่มีสิทธิ์ Google Drive, Gmail และ Google Calendar แล้ว แต่ระบบไม่แสดง token ใน browser เพื่อความปลอดภัย กรุณาจัดเก็บ token ผ่านช่องทาง server ที่ปลอดภัย`
             : `Google ไม่ส่ง refresh token กลับมา ถ้าเคยอนุญาตแล้ว ให้ revoke access แล้วลองเข้า /api/google/auth?brand=${brand} ใหม่`,
-        token: tokens.refresh_token || "",
+        token: "",
         envName: BRAND_REFRESH_TOKEN_ENV[brand],
         brandName: BRAND_NAMES[brand],
       }),

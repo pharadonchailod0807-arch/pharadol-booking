@@ -1,4 +1,10 @@
 import { NextResponse } from "next/server";
+import {
+  getClientIp,
+  normalizeBrand,
+  rateLimit,
+  rejectCrossSiteRequest,
+} from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,25 +75,46 @@ const sanitizeFileName = (value) =>
 
 export async function POST(request) {
   try {
+    const blockedCrossSite = rejectCrossSiteRequest(request);
+    if (blockedCrossSite) return blockedCrossSite;
+
     const formData = await request.formData();
     const file = formData.get("file");
-    const requestedBrand = String(
-      formData.get("brand") || ""
-    ).toLowerCase();
+    const brand = normalizeBrand(formData.get("brand"));
 
-    const brand =
-      requestedBrand === "adisorn"
-        ? "adisorn"
-        : "pharadol";
+    if (!brand) {
+      return NextResponse.json(
+        { error: "ไม่พบแบรนด์สำหรับสร้างลิงก์เอกสาร" },
+        { status: 400 }
+      );
+    }
 
-    if (
-      !file ||
-      typeof file === "string" ||
-      typeof file.arrayBuffer !== "function"
-    ) {
+    const limited = rateLimit({
+      key: `booking-document-link:${brand}:${getClientIp(request)}`,
+      limit: 12,
+      windowMs: 10 * 60 * 1000,
+      message: "สร้างลิงก์เอกสารบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+    });
+    if (limited) return limited;
+
+    if (!file || typeof file === "string" || typeof file.arrayBuffer !== "function") {
       return NextResponse.json(
         { error: "ไม่พบไฟล์ PDF" },
         { status: 400 }
+      );
+    }
+
+    if (file.type && file.type !== "application/pdf") {
+      return NextResponse.json(
+        { error: "รองรับเฉพาะไฟล์ PDF เท่านั้น" },
+        { status: 400 }
+      );
+    }
+
+    if (file.size > 24 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "ไฟล์ PDF มีขนาดใหญ่เกินไป กรุณาลองใหม่อีกครั้ง" },
+        { status: 413 }
       );
     }
 
@@ -207,7 +234,7 @@ export async function POST(request) {
   } catch (error) {
     console.error(
       "Booking document link upload error:",
-      error
+      error?.message || "unknown error"
     );
 
     return NextResponse.json(
