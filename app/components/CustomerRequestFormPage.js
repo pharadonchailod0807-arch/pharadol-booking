@@ -26,7 +26,7 @@ const BRAND_CONFIG = {
     paymentQrFileName: "pharadol-payment-qr.png",
     paymentName: "PHARADOL PRODUCTION",
     paymentHeaderBackground:
-      "radial-gradient(circle at 88% 10%, rgba(205,174,119,0.26), transparent 30%), linear-gradient(135deg, #082E25 0%, #0F3D31 42%, #123B30 72%, #061F19 100%)",
+      "radial-gradient(circle at 88% 18%, rgba(205,174,119,0.22), transparent 34%), linear-gradient(135deg, #082E25 0%, #0F3D31 48%, #061F19 100%)",
     logoDark: true,
   },
   adisorn: {
@@ -41,7 +41,7 @@ const BRAND_CONFIG = {
     paymentQrFileName: "adisorn-payment-qr.png",
     paymentName: "ADISORN WEDDING STUDIO",
     paymentHeaderBackground:
-      "radial-gradient(circle at 88% 10%, rgba(201,164,106,0.24), transparent 30%), linear-gradient(135deg, #2B1A14 0%, #4A2E22 45%, #5A3828 72%, #24120D 100%)",
+      "radial-gradient(circle at 88% 18%, rgba(201,164,106,0.22), transparent 34%), linear-gradient(135deg, #2B1A14 0%, #4A2E22 52%, #24120D 100%)",
     logoDark: false,
   },
 };
@@ -386,31 +386,34 @@ const handleSubmit = async (event) => {
     </div>
   );
 
+  const paymentBrandClass =
+    brand === "adisorn"
+      ? "text-[22px] max-[390px]:text-[20px] sm:text-[26px]"
+      : "text-2xl max-[390px]:text-[22px] sm:text-[26px]";
+
   const PaymentQrCard = () => (
-    <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
+    <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:rounded-[32px]">
       <div
-        className="min-h-[142px] px-6 py-8 text-white sm:px-9 sm:py-8"
+        className="flex min-h-[128px] items-center justify-between gap-[14px] px-[26px] py-6 text-white max-[390px]:gap-2.5 max-[390px]:px-[22px] sm:min-h-[132px] sm:gap-[18px] sm:px-[34px] sm:py-7"
         style={{ background: config.paymentHeaderBackground }}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 pt-1">
-            <p className="text-[12px] font-black uppercase tracking-[0.28em] text-white/75 sm:text-[15px] sm:tracking-[0.32em]">
-              QR PAYMENT
-            </p>
-            <p className="mt-3 truncate text-[18px] font-black leading-none text-white min-[400px]:text-[20px] sm:text-[25px]">
-              {config.paymentName}
-            </p>
-          </div>
-          <span
-            className="mt-2 inline-flex shrink-0 items-center justify-center rounded-full px-4 py-2 text-sm font-black leading-none sm:mt-3 sm:px-6 sm:py-3 sm:text-lg"
-            style={{
-              backgroundColor: config.accent,
-              color: config.deep,
-            }}
-          >
-            รอแนบสลิป
-          </span>
+        <div className="min-w-0 flex-1">
+          <p className="mb-[9px] text-[13px] font-black uppercase leading-none tracking-[0.18em] text-white/75 sm:mb-2.5 sm:text-sm">
+            QR PAYMENT
+          </p>
+          <p className={`m-0 whitespace-normal break-words font-black leading-[1.1] tracking-[0.01em] text-white ${paymentBrandClass}`}>
+            {config.paymentName}
+          </p>
         </div>
+        <span
+          className="inline-flex h-10 min-w-[120px] shrink-0 items-center justify-center whitespace-nowrap rounded-full px-4 text-[15px] font-black leading-none max-[390px]:h-[38px] max-[390px]:min-w-[108px] max-[390px]:px-3 max-[390px]:text-sm sm:h-11 sm:min-w-[142px] sm:px-[22px] sm:text-[17px]"
+          style={{
+            backgroundColor: config.accent,
+            color: config.primary,
+          }}
+        >
+          รอแนบสลิป
+        </span>
       </div>
 
       <div className="px-4 py-6 text-center sm:px-7 sm:py-8">
