@@ -18,18 +18,24 @@ const BRAND_CONFIG = {
     name: "Pharadol Production",
     logo: "/customer-form/pharadol-logo-gold-transparent-v2.png",
     primary: "#0F3D31",
+    deep: "#082E25",
     accent: "#CDAE77",
+    soft: "#F6EFD7",
     background: "#F6F7F3",
     paymentQr: "/pharadol-payment-qr.png",
+    paymentName: "PHARADOL PRODUCTION",
     logoDark: true,
   },
   adisorn: {
     name: "Adisorn Wedding Studio",
     logo: "/adisorn-logo.png",
     primary: "#4A2E22",
+    deep: "#2B1A14",
     accent: "#C9A46A",
+    soft: "#F3E6CF",
     background: "#FAF7F1",
     paymentQr: "/adisorn-payment-qr.png",
+    paymentName: "ADISORN WEDDING STUDIO",
     logoDark: false,
   },
 };
@@ -45,6 +51,7 @@ const initialForm = {
 
 export default function CustomerRequestFormPage({ brand }) {
   const config = BRAND_CONFIG[brand] || BRAND_CONFIG.pharadol;
+  const slipInputId = `${brand}-customer-payment-slip`;
   const [form, setForm] = useState(initialForm);
   const [step, setStep] = useState(1);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -271,6 +278,21 @@ const handleSubmit = async (event) => {
       </span>
     ) : null;
 
+  const isStepOneReady = () =>
+    Boolean(
+      form.customerName.trim() &&
+        form.phone.trim() &&
+        form.eventLocation.trim() &&
+        form.eventDate &&
+        (!form.email.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()))
+    );
+
+  const depositAmount = Number(form.depositAmount || form.amount || 0);
+  const depositLabel =
+    depositAmount > 0
+      ? `ยอดมัดจำ: ฿${depositAmount.toLocaleString()}`
+      : "ยอดชำระตามที่ทีมงานแจ้ง";
+
   const StepIndicator = () => (
     <div className="mb-5 grid grid-cols-2 gap-2 rounded-[20px] border border-zinc-200 bg-zinc-50 p-2">
       {[
@@ -306,29 +328,62 @@ const handleSubmit = async (event) => {
   );
 
   const PaymentQrCard = () => (
-    <div className="rounded-[24px] border border-zinc-200 bg-zinc-50 p-4 text-center">
-      <div className="mx-auto flex min-h-[240px] w-full max-w-[300px] items-center justify-center rounded-[24px] border border-dashed border-zinc-300 bg-white p-4 shadow-sm sm:min-h-[280px]">
-        {qrImageAvailable ? (
-          <img
-            src={config.paymentQr}
-            alt={`QR Code สำหรับโอนจอง ${config.name}`}
-            className="max-h-[260px] w-full max-w-[260px] object-contain sm:max-h-[280px] sm:max-w-[280px]"
-            onError={() => setQrImageAvailable(false)}
-          />
-        ) : (
-          <div className="flex h-[220px] w-[220px] flex-col items-center justify-center rounded-[20px] bg-zinc-100 px-5 text-center">
-            <span className="text-4xl font-black" style={{ color: config.primary }}>
-              QR
-            </span>
-            <span className="mt-3 text-sm font-bold text-zinc-500">
-              เพิ่มรูป QR Code ใน public
-            </span>
-          </div>
-        )}
+    <div className="overflow-hidden rounded-[30px] border border-zinc-200 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+      <div
+        className="flex items-center justify-between gap-3 px-5 py-4 text-white sm:px-6"
+        style={{ backgroundColor: config.deep }}
+      >
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-75">
+            QR PAYMENT
+          </p>
+          <p className="mt-1 text-sm font-black sm:text-base">
+            {config.paymentName}
+          </p>
+        </div>
+        <span
+          className="shrink-0 rounded-full px-3 py-1 text-xs font-black"
+          style={{ backgroundColor: config.accent, color: config.deep }}
+        >
+          {file && !fileError ? "แนบสลิปแล้ว" : "รอแนบสลิป"}
+        </span>
       </div>
-      <p className="mt-4 text-sm font-semibold leading-6 text-zinc-600">
-        สแกน QR Code เพื่อโอนจอง แล้วแนบสลิปด้านล่าง
-      </p>
+
+      <div className="p-5 text-center sm:p-7">
+        <div className="mx-auto mb-5 inline-flex rounded-full px-4 py-2 text-sm font-black" style={{ backgroundColor: config.soft, color: config.primary }}>
+          {depositLabel}
+        </div>
+
+        <div className="mx-auto flex min-h-[240px] w-full max-w-[340px] items-center justify-center rounded-[28px] border border-zinc-200 bg-white p-4 shadow-inner sm:min-h-[340px]">
+          {qrImageAvailable ? (
+            <img
+              src={config.paymentQr}
+              alt={`QR Code สำหรับโอนจอง ${config.name}`}
+              className="max-h-[280px] w-full max-w-[280px] object-contain sm:max-h-[320px] sm:max-w-[320px]"
+              onError={() => setQrImageAvailable(false)}
+            />
+          ) : (
+            <div className="flex h-[220px] w-[220px] flex-col items-center justify-center rounded-[24px] border border-dashed border-zinc-300 bg-zinc-50 px-5 text-center sm:h-[280px] sm:w-[280px]">
+              <span className="text-5xl font-black" style={{ color: config.primary }}>
+                QR
+              </span>
+              <span className="mt-4 text-sm font-bold text-zinc-500">
+                เพิ่มรูป QR Code ใน public
+              </span>
+              <span className="mt-2 text-xs font-semibold text-zinc-400">
+                {config.paymentQr}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <p className="mt-5 text-lg font-black" style={{ color: config.primary }}>
+          สแกนเพื่อโอนจอง
+        </p>
+        <p className="mt-1 text-sm font-semibold leading-6 text-zinc-500">
+          หลังโอนแล้ว กรุณาแนบสลิปด้านล่าง
+        </p>
+      </div>
     </div>
   );
 
@@ -361,7 +416,7 @@ const handleSubmit = async (event) => {
         "--form-primary": config.primary,
       }}
     >
-      <section className="mx-auto max-w-2xl">
+      <section className={step === 2 ? "mx-auto max-w-[860px]" : "mx-auto max-w-2xl"}>
         <div className="mb-6 flex flex-col items-center text-center">
           {renderLogo(true)}
           <p className="mt-3 text-xs font-bold uppercase tracking-[0.22em] text-zinc-400">
@@ -370,12 +425,12 @@ const handleSubmit = async (event) => {
           <h1 className="mt-2 text-2xl font-bold leading-tight sm:text-3xl">
             {step === 1
               ? "กรอกข้อมูลเบื้องต้นสำหรับการจองงาน"
-              : "แนบหลักฐานการโอนจอง"}
+              : "ชำระเงินมัดจำ"}
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-7 text-zinc-600 sm:text-base">
             {step === 1
               ? "กรอกข้อมูลสั้น ๆ เพื่อให้ทีมงานติดต่อกลับและเตรียมรายละเอียดให้เหมาะกับงานของคุณ"
-              : "ตรวจสอบข้อมูลการจอง แนบหลักฐานการโอน แล้วส่งข้อมูลให้ทีมงาน"}
+              : "สแกน QR Code เพื่อโอนจอง แล้วแนบสลิปด้านล่าง"}
           </p>
         </div>
 
@@ -456,24 +511,79 @@ const handleSubmit = async (event) => {
           ) : (
             <>
               <div className="grid gap-4">
+                <div
+                  className="rounded-[22px] border px-4 py-3 text-sm font-bold leading-6"
+                  style={{
+                    backgroundColor: config.soft,
+                    borderColor: config.accent,
+                    color: config.deep,
+                  }}
+                >
+                  กรุณาชำระเงินเพื่อยืนยันการจอง และแนบสลิปหลังโอนสำเร็จ
+                </div>
+
+                <div className="grid gap-3 rounded-[24px] border border-zinc-200 bg-white p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-zinc-400">
+                      Payment for
+                    </p>
+                    <h2 className="mt-1 truncate text-lg font-black" style={{ color: config.primary }}>
+                      {config.paymentName}
+                    </h2>
+                    <p className="mt-1 text-sm font-semibold text-zinc-500">
+                      {depositLabel}
+                    </p>
+                  </div>
+                  <span
+                    className="inline-flex min-h-[34px] items-center justify-center rounded-full px-4 text-sm font-black"
+                    style={{
+                      backgroundColor: file && !fileError ? config.primary : config.soft,
+                      color: file && !fileError ? "#FFFFFF" : config.primary,
+                    }}
+                  >
+                    {file && !fileError ? "แนบสลิปแล้ว" : "รอแนบสลิป"}
+                  </span>
+                </div>
+
                 <PaymentQrCard />
-                <label className="grid gap-2 text-sm font-semibold text-zinc-700">
-                  แนบสลิปการโอนจอง
-                  <span className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-5 text-center text-sm font-medium text-zinc-500">
-                    รองรับ JPG, PNG, WEBP, PDF ขนาดไม่เกิน 10MB
+
+                <div className="rounded-[26px] border border-dashed border-zinc-300 bg-zinc-50 p-4 sm:p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-base font-black text-zinc-800">
+                        แนบสลิปการโอน
+                      </p>
+                      <p className="mt-1 text-sm font-semibold leading-6 text-zinc-500">
+                        รองรับ JPG, PNG, WEBP, PDF ขนาดไม่เกิน 10MB
+                      </p>
+                    </div>
+                    <label
+                      htmlFor={slipInputId}
+                      className="inline-flex min-h-[50px] cursor-pointer items-center justify-center rounded-2xl px-5 text-sm font-black text-white transition hover:-translate-y-0.5"
+                      style={{ backgroundColor: config.primary }}
+                    >
+                      แนบสลิปการโอน
+                    </label>
                     <input
+                      id={slipInputId}
                       type="file"
                       accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
                       onChange={handleFileChange}
-                      className="mt-3 block w-full text-sm text-zinc-600 file:mr-3 file:rounded-full file:border-0 file:bg-[var(--form-primary)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                      className="sr-only"
                     />
-                  </span>
+                  </div>
+
                   {file && !fileError && (
-                    <span className="text-xs font-semibold text-zinc-500">
-                      ไฟล์ที่เลือก: {file.name}
-                    </span>
+                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                      <p className="text-sm font-black text-emerald-700">
+                        แนบสลิปแล้ว
+                      </p>
+                      <p className="mt-1 break-all text-xs font-semibold text-emerald-700/80">
+                        {file.name}
+                      </p>
+                    </div>
                   )}
-                </label>
+                </div>
                 {fileError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{fileError}</p>}
                 {submitError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{submitError}</p>}
               </div>
@@ -492,7 +602,7 @@ const handleSubmit = async (event) => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || Boolean(fileError)}
+                  disabled={isSubmitting || Boolean(fileError) || !isStepOneReady()}
                   className="min-h-[56px] rounded-2xl px-5 text-base font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                   style={{ backgroundColor: config.primary }}
                 >
