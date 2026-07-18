@@ -625,6 +625,9 @@ const emailSendMessageClass =
     error: "border-red-200 bg-red-50 text-red-700",
   }[emailSendStatus] || "border-zinc-200 bg-zinc-50 text-zinc-700";
 
+const HIGH_QUALITY_PDF_ERROR_MESSAGE =
+  "สร้าง PDF คุณภาพสูงไม่สำเร็จ กรุณาลองใหม่";
+
 const renderServiceDescription = (description, options = {}) => {
   if (!description) return null;
 
@@ -3308,7 +3311,7 @@ const downloadPDF = async () => {
     downloadBlob(pdfAttachment.blob, pdfAttachment.filename);
   } catch (error) {
     console.error("PDF export error:", error);
-    alert(error.message || "ไม่สามารถสร้างไฟล์ PDF ได้ กรุณาลองใหม่อีกครั้ง");
+    alert(HIGH_QUALITY_PDF_ERROR_MESSAGE);
   } finally {
     setIsExporting(false);
   }
@@ -3510,6 +3513,15 @@ const applyBookingPageNumbers = (pages) => {
 
 const waitForNextRender = () =>
   new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+const setBookingPdfPreparationStatus = async (
+  message,
+  status = "loading"
+) => {
+  setEmailSendStatus(status);
+  setEmailSendMessage(message);
+  await waitForNextRender();
+};
 
 const prepareSlipPreviewForCapture = async () => {
   if (!slipImage || !slipIsImage || !slipPreviewUrl || slipPreviewFailed) {
@@ -4024,33 +4036,93 @@ const createBookingPdfCacheKey = async (html, filename) => {
   return `fallback-${(hash >>> 0).toString(16)}-${source.length}`;
 };
 
-const createBookingPdfAttachment = async () => {
-  const filename = `${bookingNumber || "booking"}-booking.pdf`;
-  const vectorDocument =
-    await createBookingVectorPdfHtml();
+const createBookingPdfFingerprint = (filename) =>
+  JSON.stringify({
+    brandId: BRAND_ID,
+    filename,
+    bookingNumber,
+    customerName,
+    phone,
+    email,
+    service,
+    location,
+    eventDate,
+    startTime,
+    endTime,
+    formattedEventDate,
+    bookingDate,
+    today,
+    serviceItems,
+    serviceTotal,
+    discountPercent,
+    discountAmount,
+    totalDiscount,
+    finalPrice,
+    slipImage,
+    slipFileName,
+    slipFileType,
+    paymentDate,
+    paymentTime,
+    paymentAmount,
+    paymentMethod,
+    paymentStatus,
+    paymentProgress,
+    jobStatus,
+    calendarColor,
+    remainingPayment: previewRemainingPayment,
+    paymentNote,
+    paymentTransactions,
+    totalPaid: previewTotalPaid,
+  });
 
-  const cacheKey = await createBookingPdfCacheKey(
-    vectorDocument.html,
+const createBookingPdfAttachment = async ({ onStatus } = {}) => {
+  const filename = `${bookingNumber || "booking"}-booking.pdf`;
+  const dataCacheKey = await createBookingPdfCacheKey(
+    createBookingPdfFingerprint(filename),
     filename
   );
 
   const existingCache = bookingPdfCacheRef.current;
 
   if (
-    existingCache?.key === cacheKey &&
+    existingCache?.dataKey === dataCacheKey &&
     existingCache?.attachment?.blob?.size > 0
   ) {
+    if (onStatus) {
+      await onStatus("พร้อมส่งแล้ว", "success");
+    }
     return existingCache.attachment;
   }
 
   if (
-    existingCache?.key === cacheKey &&
+    existingCache?.dataKey === dataCacheKey &&
     existingCache?.promise
   ) {
-    return existingCache.promise;
+    if (onStatus) {
+      await onStatus("กำลังสร้าง PDF คุณภาพสูง...");
+    }
+
+    const attachment = await existingCache.promise;
+
+    if (onStatus) {
+      await onStatus("พร้อมส่งแล้ว", "success");
+    }
+
+    return attachment;
   }
 
   const creationPromise = (async () => {
+    if (onStatus) {
+      await onStatus("กำลังเตรียมใบจอง...");
+    }
+
+    const vectorDocument =
+      await createBookingVectorPdfHtml();
+
+    if (onStatus) {
+      await onStatus("กำลังสร้าง PDF คุณภาพสูง...");
+    }
+
     const response = await fetch("/api/vector-pdf", {
       method: "POST",
       headers: {
@@ -4082,7 +4154,15 @@ const createBookingPdfAttachment = async () => {
       throw new Error("ระบบได้รับไฟล์ PDF ที่ไม่สมบูรณ์");
     }
 
+    if (onStatus) {
+      await onStatus("กำลังแนบไฟล์...");
+    }
+
     const base64 = await blobToBase64(blob);
+
+    if (onStatus) {
+      await onStatus("พร้อมส่งแล้ว", "success");
+    }
 
     return {
       filename,
@@ -4092,7 +4172,7 @@ const createBookingPdfAttachment = async () => {
   })();
 
   bookingPdfCacheRef.current = {
-    key: cacheKey,
+    dataKey: dataCacheKey,
     promise: creationPromise,
     attachment: null,
   };
@@ -4101,14 +4181,14 @@ const createBookingPdfAttachment = async () => {
     const attachment = await creationPromise;
 
     bookingPdfCacheRef.current = {
-      key: cacheKey,
+      dataKey: dataCacheKey,
       promise: null,
       attachment,
     };
 
     return attachment;
   } catch (error) {
-    if (bookingPdfCacheRef.current?.key === cacheKey) {
+    if (bookingPdfCacheRef.current?.dataKey === dataCacheKey) {
       bookingPdfCacheRef.current = null;
     }
 
@@ -4324,9 +4404,9 @@ const sendBookingEmail = async () => {
     return;
   }
 
-  setEmailSendMessage("");
+  setEmailSendMessage("กำลังเตรียมใบจอง...");
+  setEmailSendStatus("loading");
   setPreparingSendChannel("email");
-  setIsSendOptionsOpen(false);
   attachmentLockRef.current = true;
   setIsPreparingAttachment(true);
 
@@ -4339,10 +4419,14 @@ const sendBookingEmail = async () => {
   let pdfAttachment;
 
   try {
-    pdfAttachment = await createBookingPdfAttachment();
+    pdfAttachment = await createBookingPdfAttachment({
+      onStatus: setBookingPdfPreparationStatus,
+    });
   } catch (error) {
     console.error("Cannot create booking PDF attachment", error);
-    window.alert(error.message || "ไม่สามารถสร้างไฟล์ PDF แนบอีเมลได้");
+    setEmailSendStatus("error");
+    setEmailSendMessage(HIGH_QUALITY_PDF_ERROR_MESSAGE);
+    window.alert(HIGH_QUALITY_PDF_ERROR_MESSAGE);
     setPreparingSendChannel("");
     attachmentLockRef.current = false;
     setIsPreparingAttachment(false);
@@ -4358,8 +4442,9 @@ const sendBookingEmail = async () => {
     body,
     pdfAttachment,
   });
-  setEmailSendMessage("");
-  setEmailSendStatus("idle");
+  setEmailSendMessage("พร้อมส่งแล้ว");
+  setEmailSendStatus("success");
+  setIsSendOptionsOpen(false);
   setPreparingSendChannel("");
   attachmentLockRef.current = false;
   setIsPreparingAttachment(false);
@@ -4393,10 +4478,9 @@ const sendBookingSms = async () => {
   const bodySeparator =
     /iPad|iPhone|iPod|Macintosh/i.test(window.navigator.userAgent) ? "&" : "?";
 
-  setIsSendOptionsOpen(false);
-
   try {
-    setEmailSendMessage("");
+    setEmailSendMessage("กำลังเตรียมใบจอง...");
+    setEmailSendStatus("loading");
     setPreparingSendChannel("sms");
     attachmentLockRef.current = true;
     setIsPreparingAttachment(true);
@@ -4406,13 +4490,17 @@ const sendBookingSms = async () => {
         window.requestAnimationFrame(resolve)
       )
     );
-    const pdfAttachment = await createBookingPdfAttachment();
+    const pdfAttachment = await createBookingPdfAttachment({
+      onStatus: setBookingPdfPreparationStatus,
+    });
     const pdfFile =
       typeof File === "function"
         ? new File([pdfAttachment.blob], pdfAttachment.filename, {
             type: "application/pdf",
           })
         : null;
+
+    setIsSendOptionsOpen(false);
 
     if (
       pdfFile &&
@@ -4435,7 +4523,9 @@ const sendBookingSms = async () => {
     if (error?.name === "AbortError") return;
 
     console.error("Cannot create booking PDF for SMS", error);
-    window.alert(error.message || "ไม่สามารถสร้างไฟล์ PDF สำหรับ SMS ได้");
+    setEmailSendStatus("error");
+    setEmailSendMessage(HIGH_QUALITY_PDF_ERROR_MESSAGE);
+    window.alert(HIGH_QUALITY_PDF_ERROR_MESSAGE);
   } finally {
     setPreparingSendChannel("");
     attachmentLockRef.current = false;
@@ -4472,6 +4562,8 @@ const sendBookingSmsLink = async () => {
 
   setIsSendingSmsLink(true);
   setPreparingSendChannel("sms-link");
+  setEmailSendMessage("กำลังเตรียมใบจอง...");
+  setEmailSendStatus("loading");
   attachmentLockRef.current = true;
   setIsPreparingAttachment(true);
 
@@ -4481,9 +4573,17 @@ const sendBookingSmsLink = async () => {
     )
   );
 
+  let isPdfReady = false;
+
   try {
-    const pdfAttachment = await createBookingPdfAttachment();
+    const pdfAttachment = await createBookingPdfAttachment({
+      onStatus: setBookingPdfPreparationStatus,
+    });
+    isPdfReady = true;
     const uploadData = new FormData();
+
+    setEmailSendMessage("กำลังสร้างลิงก์ Google Drive...");
+    setEmailSendStatus("loading");
 
     uploadData.append(
       "file",
@@ -4558,10 +4658,13 @@ const sendBookingSmsLink = async () => {
       error
     );
 
-    window.alert(
-      error?.message ||
-        "ไม่สามารถส่ง SMS พร้อมลิงก์เอกสารได้"
-    );
+    const message = isPdfReady
+      ? error?.message || "ไม่สามารถส่ง SMS พร้อมลิงก์เอกสารได้"
+      : HIGH_QUALITY_PDF_ERROR_MESSAGE;
+
+    setEmailSendStatus("error");
+    setEmailSendMessage(message);
+    window.alert(message);
   } finally {
     setPreparingSendChannel("");
     attachmentLockRef.current = false;
