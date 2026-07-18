@@ -25,6 +25,8 @@ const BRAND_CONFIG = {
     paymentQr: "/pharadol-payment-qr.png",
     paymentQrFileName: "pharadol-payment-qr.png",
     paymentName: "PHARADOL PRODUCTION",
+    paymentHeaderBackground:
+      "radial-gradient(circle at 88% 10%, rgba(205,174,119,0.26), transparent 30%), linear-gradient(135deg, #082E25 0%, #0F3D31 42%, #123B30 72%, #061F19 100%)",
     logoDark: true,
   },
   adisorn: {
@@ -38,6 +40,8 @@ const BRAND_CONFIG = {
     paymentQr: "/adisorn-payment-qr.png",
     paymentQrFileName: "adisorn-payment-qr.png",
     paymentName: "ADISORN WEDDING STUDIO",
+    paymentHeaderBackground:
+      "radial-gradient(circle at 88% 10%, rgba(201,164,106,0.24), transparent 30%), linear-gradient(135deg, #2B1A14 0%, #4A2E22 45%, #5A3828 72%, #24120D 100%)",
     logoDark: false,
   },
 };
@@ -383,39 +387,26 @@ const handleSubmit = async (event) => {
   );
 
   const PaymentQrCard = () => (
-    <div className="overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-[0_22px_60px_rgba(15,23,42,0.10)]">
+    <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
       <div
-        className="px-5 py-5 text-white sm:px-7 sm:py-6"
-        style={{ backgroundColor: config.deep }}
+        className="px-6 py-6 text-white sm:px-[34px] sm:py-[30px]"
+        style={{ background: config.paymentHeaderBackground }}
       >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p
-              className="text-[11px] font-black uppercase tracking-[0.24em]"
-              style={{ color: config.accent }}
-            >
-              QR PAYMENT
-            </p>
-            <p className="mt-1 truncate text-lg font-black leading-tight sm:text-xl">
-              {config.paymentName}
-            </p>
-            <p className="mt-2 text-xs font-semibold leading-5 text-white/80 sm:hidden">
-              {paymentInstruction}
-            </p>
-          </div>
-          <span
-            className="hidden max-w-[430px] shrink-0 items-center rounded-full border px-4 py-2 text-[12px] font-black leading-none text-white sm:inline-flex sm:whitespace-nowrap"
-            style={{
-              borderColor: config.accent,
-              backgroundColor: "rgba(255, 255, 255, 0.12)",
-            }}
-          >
-            {paymentInstruction}
-          </span>
-        </div>
+        <p
+          className="text-[12px] font-black uppercase tracking-[0.18em] sm:text-[13px]"
+          style={{ color: config.accent }}
+        >
+          QR PAYMENT
+        </p>
+        <p className="mt-2 text-[clamp(24px,5vw,34px)] font-black leading-tight text-white">
+          {config.paymentName}
+        </p>
+        <p className="mt-3 text-sm font-bold leading-6 text-white/85 sm:text-[17px]">
+          {paymentInstruction}
+        </p>
       </div>
 
-      <div className="px-3 py-5 text-center sm:px-7 sm:py-7">
+      <div className="px-4 py-6 text-center sm:px-7 sm:py-8">
         <div className="mx-auto mb-5 inline-flex rounded-full px-4 py-2 text-sm font-black" style={{ backgroundColor: config.soft, color: config.primary }}>
           {depositLabel}
         </div>
@@ -425,7 +416,7 @@ const handleSubmit = async (event) => {
             <img
               src={config.paymentQr}
               alt={`QR Code สำหรับโอนจอง ${config.name}`}
-              className="h-auto w-full max-w-[360px] object-contain sm:max-w-[620px]"
+              className="h-auto w-full max-w-[390px] object-contain sm:max-w-[620px]"
               onError={() => setQrImageAvailable(false)}
             />
           ) : (
@@ -443,7 +434,14 @@ const handleSubmit = async (event) => {
           )}
         </div>
 
-        <div className="mx-auto mt-4 grid max-w-[620px] grid-cols-2 overflow-hidden rounded-[18px] border border-zinc-200 bg-white shadow-sm">
+        <p className="mt-5 text-lg font-black" style={{ color: config.primary }}>
+          สแกนเพื่อโอนจอง
+        </p>
+        <p className="mt-1 text-sm font-semibold leading-6 text-zinc-500">
+          หลังโอนแล้ว กรุณาแนบสลิปด้านล่าง
+        </p>
+
+        <div className="mx-auto mt-5 grid min-h-[56px] max-w-[620px] grid-cols-2 overflow-hidden rounded-[18px] border border-zinc-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
           <button
             type="button"
             onClick={sharePaymentQr}
@@ -466,13 +464,6 @@ const handleSubmit = async (event) => {
             {qrActionMessage}
           </p>
         )}
-
-        <p className="mt-5 text-lg font-black" style={{ color: config.primary }}>
-          สแกนเพื่อโอนจอง
-        </p>
-        <p className="mt-1 text-sm font-semibold leading-6 text-zinc-500">
-          หลังโอนแล้ว กรุณาแนบสลิปด้านล่าง
-        </p>
       </div>
     </div>
   );
