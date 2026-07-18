@@ -7,6 +7,7 @@ import {
   applyGoogleCalendarSyncResult,
   getGoogleCalendarSyncStatus,
   markGoogleCalendarSyncError,
+  shouldSyncBookingGoogleCalendar,
   syncBookingGoogleCalendar,
 } from "@/app/lib/googleCalendarClient";
 
@@ -446,10 +447,15 @@ export default function BrandCalendarPage({ brandId }) {
   const syncVisibleCalendarBookings = async () => {
     if (isSyncingCalendar) return;
 
-    const itemsToSync = events.filter((event) => event.eventDate);
+    const itemsToSync = events.filter(
+      (event) =>
+        event.eventDate &&
+        event.bookingNumber &&
+        shouldSyncBookingGoogleCalendar(event)
+    );
 
     if (itemsToSync.length === 0) {
-      setCalendarSyncMessage("ยังไม่มีงานสำหรับซิงก์ Google Calendar");
+      setCalendarSyncMessage("ไม่มีงานที่ต้องซิงก์ Google Calendar เพิ่มเติม");
       return;
     }
 
@@ -459,25 +465,28 @@ export default function BrandCalendarPage({ brandId }) {
     let successCount = 0;
     let failedCount = 0;
 
-    for (const booking of itemsToSync) {
-      const syncedBooking = await syncCalendarBooking(booking, { silent: true });
+    try {
+      for (const booking of itemsToSync) {
+        const syncedBooking = await syncCalendarBooking(booking, { silent: true });
 
-      if (
-        syncedBooking?.googleCalendarSyncStatus === "failed" ||
-        syncedBooking?.googleCalendarSyncStatus === "error"
-      ) {
-        failedCount += 1;
-      } else {
-        successCount += 1;
+        if (
+          syncedBooking?.googleCalendarSyncStatus === "failed" ||
+          syncedBooking?.googleCalendarSyncStatus === "error"
+        ) {
+          failedCount += 1;
+        } else {
+          successCount += 1;
+        }
       }
-    }
 
-    setCalendarSyncMessage(
-      failedCount > 0
-        ? `ซิงก์สำเร็จ ${successCount} งาน, ไม่สำเร็จ ${failedCount} งาน`
-        : `ซิงก์ Google Calendar สำเร็จ ${successCount} งาน`
-    );
-    setIsSyncingCalendar(false);
+      setCalendarSyncMessage(
+        failedCount > 0
+          ? `ซิงก์สำเร็จ ${successCount} งาน, ไม่สำเร็จ ${failedCount} งาน`
+          : `ซิงก์ Google Calendar สำเร็จ ${successCount} งาน`
+      );
+    } finally {
+      setIsSyncingCalendar(false);
+    }
   };
 
   if (!isAuthorized) {
@@ -866,7 +875,10 @@ export default function BrandCalendarPage({ brandId }) {
                         <button
                           type="button"
                           onClick={() => syncCalendarBooking(event)}
-                          disabled={syncingBookingNumber === event.bookingNumber}
+                          disabled={
+                            isSyncingCalendar ||
+                            syncingBookingNumber === event.bookingNumber
+                          }
                           className="mt-2 min-h-[44px] w-full rounded-2xl border bg-white px-4 font-black transition hover:-translate-y-0.5 hover:bg-white/80 disabled:opacity-50"
                           style={{ borderColor: palette.border, color: palette.text }}
                         >

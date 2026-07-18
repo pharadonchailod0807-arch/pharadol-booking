@@ -33,6 +33,10 @@ const GOOGLE_CREDENTIAL_ENV_NAMES = {
 };
 
 const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
+const MAX_GMAIL_ATTACHMENT_BYTES = 24 * 1024 * 1024;
+
+const estimateBase64Bytes = (value) =>
+  Math.floor((String(value || "").replace(/\s/g, "").length * 3) / 4);
 
 const encodeMimeWord = (value) =>
   `=?UTF-8?B?${Buffer.from(String(value || ""), "utf8").toString("base64")}?=`;
@@ -149,6 +153,15 @@ const getReadableGoogleError = (error, brandId) => {
   }
 
   if (
+    normalizedGoogleError.includes("api has not been used") ||
+    normalizedGoogleError.includes("disabled") ||
+    normalizedGoogleError.includes("access not configured") ||
+    normalizedGoogleError.includes("gmail api")
+  ) {
+    return "Gmail API ยังไม่ได้เปิดใช้งาน กรุณาเปิด Gmail API ใน Google Cloud แล้วลองส่งอีกครั้ง";
+  }
+
+  if (
     normalizedGoogleError.includes("insufficient") ||
     normalizedGoogleError.includes("permission") ||
     normalizedGoogleError.includes("scope")
@@ -225,6 +238,17 @@ export async function POST(request) {
       );
     }
 
+    if (estimateBase64Bytes(attachment.content) > MAX_GMAIL_ATTACHMENT_BYTES) {
+      return Response.json(
+        {
+          success: false,
+          error:
+            "ไฟล์แนบมีขนาดใหญ่เกินไปสำหรับ Gmail กรุณาลดขนาดไฟล์หรือส่งลิงก์ดาวน์โหลดแทน",
+        },
+        { status: 413 }
+      );
+    }
+
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
     oauth2Client.setCredentials({
       refresh_token: refreshToken,
@@ -261,7 +285,10 @@ export async function POST(request) {
       threadId,
     });
   } catch (error) {
-    console.error("Cannot send Gmail message:", error?.response?.data || error);
+    console.error(
+      "Cannot send Gmail message:",
+      error?.response?.data?.error || error?.response?.data?.message || error?.message || "unknown error"
+    );
 
     return Response.json(
       {

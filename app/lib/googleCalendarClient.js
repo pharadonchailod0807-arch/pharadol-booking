@@ -9,6 +9,9 @@ export const getGoogleCalendarSyncStatus = (booking = {}) => {
   return "ยังไม่ซิงก์";
 };
 
+export const shouldSyncBookingGoogleCalendar = (booking = {}) =>
+  getGoogleCalendarSyncStatus(booking) !== "ซิงก์แล้ว";
+
 export const applyGoogleCalendarSyncResult = (
   booking = {},
   result = {},

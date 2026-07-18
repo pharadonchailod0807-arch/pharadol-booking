@@ -21,6 +21,7 @@ const BRAND_SENDERS = {
 };
 
 const VALID_BRANDS = new Set(["pharadol", "adisorn"]);
+const MAX_RESEND_ATTACHMENT_BYTES = 24 * 1024 * 1024;
 
 const escapeHtml = (value) =>
   String(value || "")
@@ -76,6 +77,9 @@ const formatSenderFrom = (rawFrom, senderName) => {
 
   return "";
 };
+
+const estimateBase64Bytes = (value) =>
+  Math.floor((String(value || "").replace(/\s/g, "").length * 3) / 4);
 
 export async function POST(request) {
   const apiKey = process.env.RESEND_API_KEY;
@@ -153,28 +157,57 @@ export async function POST(request) {
     );
   }
 
-  const resendResponse = await fetch(RESEND_EMAIL_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject,
-      text: body,
-      html: textToHtml(body),
-      headers: {
-        "BIMI-Selector":
-          brand === "adisorn"
-            ? "v=BIMI1; s=adisorn;"
-            : "v=BIMI1; s=pharadol;",
+  const attachmentBytes = attachments.reduce(
+    (total, attachment) => total + estimateBase64Bytes(attachment.content),
+    0
+  );
+
+  if (attachmentBytes > MAX_RESEND_ATTACHMENT_BYTES) {
+    return Response.json(
+      {
+        error:
+          "ไฟล์แนบมีขนาดใหญ่เกินไปสำหรับส่งอีเมล กรุณาลดขนาดไฟล์หรือส่งลิงก์ดาวน์โหลดแทน",
       },
-      reply_to: sender.replyTo,
-      ...(attachments.length > 0 ? { attachments } : {}),
-    }),
-  });
+      { status: 413 }
+    );
+  }
+
+  let resendResponse;
+
+  try {
+    resendResponse = await fetch(RESEND_EMAIL_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject,
+        text: body,
+        html: textToHtml(body),
+        headers: {
+          "BIMI-Selector":
+            brand === "adisorn"
+              ? "v=BIMI1; s=adisorn;"
+              : "v=BIMI1; s=pharadol;",
+        },
+        reply_to: sender.replyTo,
+        ...(attachments.length > 0 ? { attachments } : {}),
+      }),
+    });
+  } catch (error) {
+    console.error("Resend email network error:", error?.message || "unknown error");
+
+    return Response.json(
+      {
+        error:
+          "เชื่อมต่อระบบส่งอีเมลไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตหรือ Resend แล้วลองใหม่",
+      },
+      { status: 502 }
+    );
+  }
 
   const result = await resendResponse.json().catch(() => ({}));
 

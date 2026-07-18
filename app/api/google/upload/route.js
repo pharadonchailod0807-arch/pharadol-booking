@@ -151,7 +151,10 @@ export async function POST(request) {
     });
   } catch (error) {
     const googleErrorData = error?.response?.data || {};
-    console.error(googleErrorData || error);
+    console.error(
+      "Google Drive upload error:",
+      googleErrorData.error || googleErrorData.message || error?.message || "unknown error"
+    );
 
     const googleError =
       googleErrorData.error_description ||
@@ -177,6 +180,14 @@ export async function POST(request) {
     ) {
       errorMessage =
         "Google refresh token ใช้ไม่ได้หรือหมดอายุ กรุณาเชื่อมต่อ Google ใหม่เพื่อขอ refresh token ชุดใหม่";
+    } else if (
+      normalizedGoogleError.includes("api has not been used") ||
+      normalizedGoogleError.includes("disabled") ||
+      normalizedGoogleError.includes("access not configured") ||
+      normalizedGoogleError.includes("drive api")
+    ) {
+      errorMessage =
+        "Google Drive API ยังไม่ได้เปิดใช้งาน กรุณาเปิด Google Drive API ใน Google Cloud แล้วลองอัปโหลดอีกครั้ง";
     } else if (
       normalizedGoogleError.includes("insufficient") ||
       normalizedGoogleError.includes("permission") ||
