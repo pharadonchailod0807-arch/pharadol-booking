@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import Barcode from "react-barcode";
 import { supabase } from "@/lib/supabase";
 import {
   formatBookingNumber,
@@ -28,6 +28,10 @@ import {
   markGoogleCalendarSyncError,
   syncBookingGoogleCalendar,
 } from "@/app/lib/googleCalendarClient";
+
+const Barcode = dynamic(() => import("react-barcode"), {
+  ssr: false,
+});
 
 const BRAND_ID = "pharadol";
 const BRAND_BASE_PATH = "/pharadol";

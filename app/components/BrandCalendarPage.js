@@ -87,6 +87,13 @@ const isSameDay = (a, b) =>
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
 
+const getDateKey = (date) =>
+  date
+    ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+        date.getDate()
+      ).padStart(2, "0")}`
+    : "";
+
 const normalizeBookingRow = (row, brandId) => {
   const bookingData = row?.booking_data || {};
 
@@ -323,11 +330,31 @@ export default function BrandCalendarPage({ brandId }) {
   );
 
   const calendarCells = useMemo(() => buildCalendarCells(visibleDate), [visibleDate]);
-  const selectedEvents = events.filter((event) => isSameDay(event.date, selectedDate));
-  const monthEvents = events.filter(
-    (event) =>
-      event.date.getFullYear() === visibleDate.getFullYear() &&
-      event.date.getMonth() === visibleDate.getMonth()
+  const eventsByDate = useMemo(() => {
+    const groupedEvents = new Map();
+
+    events.forEach((event) => {
+      const key = getDateKey(event.date);
+      if (!key) return;
+      const currentEvents = groupedEvents.get(key) || [];
+      currentEvents.push(event);
+      groupedEvents.set(key, currentEvents);
+    });
+
+    return groupedEvents;
+  }, [events]);
+  const selectedEvents = useMemo(
+    () => eventsByDate.get(getDateKey(selectedDate)) || [],
+    [eventsByDate, selectedDate]
+  );
+  const monthEvents = useMemo(
+    () =>
+      events.filter(
+        (event) =>
+          event.date.getFullYear() === visibleDate.getFullYear() &&
+          event.date.getMonth() === visibleDate.getMonth()
+      ),
+    [events, visibleDate]
   );
   const calendarSyncSummary = useMemo(
     () =>
@@ -715,7 +742,7 @@ export default function BrandCalendarPage({ brandId }) {
 
               <div className="grid grid-cols-7 gap-px" style={{ backgroundColor: palette.border }}>
                 {calendarCells.map((date) => {
-                  const dayEvents = events.filter((event) => isSameDay(event.date, date));
+                  const dayEvents = eventsByDate.get(getDateKey(date)) || [];
                   const isCurrentMonth = date.getMonth() === visibleDate.getMonth();
                   const isSelected = isSameDay(date, selectedDate);
                   const isToday = isSameDay(date, new Date());

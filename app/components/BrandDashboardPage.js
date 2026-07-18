@@ -234,6 +234,7 @@ export default function BrandDashboardPage({ brandId }) {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [newCustomerRequestCount, setNewCustomerRequestCount] = useState(0);
   const [isRefreshingCounts, setIsRefreshingCounts] = useState(false);
+  const [brandCustomers, setBrandCustomers] = useState([]);
 
   const loadDashboardSnapshot = useCallback((savedUser) => {
     setCountsReady(false);
@@ -246,15 +247,21 @@ export default function BrandDashboardPage({ brandId }) {
 
     setCurrentUser(parsedUser);
 
+    const customers = readArray(`${brandId}_customers`);
+    const archiveItems = readArray(`${brandId}_archives`);
+    const trashItems = readArray(`${brandId}_trash`);
+    const emailHistory = readArray(`${brandId}_email_history`);
+
     const nextCounts = calculateDashboardCounts({
       brandId,
-      customers: readArray(`${brandId}_customers`),
-      archiveItems: readArray(`${brandId}_archives`),
-      trashItems: readArray(`${brandId}_trash`),
-      emailHistory: readArray(`${brandId}_email_history`),
+      customers,
+      archiveItems,
+      trashItems,
+      emailHistory,
       hasBookingDraft: Boolean(localStorage.getItem(bookingDraftKey)),
     });
 
+    setBrandCustomers(customers);
     setDashboardCounts(nextCounts);
     setNewCustomerRequestCount(
       countNewCustomerRequests(readLocalCustomerRequests(brandId))
@@ -403,10 +410,6 @@ export default function BrandDashboardPage({ brandId }) {
   const pendingPaymentCount = dashboardCounts.pendingPayments;
   const emailAttentionCount = dashboardCounts.emailAttention;
   const alerts = dashboardCounts.alerts;
-  const brandCustomers = useMemo(
-    () => readArray(`${brandId}_customers`),
-    [brandId, customerCount, monthJobs, todayJobs]
-  );
 
   const statCards = [
     ["ลูกค้าปัจจุบัน", customerCount, "รายการ", "customers"],
@@ -436,6 +439,7 @@ export default function BrandDashboardPage({ brandId }) {
     () =>
       brandCustomers
         .filter((customer) => customer?.eventDate)
+        .slice()
         .sort((a, b) => {
           const dateA = new Date(a.eventDate).getTime() || 0;
           const dateB = new Date(b.eventDate).getTime() || 0;

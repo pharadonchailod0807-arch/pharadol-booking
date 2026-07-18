@@ -40,3 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 public/chromium-pack.tar
+
+# local backups
+*.backup-*
+*.backup*
+*.bak
+*.old
