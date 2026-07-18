@@ -387,27 +387,22 @@ const handleSubmit = async (event) => {
     </div>
   );
 
-  const paymentBrandClass =
-    brand === "adisorn"
-      ? "inline-block w-max text-[18px] [transform:scaleX(0.68)] min-[430px]:text-[21px] sm:text-[26px] sm:[transform:scaleX(1)]"
-      : "inline-block w-max text-[20px] [transform:scaleX(0.78)] min-[430px]:text-2xl sm:text-[26px] sm:[transform:scaleX(1)]";
-
   const PaymentQrCard = () => (
     <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:rounded-[32px]">
       <div
-        className="grid min-h-[108px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-6 py-5 text-white sm:min-h-[132px] sm:gap-[18px] sm:px-[34px] sm:py-7"
+        className="grid min-h-[132px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-6 py-4 text-white sm:min-h-[132px] sm:gap-[18px] sm:px-[34px] sm:py-4"
         style={{ background: config.paymentHeaderBackground }}
       >
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="mb-2.5 text-xs font-black uppercase leading-none tracking-[0.18em] text-white/75 sm:text-sm">
             QR PAYMENT
           </p>
-          <p className={`m-0 origin-left whitespace-nowrap font-black leading-[1.1] tracking-[0.01em] text-white ${paymentBrandClass}`}>
+          <p className="m-0 inline-block w-max origin-left whitespace-nowrap text-[20px] font-extrabold leading-none tracking-[-0.3px] text-white [transform:scaleX(0.63)] min-[430px]:text-2xl sm:text-[clamp(24px,5vw,34px)] sm:[transform:scaleX(1)]">
             {config.paymentName}
           </p>
         </div>
         <span
-          className="inline-flex h-[38px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-[18px] text-[15px] font-black leading-none sm:h-11 sm:px-[22px] sm:text-[17px]"
+          className="inline-flex h-[42px] w-[150px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-[18px] text-[15px] font-black leading-none sm:h-[42px] sm:w-[150px] sm:text-[17px]"
           style={{
             backgroundColor: config.accent,
             color: config.paymentPillText || config.primary,
