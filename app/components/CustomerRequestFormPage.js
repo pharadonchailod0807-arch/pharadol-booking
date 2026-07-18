@@ -26,8 +26,9 @@ const BRAND_CONFIG = {
     paymentQrFileName: "pharadol-payment-qr.png",
     paymentName: "PHARADOL PRODUCTION",
     paymentHeaderBackground:
-      "radial-gradient(circle at 88% 18%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 32%), linear-gradient(180deg, #334C45 0%, #142D25 100%)",
-    paymentPillText: "#142D25",
+      "radial-gradient(circle at 88% 18%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 32%), linear-gradient(135deg, #294B41 0%, #102D25 100%)",
+    paymentPillBackground: "#C8A86B",
+    paymentPillText: "#102D25",
     logoDark: true,
   },
   adisorn: {
@@ -390,7 +391,7 @@ const handleSubmit = async (event) => {
   const PaymentQrCard = () => (
     <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:rounded-[32px]">
       <div
-        className="grid min-h-[132px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-6 py-4 text-white sm:min-h-[132px] sm:gap-[18px] sm:px-[34px] sm:py-4"
+        className="grid h-auto min-h-[144px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-[22px] py-[26px] text-white sm:min-h-[132px] sm:gap-[18px] sm:px-[34px] sm:py-4"
         style={{ background: config.paymentHeaderBackground }}
       >
         <div className="min-w-0 flex-1">
@@ -402,9 +403,9 @@ const handleSubmit = async (event) => {
           </p>
         </div>
         <span
-          className="inline-flex h-[42px] w-[150px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-[18px] text-[15px] font-black leading-none sm:h-[42px] sm:w-[150px] sm:text-[17px]"
+          className="inline-flex h-10 w-[140px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-4 text-[14px] font-black leading-none sm:h-[42px] sm:w-[150px] sm:text-[17px]"
           style={{
-            backgroundColor: config.accent,
+            backgroundColor: config.paymentPillBackground || config.accent,
             color: config.paymentPillText || config.primary,
           }}
         >
@@ -412,17 +413,17 @@ const handleSubmit = async (event) => {
         </span>
       </div>
 
-      <div className="px-4 py-6 text-center sm:px-7 sm:py-8">
-        <div className="mx-auto mb-5 inline-flex rounded-full px-4 py-2 text-sm font-black" style={{ backgroundColor: config.soft, color: config.primary }}>
+      <div className="px-[18px] py-5 text-center sm:px-7 sm:py-8">
+        <div className="mx-auto mb-4 inline-flex rounded-full px-[18px] py-2 text-sm font-black sm:mb-5 sm:px-4" style={{ backgroundColor: config.soft, color: config.primary }}>
           {depositLabel}
         </div>
 
-        <div className="mx-auto flex w-full max-w-[640px] items-center justify-center rounded-[26px] bg-white p-1 sm:p-2">
+        <div className="mx-auto flex w-full max-w-[300px] items-center justify-center rounded-[22px] bg-white p-0 sm:max-w-[640px] sm:rounded-[26px] sm:p-2">
           {qrImageAvailable ? (
             <img
               src={config.paymentQr}
               alt={`QR Code สำหรับโอนจอง ${config.name}`}
-              className="h-auto w-full max-w-[390px] object-contain sm:max-w-[620px]"
+              className="block h-auto w-full max-w-[300px] object-contain sm:max-w-[620px]"
               onError={() => setQrImageAvailable(false)}
             />
           ) : (
@@ -440,14 +441,14 @@ const handleSubmit = async (event) => {
           )}
         </div>
 
-        <p className="mt-5 text-lg font-black" style={{ color: config.primary }}>
+        <p className="mt-4 text-lg font-black sm:mt-5" style={{ color: config.primary }}>
           สแกนเพื่อโอนจอง
         </p>
         <p className="mt-1 text-sm font-semibold leading-6 text-zinc-500">
           หลังโอนแล้ว กรุณาแนบสลิปด้านล่าง
         </p>
 
-        <div className="mx-auto mt-5 grid min-h-[56px] max-w-[620px] grid-cols-2 overflow-hidden rounded-[18px] border border-zinc-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
+        <div className="mx-auto mt-4 grid min-h-[54px] max-w-[620px] grid-cols-2 overflow-hidden rounded-[18px] border border-zinc-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.08)] sm:mt-5 sm:min-h-[56px]">
           <button
             type="button"
             onClick={sharePaymentQr}
@@ -604,12 +605,12 @@ const handleSubmit = async (event) => {
             </>
           ) : (
             <>
-              <div className="grid gap-4">
+              <div className="grid gap-3 sm:gap-4">
                 <PaymentQrCard />
 
                 <label
                   htmlFor={slipInputId}
-                  className="group block cursor-pointer rounded-[26px] border border-dashed border-zinc-300 bg-[#F8FAFC] p-6 text-center transition hover:bg-white sm:p-7"
+                  className="group block cursor-pointer rounded-[24px] border border-dashed border-zinc-300 bg-[#F8FAFC] p-5 text-center transition hover:bg-white sm:rounded-[26px] sm:p-7"
                   onMouseEnter={(event) => {
                     event.currentTarget.style.borderColor = config.accent;
                   }}
@@ -633,14 +634,14 @@ const handleSubmit = async (event) => {
                   >
                     ↑
                   </span>
-                  <span className="mt-3 block text-base font-black text-zinc-800">
+                  <span className="mt-2 block text-base font-black text-zinc-800 sm:mt-3">
                     {file && !fileError ? "แนบสลิปแล้ว" : "แนบสลิปการโอน"}
                   </span>
                   <span className="mt-1 block text-sm font-semibold leading-6 text-zinc-500">
                     รองรับ JPG, PNG, WEBP, PDF ขนาดไม่เกิน 10MB
                   </span>
                   {file && !fileError && (
-                    <div className="mx-auto mt-4 max-w-xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                    <div className="mx-auto mt-3 max-w-xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 sm:mt-4">
                       <p className="text-sm font-black text-emerald-700">
                         แนบสลิปแล้ว
                       </p>
@@ -657,7 +658,7 @@ const handleSubmit = async (event) => {
                 {submitError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{submitError}</p>}
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="mt-4 grid gap-3 sm:mt-6 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => {
