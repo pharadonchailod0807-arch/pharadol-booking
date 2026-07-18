@@ -55,6 +55,89 @@ video {
   max-width: 100%;
 }
 
+.send-loading-spinner {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 3px solid rgba(255, 255, 255, 0.45);
+  border-top-color: currentColor;
+  animation: sendSpin 0.8s linear infinite;
+}
+
+.send-action-button-active {
+  opacity: 1 !important;
+  color: var(--booking-primary-dark, currentColor) !important;
+  border-color: var(--booking-accent, currentColor) !important;
+  background:
+    linear-gradient(
+      135deg,
+      var(--booking-accent-soft, #f6efd7) 0%,
+      #ffffff 54%,
+      var(--booking-accent-soft, #f6efd7) 100%
+    ) !important;
+  box-shadow:
+    0 14px 30px color-mix(in srgb, var(--booking-primary, #0f3d31) 16%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+.send-action-button-active .send-loading-spinner,
+.send-loading-panel .send-loading-spinner {
+  border-color: color-mix(in srgb, var(--booking-accent, currentColor) 38%, transparent);
+  border-top-color: var(--booking-primary, currentColor);
+}
+
+.send-loading-panel {
+  border: 1px solid color-mix(in srgb, var(--booking-accent, #cdae77) 58%, #ffffff 42%) !important;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--booking-accent-soft, #f6efd7) 88%, #ffffff 12%) 0%,
+      #ffffff 62%,
+      color-mix(in srgb, var(--booking-accent-soft, #f6efd7) 72%, #ffffff 28%) 100%
+    ) !important;
+  color: var(--booking-primary-dark, #10231c) !important;
+  padding: 14px 16px !important;
+  box-shadow:
+    0 16px 32px color-mix(in srgb, var(--booking-primary, #0f3d31) 10%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.send-progress-track {
+  position: relative;
+  overflow: hidden;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--booking-primary, #0f3d31) 10%, #ffffff 90%);
+}
+
+.send-progress-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 45%;
+  border-radius: 999px;
+  color: var(--booking-primary, #0f3d31);
+  background: linear-gradient(90deg, transparent, currentColor, var(--booking-accent, currentColor), transparent);
+  animation: sendProgressMove 1.2s ease-in-out infinite;
+}
+
+@keyframes sendSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sendProgressMove {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(260%);
+  }
+}
+
 /* Brand app responsive safety layer */
 .brand-app-shell,
 .brand-app-shell * {

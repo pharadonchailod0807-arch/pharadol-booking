@@ -4582,7 +4582,7 @@ const sendBookingSmsLink = async () => {
     isPdfReady = true;
     const uploadData = new FormData();
 
-    setEmailSendMessage("กำลังสร้างลิงก์ Google Drive...");
+    setEmailSendMessage("กำลังอัปโหลดไฟล์...");
     setEmailSendStatus("loading");
 
     uploadData.append(
@@ -4648,6 +4648,7 @@ const sendBookingSmsLink = async () => {
         : "?";
 
     setIsSendOptionsOpen(false);
+    setEmailSendMessage("กำลังส่งข้อมูล...");
 
     window.location.href =
       `sms:${customerPhone}${bodySeparator}body=` +
@@ -4682,7 +4683,7 @@ const confirmSendBookingEmail = async () => {
   emailSendLockRef.current = true;
   setIsSendingEmail(true);
   setEmailSendStatus("loading");
-  setEmailSendMessage("กำลังอัปโหลด PDF ไป Google Drive...");
+  setEmailSendMessage("กำลังอัปโหลดไฟล์...");
 
   try {
     const finalBody = emailPreview.body;
@@ -4692,7 +4693,7 @@ const confirmSendBookingEmail = async () => {
     try {
       driveFile = await uploadBookingPdfToDrive(emailPreview.pdfAttachment);
       setEmailSendStatus("loading");
-      setEmailSendMessage("อัปโหลด PDF ไป Google Drive สำเร็จ กำลังส่งอีเมล...");
+      setEmailSendMessage("กำลังส่งข้อมูล...");
     } catch (driveError) {
       driveUploadError = getReadableErrorMessage(
         driveError,
@@ -4700,7 +4701,7 @@ const confirmSendBookingEmail = async () => {
       );
       console.error("Cannot upload booking PDF to Drive:", driveError);
       setEmailSendStatus("loading");
-      setEmailSendMessage("อัปโหลด Drive ไม่สำเร็จ กำลังส่งอีเมลต่อ...");
+      setEmailSendMessage("กำลังส่งข้อมูล...");
     }
 
     const response = await fetch("/api/google/gmail-send", {
@@ -4757,6 +4758,26 @@ const confirmSendBookingEmail = async () => {
     emailSendLockRef.current = false;
     setIsSendingEmail(false);
   }
+};
+
+const getSendLoadingMessage = () =>
+  emailSendMessage || "กำลังสร้าง PDF คุณภาพสูง...";
+
+const isSendChannelPreparing = (channel) =>
+  isPreparingAttachment && preparingSendChannel === channel;
+
+const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
+  const isActive = isSendChannelPreparing(channel);
+
+  return (
+    <>
+      {isActive && (
+        <span className="send-loading-spinner" aria-hidden="true" />
+      )}
+      {!isActive && idleIcon}
+      <span>{isActive ? getSendLoadingMessage() : idleLabel}</span>
+    </>
+  );
 };
 
   if (!isAuthorized) {
@@ -6977,28 +6998,34 @@ const confirmSendBookingEmail = async () => {
                 type="button"
                 onClick={sendBookingEmail}
                 disabled={isPreparingAttachment}
-                className={actionSendButtonClass}
+                className={`${actionSendButtonClass} ${
+                  isSendChannelPreparing("email")
+                    ? "send-action-button-active"
+                    : ""
+                }`}
               >
-                <span className="text-lg">@</span>
-                <span>
-                  {preparingSendChannel === "email"
-                    ? emailSendMessage || "กำลังเตรียมไฟล์..."
-                    : "ส่งอีเมลให้ลูกค้า"}
-                </span>
+                {renderSendActionContent(
+                  "email",
+                  "ส่งอีเมลให้ลูกค้า",
+                  <span className="text-lg">@</span>
+                )}
               </button>
 
               <button
                 type="button"
                 onClick={sendBookingSms}
                 disabled={isPreparingAttachment}
-                className={actionSendButtonClass}
+                className={`${actionSendButtonClass} ${
+                  isSendChannelPreparing("sms")
+                    ? "send-action-button-active"
+                    : ""
+                }`}
               >
-                <span className="text-lg">SMS</span>
-                <span>
-                  {preparingSendChannel === "sms"
-                    ? emailSendMessage || "กำลังเตรียมไฟล์..."
-                    : "ส่งทาง SMS"}
-                </span>
+                {renderSendActionContent(
+                  "sms",
+                  "ส่งทาง SMS",
+                  <span className="text-lg">SMS</span>
+                )}
               </button>
                             <button
                 type="button"
@@ -7006,19 +7033,37 @@ const confirmSendBookingEmail = async () => {
                 disabled={
                   isPreparingAttachment || isSendingSmsLink
                 }
-                className={`${actionSendButtonClass} sm:col-span-2`}
+                className={`${actionSendButtonClass} sm:col-span-2 ${
+                  isSendChannelPreparing("sms-link")
+                    ? "send-action-button-active"
+                    : ""
+                }`}
               >
-                <span>
-                  {isSendingSmsLink
-                    ? "กำลังสร้างลิงก์ Google Drive..."
-                    : "ส่ง SMS พร้อมลิงก์ Google Drive"}
-                </span>
+                {renderSendActionContent(
+                  "sms-link",
+                  "ส่ง SMS พร้อมลิงก์ Google Drive"
+                )}
               </button>
             </div>
 
-            {emailSendMessage && (
-              <div className={`mt-4 rounded-xl border px-4 py-3 text-sm font-semibold ${emailSendMessageClass}`}>
-                {emailSendMessage}
+            {(isPreparingAttachment || emailSendMessage) && (
+              <div
+                className={`send-loading-panel mt-4 ${emailSendMessageClass}`}
+              >
+                <div className="flex items-center gap-3 text-sm font-bold">
+                  {isPreparingAttachment && (
+                    <span
+                      className="send-loading-spinner"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span>{getSendLoadingMessage()}</span>
+                </div>
+                {isPreparingAttachment && (
+                  <div className="send-progress-track mt-3" aria-hidden="true">
+                    <span className="send-progress-bar" />
+                  </div>
+                )}
               </div>
             )}
 
