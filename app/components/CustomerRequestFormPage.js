@@ -388,8 +388,8 @@ const handleSubmit = async (event) => {
 
   const paymentBrandClass =
     brand === "adisorn"
-      ? "inline-block w-max text-[18px] min-[400px]:text-[19px] sm:text-[26px]"
-      : "inline-block w-max text-[20px] sm:text-[26px]";
+      ? "inline-block w-max text-[18px] [transform:scaleX(0.68)] min-[430px]:text-[21px] sm:text-[26px] sm:[transform:scaleX(1)]"
+      : "inline-block w-max text-[20px] [transform:scaleX(0.78)] min-[430px]:text-2xl sm:text-[26px] sm:[transform:scaleX(1)]";
 
   const PaymentQrCard = () => (
     <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:rounded-[32px]">
