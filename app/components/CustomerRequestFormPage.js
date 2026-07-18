@@ -389,21 +389,28 @@ const handleSubmit = async (event) => {
   const PaymentQrCard = () => (
     <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
       <div
-        className="px-6 py-6 text-white sm:px-[34px] sm:py-[30px]"
+        className="min-h-[132px] px-6 py-7 text-white sm:px-9 sm:py-8"
         style={{ background: config.paymentHeaderBackground }}
       >
-        <p
-          className="text-[12px] font-black uppercase tracking-[0.18em] sm:text-[13px]"
-          style={{ color: config.accent }}
-        >
-          QR PAYMENT
-        </p>
-        <p className="mt-2 text-[clamp(24px,5vw,34px)] font-black leading-tight text-white">
-          {config.paymentName}
-        </p>
-        <p className="mt-3 text-sm font-bold leading-6 text-white/85 sm:text-[17px]">
-          {paymentInstruction}
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 pt-1">
+            <p className="text-[12px] font-black uppercase tracking-[0.28em] text-white/75 sm:text-[15px] sm:tracking-[0.32em]">
+              QR PAYMENT
+            </p>
+            <p className="mt-3 truncate text-[20px] font-black leading-none text-white sm:text-[25px]">
+              {config.paymentName}
+            </p>
+          </div>
+          <span
+            className="mt-2 inline-flex shrink-0 items-center justify-center rounded-full px-4 py-2 text-sm font-black leading-none sm:mt-3 sm:px-6 sm:py-3 sm:text-lg"
+            style={{
+              backgroundColor: config.accent,
+              color: config.deep,
+            }}
+          >
+            รอแนบสลิป
+          </span>
+        </div>
       </div>
 
       <div className="px-4 py-6 text-center sm:px-7 sm:py-8">
