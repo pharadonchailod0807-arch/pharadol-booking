@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
@@ -88,6 +88,8 @@ export default function BrandMailPage({ brandId }) {
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const sendLockRef = useRef(false);
+  const mailActionLockRef = useRef(false);
 
   useEffect(() => {
     const verifyAccess = () => {
@@ -326,12 +328,23 @@ export default function BrandMailPage({ brandId }) {
   };
 
   const deleteEmailRecord = (email) => {
+    if (mailActionLockRef.current) return;
     if (!window.confirm("ต้องการย้ายอีเมลนี้ไปขยะเมลหรือไม่?")) return;
-    moveHistoryToMailTrash([email]);
-    setStatusMessage("ย้ายอีเมลไปขยะเมลเรียบร้อย");
+
+    mailActionLockRef.current = true;
+    try {
+      moveHistoryToMailTrash([email]);
+      setStatusMessage("ย้ายอีเมลไปขยะเมลเรียบร้อย");
+    } finally {
+      mailActionLockRef.current = false;
+    }
   };
 
   const restoreEmailFromTrash = (email) => {
+    if (mailActionLockRef.current) return;
+    mailActionLockRef.current = true;
+
+    try {
     const nextTrash = mailTrash.filter((item) => item.id !== email.id);
     const restoredEmail = {
       ...email,
@@ -349,18 +362,28 @@ export default function BrandMailPage({ brandId }) {
     setEmailHistory(nextHistory);
     setSelectedEmailId(restoredEmail.id || "");
     setActiveFolder("sent");
+    } finally {
+      mailActionLockRef.current = false;
+    }
   };
 
   const deleteMailForever = (email) => {
+    if (mailActionLockRef.current) return;
     if (!window.confirm("ต้องการลบอีเมลนี้ถาวรหรือไม่?")) return;
 
-    const nextTrash = mailTrash.filter((item) => item.id !== email.id);
-    localStorage.setItem(mailTrashKey, JSON.stringify(nextTrash));
-    setMailTrash(nextTrash);
-    setSelectedEmailId("");
+    mailActionLockRef.current = true;
+    try {
+      const nextTrash = mailTrash.filter((item) => item.id !== email.id);
+      localStorage.setItem(mailTrashKey, JSON.stringify(nextTrash));
+      setMailTrash(nextTrash);
+      setSelectedEmailId("");
+    } finally {
+      mailActionLockRef.current = false;
+    }
   };
 
   const moveCurrentMailToTrash = () => {
+    if (mailActionLockRef.current) return;
     if (!selectedCustomer) {
       setStatusMessage("กรุณาเลือกลูกค้าที่ต้องการลบก่อน");
       return;
@@ -374,6 +397,7 @@ export default function BrandMailPage({ brandId }) {
 
     if (!confirmed) return;
 
+    mailActionLockRef.current = true;
     try {
       const deletedAt = new Date();
       const trashRecord = {
@@ -404,6 +428,8 @@ export default function BrandMailPage({ brandId }) {
     } catch (error) {
       console.error("Cannot move mail customer to trash", error);
       window.alert("ไม่สามารถย้ายอีเมลไปขยะเมลได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      mailActionLockRef.current = false;
     }
   };
 
@@ -414,6 +440,8 @@ export default function BrandMailPage({ brandId }) {
   };
 
   const sendEmail = async ({ force = false, draft = null } = {}) => {
+    if (isSending || sendLockRef.current) return;
+
     const draftRecipient = draft?.recipient ?? recipient;
     const draftSubject = draft?.subject ?? subject;
     const draftMessage = draft?.body ?? message;
@@ -446,6 +474,7 @@ export default function BrandMailPage({ brandId }) {
       return;
     }
 
+    sendLockRef.current = true;
     setIsSending(true);
     setStatusMessage("");
 
@@ -486,6 +515,7 @@ export default function BrandMailPage({ brandId }) {
     } catch (error) {
       setStatusMessage(error.message || "ส่งอีเมลไม่สำเร็จ");
     } finally {
+      sendLockRef.current = false;
       setIsSending(false);
     }
   };
@@ -519,19 +549,31 @@ export default function BrandMailPage({ brandId }) {
   };
 
   const deleteSelected = () => {
+    if (mailActionLockRef.current) return;
     if (selectedIds.length === 0) return;
     if (!window.confirm("ต้องการย้ายอีเมลที่เลือกไปขยะเมลใช่ไหม?")) return;
 
-    moveHistoryToMailTrash(
-      emailHistory.filter((item) => selectedIds.includes(item.id))
-    );
+    mailActionLockRef.current = true;
+    try {
+      moveHistoryToMailTrash(
+        emailHistory.filter((item) => selectedIds.includes(item.id))
+      );
+    } finally {
+      mailActionLockRef.current = false;
+    }
   };
 
   const clearAll = () => {
+    if (mailActionLockRef.current) return;
     if (emailHistory.length === 0) return;
     if (!window.confirm("ต้องการย้ายอีเมลทั้งหมดไปขยะเมลใช่ไหม?")) return;
 
-    moveHistoryToMailTrash(emailHistory);
+    mailActionLockRef.current = true;
+    try {
+      moveHistoryToMailTrash(emailHistory);
+    } finally {
+      mailActionLockRef.current = false;
+    }
   };
 
   if (!isAuthorized) {

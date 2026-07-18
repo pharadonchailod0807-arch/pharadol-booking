@@ -62,6 +62,7 @@ export default function CustomerRequestsPage({ brand }) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pendingActionIds, setPendingActionIds] = useState([]);
   const formLink = CUSTOMER_FORM_LINKS[brand];
 
   const newCount = useMemo(
@@ -167,54 +168,91 @@ export default function CustomerRequestsPage({ brand }) {
   };
 
   const updateRequestStatus = async (request, status, bookingId = "") => {
+    const actionKey = `${request.id}:status`;
+    if (pendingActionIds.includes(actionKey)) return false;
+
+    setPendingActionIds((current) => [...current, actionKey]);
     setRequests((current) =>
       current.map((item) =>
         item.id === request.id ? { ...item, status, bookingId: bookingId || item.bookingId } : item
       )
     );
-    updateLocalCustomerRequest(brand, request.id, { status, bookingId });
 
-    const response = await fetch("/api/customer-requests", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: request.id, brand, status, bookingId }),
-    });
-    const result = await response.json().catch(() => ({}));
+    try {
+      updateLocalCustomerRequest(brand, request.id, { status, bookingId });
 
-    if (!response.ok || !result.success) {
-      setError(result.error || "อัปเดตสถานะไม่สำเร็จ");
+      const response = await fetch("/api/customer-requests", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: request.id, brand, status, bookingId }),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        setError(result.error || "อัปเดตสถานะไม่สำเร็จ");
+        return false;
+      }
+
+      return true;
+    } finally {
+      setPendingActionIds((current) =>
+        current.filter((item) => item !== actionKey)
+      );
     }
   };
 
   const openAsBooking = async (request) => {
+    const actionKey = `${request.id}:open`;
+    if (pendingActionIds.includes(actionKey)) return;
+
+    setPendingActionIds((current) => [...current, actionKey]);
     localStorage.setItem(
       getPendingBookingPrefillKey(brand),
       JSON.stringify(getCustomerRequestPrefill(request))
     );
-    await updateRequestStatus(request, "viewed");
-    router.push(`/${brand}`);
+    try {
+      await updateRequestStatus(request, "viewed");
+      router.push(`/${brand}`);
+    } finally {
+      setPendingActionIds((current) =>
+        current.filter((item) => item !== actionKey)
+      );
+    }
   };
 
   const markContacted = async (request) => {
-    await updateRequestStatus(request, "contacted");
-    setMessage("ทำเครื่องหมายว่าติดต่อแล้ว");
-    window.setTimeout(() => setMessage(""), 1800);
+    const updated = await updateRequestStatus(request, "contacted");
+    if (updated) {
+      setMessage("ทำเครื่องหมายว่าติดต่อแล้ว");
+      window.setTimeout(() => setMessage(""), 1800);
+    }
   };
 
   const deleteRequest = async (request) => {
     if (!window.confirm("ลบคำขอนี้หรือไม่")) return;
 
+    const actionKey = `${request.id}:delete`;
+    if (pendingActionIds.includes(actionKey)) return;
+
+    setPendingActionIds((current) => [...current, actionKey]);
     setRequests((current) => current.filter((item) => item.id !== request.id));
-    deleteLocalCustomerRequest(brand, request.id);
 
-    const response = await fetch(
-      `/api/customer-requests?id=${encodeURIComponent(request.id)}&brand=${brand}`,
-      { method: "DELETE" }
-    );
-    const result = await response.json().catch(() => ({}));
+    try {
+      deleteLocalCustomerRequest(brand, request.id);
 
-    if (!response.ok || !result.success) {
-      setError(result.error || "ลบคำขอไม่สำเร็จ");
+      const response = await fetch(
+        `/api/customer-requests?id=${encodeURIComponent(request.id)}&brand=${brand}`,
+        { method: "DELETE" }
+      );
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        setError(result.error || "ลบคำขอไม่สำเร็จ");
+      }
+    } finally {
+      setPendingActionIds((current) =>
+        current.filter((item) => item !== actionKey)
+      );
     }
   };
 
@@ -308,7 +346,13 @@ export default function CustomerRequestsPage({ brand }) {
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
-            {requests.map((request) => (
+            {requests.map((request) => {
+              const isOpening = pendingActionIds.includes(`${request.id}:open`);
+              const isUpdating = pendingActionIds.includes(`${request.id}:status`);
+              const isDeleting = pendingActionIds.includes(`${request.id}:delete`);
+              const isBusy = isOpening || isUpdating || isDeleting;
+
+              return (
               <article
                 key={request.id}
                 className={`group overflow-hidden rounded-[26px] border bg-white shadow-[0_16px_45px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(15,23,42,0.11)] ${
@@ -439,25 +483,27 @@ export default function CustomerRequestsPage({ brand }) {
                     <button
                       type="button"
                       onClick={() => openAsBooking(request)}
+                      disabled={isBusy}
                       className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 ${
                         isAdisorn
                           ? "bg-[#4A2E22] hover:bg-[#5A3828]"
                           : "bg-emerald-800 hover:bg-emerald-900"
-                      }`}
+                      } disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0`}
                     >
-                      เปิดเป็นใบจอง
+                      {isOpening ? "กำลังเปิด..." : "เปิดเป็นใบจอง"}
                     </button>
 
                     <button
                       type="button"
                       onClick={() => markContacted(request)}
+                      disabled={isBusy}
                       className={`min-h-12 rounded-2xl border px-4 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${
                         isAdisorn
                           ? "border-[#D9BE96] bg-[#FFF9EF] text-[#6A432D] hover:bg-[#F3E6CF]"
                           : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                      }`}
+                      } disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0`}
                     >
-                      ทำเครื่องหมายว่าติดต่อแล้ว
+                      {isUpdating ? "กำลังอัปเดต..." : "ทำเครื่องหมายว่าติดต่อแล้ว"}
                     </button>
 
                     {request.slipUrl && (
@@ -474,14 +520,16 @@ export default function CustomerRequestsPage({ brand }) {
                     <button
                       type="button"
                       onClick={() => deleteRequest(request)}
-                      className="min-h-12 rounded-2xl border border-red-100 bg-red-50/70 px-4 py-3 text-sm font-bold text-red-600 transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-100"
+                      disabled={isBusy}
+                      className="min-h-12 rounded-2xl border border-red-100 bg-red-50/70 px-4 py-3 text-sm font-bold text-red-600 transition hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0"
                     >
-                      ลบคำขอ
+                      {isDeleting ? "กำลังลบ..." : "ลบคำขอ"}
                     </button>
                   </div>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

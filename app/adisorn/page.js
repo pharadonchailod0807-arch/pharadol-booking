@@ -86,12 +86,35 @@ const readArrayFromStorage = (...keys) => {
       const parsedValue = JSON.parse(rawValue);
       if (Array.isArray(parsedValue)) return parsedValue;
     } catch (error) {
-      console.error(`Cannot read localStorage key: ${key}`, error);
+      console.error(
+        `Cannot read localStorage key: ${key}`,
+        error?.message || "parse failed"
+      );
     }
   }
 
   return [];
 };
+
+const readObjectFromStorage = (key) => {
+  try {
+    const rawValue = localStorage.getItem(key);
+    if (!rawValue) return null;
+    const parsedValue = JSON.parse(rawValue);
+    return parsedValue && typeof parsedValue === "object" && !Array.isArray(parsedValue)
+      ? parsedValue
+      : null;
+  } catch (error) {
+    console.error(
+      `Cannot read localStorage object: ${key}`,
+      error?.message || "parse failed"
+    );
+    return null;
+  }
+};
+
+const getSafeErrorMessage = (error, fallback = "unknown error") =>
+  error?.message || error?.error || fallback;
 
 const getPaymentProgress = (totalPaid, finalPrice) => {
   if (totalPaid <= 0) return "ยังไม่ชำระ";
@@ -3024,6 +3047,10 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
     saveLockRef.current = true;
     setIsSaving(true);
+    const releaseSaveLock = () => {
+      saveLockRef.current = false;
+      setIsSaving(false);
+    };
     const currentSlip = { slipImage, slipFileName, slipFileType };
     const normalizedPaymentTransactions = paymentTransactions.map((transaction) =>
       normalizePaymentTransactionSlip(transaction, currentSlip)
@@ -3034,17 +3061,29 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       !forceUpdate && !loadedBookingNumber && !customBookingNumber.trim();
 
     if (isAutomaticNewBooking) {
-      const nextAvailable = await getNextAvailableBookingNumber({
-        brandId: BRAND_ID,
-        supabaseClient: supabase,
-        date: todayRaw,
-      });
+      let nextAvailable;
+
+      try {
+        nextAvailable = await getNextAvailableBookingNumber({
+          brandId: BRAND_ID,
+          supabaseClient: supabase,
+          date: todayRaw,
+        });
+      } catch (error) {
+        console.error(
+          "Cannot prepare booking number",
+          getSafeErrorMessage(error)
+        );
+        window.alert("เตรียมเลขที่ใบจองไม่สำเร็จ กรุณาลองใหม่");
+        releaseSaveLock();
+        return;
+      }
 
       if (nextAvailable.sequence == null) {
         window.alert(
           "เลขที่การจองถูกใช้งานครบ 0001 ถึง 9999 แล้ว กรุณาใช้เลขแบบกำหนดเอง"
         );
-        setIsSaving(false);
+        releaseSaveLock();
         return;
       }
 
@@ -3122,13 +3161,13 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
     if (duplicateBookingIndex !== -1) {
       alert(`พบเลขที่การจองซ้ำในฐานข้อมูล: ${resolvedBookingNumber}`);
-      setIsSaving(false);
+      releaseSaveLock();
       return;
     }
 
     if (existingIndex !== -1 && !forceUpdate) {
       alert("เลขที่การจองนี้ถูกบันทึกแล้ว กรุณากดปุ่ม ‘แก้ไขใบจอง’ หรือสร้างใบจองใหม่");
-      setIsSaving(false);
+      releaseSaveLock();
       return;
     }
 
@@ -3219,7 +3258,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       }
 
       if (error) {
-        console.error(error);
+        console.error("Cannot save booking to Supabase", getSafeErrorMessage(error));
         alert(`บันทึกลง Supabase ไม่สำเร็จ\n${error.message || ""}`);
         return;
       }
@@ -3280,7 +3319,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         if (calendarSaveError) {
           console.error(
             "Cannot persist Google Calendar sync status",
-            calendarSaveError
+            getSafeErrorMessage(calendarSaveError)
           );
         }
 
@@ -3288,7 +3327,10 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       } catch (calendarError) {
         calendarSyncErrorMessage =
           calendarError?.message || "ซิงก์ Google Calendar ไม่สำเร็จ";
-        console.error("Cannot sync booking to Google Calendar", calendarError);
+        console.error(
+          "Cannot sync booking to Google Calendar",
+          getSafeErrorMessage(calendarError)
+        );
 
         customer = markGoogleCalendarSyncError(
           customer,
@@ -3350,7 +3392,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
           : saveSuccessMessage
       );
     } catch (error) {
-      console.error("Cannot save booking", error);
+      console.error("Cannot save booking", getSafeErrorMessage(error));
       alert("ไม่สามารถบันทึกข้อมูลได้ พื้นที่จัดเก็บอาจไม่เพียงพอ กรุณาลดขนาดรูปสลิปหรือลบข้อมูลเก่าบางส่วน");
     } finally {
       saveLockRef.current = false;
@@ -4307,12 +4349,8 @@ const markBookingEmailSent = async ({ driveFile, messageId }) => {
     booking?.bookingNumber === bookingNumber ? { ...booking, ...emailStatus } : booking;
   const customers = readArrayFromStorage(CUSTOMERS_KEY);
   const updatedCustomers = customers.map(applyStatus);
-  const updatedCurrentBooking = applyStatus(
-    JSON.parse(localStorage.getItem(CURRENT_BOOKING_KEY) || "null")
-  );
-  const updatedSelectedBooking = applyStatus(
-    JSON.parse(localStorage.getItem(SELECTED_BOOKING_KEY) || "null")
-  );
+  const updatedCurrentBooking = applyStatus(readObjectFromStorage(CURRENT_BOOKING_KEY));
+  const updatedSelectedBooking = applyStatus(readObjectFromStorage(SELECTED_BOOKING_KEY));
 
   localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(updatedCustomers));
 
@@ -4758,7 +4796,10 @@ const confirmSendBookingEmail = async () => {
         driveError,
         "อัปโหลด PDF ไป Google Drive ไม่สำเร็จ"
       );
-      console.error("Cannot upload booking PDF to Drive:", driveError);
+      console.error(
+        "Cannot upload booking PDF to Drive",
+        getSafeErrorMessage(driveError)
+      );
       setEmailSendStatus("loading");
       setEmailSendMessage("กำลังส่งข้อมูล...");
     }
@@ -5938,9 +5979,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                 <button
                   type="button"
                   onClick={() => {
-                    localStorage.removeItem("loggedIn");
-                    localStorage.removeItem("currentUser");
-                    localStorage.removeItem("activeBrand");
+                    sessionStorage.clear();
                     document.cookie = "loggedIn=; path=/; max-age=0; SameSite=Lax";
                     document.cookie = "activeBrand=; path=/; max-age=0; SameSite=Lax";
                     goTo("/login");
