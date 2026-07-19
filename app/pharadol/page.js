@@ -1781,9 +1781,19 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         transactionSlipFileType,
         transactionSlipFileName
       );
-    const transactionSlipPreviewDataUrl = transactionSlipIsImage
-      ? await imageUrlToDataUrl(getDisplaySlipUrl(transactionSlipImage))
+    const transactionSlipPreviewUrl = transactionSlipIsImage
+      ? getDisplaySlipUrl(transactionSlipImage)
       : "";
+
+    const transactionSlipPreviewDataUrl = transactionSlipIsImage
+      ? await imageUrlToDataUrl(transactionSlipPreviewUrl)
+      : "";
+
+    // Google Drive อาจบล็อก fetch ด้วย CORS
+    // ถ้าแปลงเป็น Data URL ไม่ได้ ให้แสดงลิงก์รูปโดยตรงแทน
+    const transactionSlipRenderableUrl =
+      transactionSlipPreviewDataUrl || transactionSlipPreviewUrl;
+
     const slipSection = transactionSlipImage
       ? transactionSlipIsPdf
         ? `<div class="slip"><p class="label">หลักฐานการชำระเงิน</p><div class="slip-fallback"><strong>ไฟล์สลิป PDF</strong><span>${escapeReceiptText(
@@ -1791,10 +1801,22 @@ const formattedEventDate = formatThaiDateInput(eventDate);
           )}</span><a href="${escapeReceiptText(
             transactionSlipImage
           )}" target="_blank" rel="noreferrer">เปิดไฟล์สลิป</a></div></div>`
-        : transactionSlipPreviewDataUrl
-          ? `<div class="slip"><p class="label">หลักฐานการชำระเงิน</p><img src="${escapeReceiptText(
-              transactionSlipPreviewDataUrl
-            )}" alt="Payment slip" /></div>`
+        : transactionSlipRenderableUrl
+          ? `<div class="slip">
+              <p class="label">หลักฐานการชำระเงิน</p>
+              <img
+                src="${escapeReceiptText(transactionSlipRenderableUrl)}"
+                alt="หลักฐานการชำระเงิน"
+                referrerpolicy="no-referrer"
+              />
+              <p class="slip-open-link">
+                <a
+                  href="${escapeReceiptText(transactionSlipImage)}"
+                  target="_blank"
+                  rel="noreferrer"
+                >เปิดดูไฟล์สลิปต้นฉบับ</a>
+              </p>
+            </div>`
           : `<div class="slip"><p class="label">หลักฐานการชำระเงิน</p><div class="slip-fallback"><strong>มีหลักฐานการโอนแล้ว</strong><span>ไม่สามารถแสดงตัวอย่างสลิปได้ กรุณากดดูไฟล์เต็ม</span><a href="${escapeReceiptText(
               transactionSlipImage
             )}" target="_blank" rel="noreferrer">ดูสลิปเต็ม</a></div></div>`
@@ -2147,6 +2169,19 @@ const formattedEventDate = formatThaiDateInput(eventDate);
               border: 1px solid #d4d4d8;
               border-radius: 16px;
               object-fit: contain;
+            }
+            .slip-open-link {
+              margin: 10px 0 0;
+              text-align: center;
+            }
+            .slip-open-link a {
+              color: #047857;
+              font-size: 12px;
+              font-weight: 700;
+              text-decoration: none;
+            }
+            .slip-open-link a:hover {
+              text-decoration: underline;
             }
             .slip-fallback {
               display: flex;
