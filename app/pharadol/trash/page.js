@@ -829,30 +829,13 @@ export default function TrashPage() {
           </span>
         </div>
 
-        <section className="mt-3 rounded-[22px] border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                Bookings
-              </p>
-              <h2 className="mt-1 text-lg font-black text-zinc-900">
-                ใบจองในถังขยะ
-              </h2>
-            </div>
-
-            <span
-              className="rounded-full px-3 py-1.5 text-xs font-black"
-              style={{
-                backgroundColor: trashAccentSoft,
-                color: trashAccent,
-              }}
-            >
-              {filteredTrash.length} รายการ
-            </span>
-          </div>
+        <section className="mt-7">
+          <h2 className="mb-4 text-lg font-black text-[#14261f]">
+            ถังขยะใบจอง
+          </h2>
 
           {filteredTrash.length > 0 ? (
-            <div className="mt-3 space-y-3">
+            <div className="space-y-4">
               {filteredTrash.map(({ item, originalIndex }) => {
                 const restoreToArchives =
                   item.deletedFrom === "archives" ||
@@ -867,67 +850,61 @@ export default function TrashPage() {
                 return (
                   <article
                     key={`${item.bookingNumber || "trash"}-${originalIndex}`}
-                    className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
+                    className="rounded-[22px] border border-[#dbe4dc] bg-white px-5 py-4 shadow-[0_2px_5px_rgba(20,50,39,0.10)] sm:px-6 sm:py-5"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-zinc-400">
-                          เลขที่จอง
-                        </p>
-                        <h3 className="mt-0.5 truncate text-[15px] font-black text-zinc-900">
+                    <div className="grid gap-x-16 gap-y-2 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <p className="text-[15px] text-zinc-600">
+                          <strong className="font-black text-zinc-800">
+                            เลขที่จอง:
+                          </strong>{" "}
                           {item.bookingNumber || "-"}
-                        </h3>
-                      </div>
-
-                      <span className="shrink-0 rounded-full border border-zinc-200 bg-white px-3 py-1 text-[11px] font-black text-zinc-600">
-                        {restoreToArchives ? "กลับคลังข้อมูล" : "กลับข้อมูลลูกค้า"}
-                      </span>
-                    </div>
-
-                    <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
-                      <div className="min-w-0 py-1">
-                        <p className="text-[10px] font-semibold text-zinc-400">
-                          ชื่อลูกค้า
                         </p>
-                        <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
-                          {item.customerName || "-"}
-                        </p>
-                      </div>
 
-                      <div className="min-w-0 py-1">
-                        <p className="text-[10px] font-semibold text-zinc-400">
-                          เบอร์โทร
-                        </p>
-                        <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
+                        <p className="text-[15px] text-zinc-600">
+                          <strong className="font-black text-zinc-800">
+                            เบอร์โทร:
+                          </strong>{" "}
                           {item.phone || "-"}
                         </p>
-                      </div>
 
-                      <div className="min-w-0 py-1">
-                        <p className="text-[10px] font-semibold text-zinc-400">
-                          ประเภทงาน
-                        </p>
-                        <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
+                        <p className="text-[15px] text-zinc-600">
+                          <strong className="font-black text-zinc-800">
+                            ประเภทงาน:
+                          </strong>{" "}
                           {item.service || "-"}
                         </p>
                       </div>
 
-                      <div className="min-w-0 py-1">
-                        <p className="text-[10px] font-semibold text-zinc-400">
-                          วันที่ลบ
+                      <div className="space-y-2">
+                        <p className="text-[15px] text-zinc-600">
+                          <strong className="font-black text-zinc-800">
+                            ชื่อลูกค้า:
+                          </strong>{" "}
+                          {item.customerName || "-"}
                         </p>
-                        <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
+
+                        <p className="text-[15px] text-zinc-600">
+                          <strong className="font-black text-zinc-800">
+                            วันที่ลบ:
+                          </strong>{" "}
                           {formatTrashDate(item.deletedAt || item.deletedDate)}
+                        </p>
+
+                        <p className="text-[15px] text-zinc-600">
+                          <strong className="font-black text-zinc-800">
+                            กู้คืนไปยัง:
+                          </strong>{" "}
+                          {restoreToArchives ? "คลังข้อมูล" : "ข้อมูลลูกค้า"}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+                    <div className="mt-4 flex flex-wrap gap-3">
                       <button
                         type="button"
                         onClick={() => restoreCustomer(originalIndex)}
-                        className="min-h-10 rounded-xl px-4 text-sm font-black text-white transition hover:opacity-90"
-                        style={{ backgroundColor: trashAccent }}
+                        className="min-h-10 rounded-xl bg-[#cfa257] px-4 text-sm font-black text-[#17140d] transition hover:bg-[#bd914c]"
                       >
                         กู้คืน
                       </button>
@@ -935,7 +912,7 @@ export default function TrashPage() {
                       <button
                         type="button"
                         onClick={() => deleteForever(originalIndex)}
-                        className="min-h-10 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-600 transition hover:bg-red-100"
+                        className="min-h-10 rounded-xl bg-[#ff4141] px-4 text-sm font-black text-white transition hover:bg-[#e93636]"
                       >
                         ลบถาวร
                       </button>
@@ -945,67 +922,53 @@ export default function TrashPage() {
               })}
             </div>
           ) : (
-            <div className="mt-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center">
-              <p className="text-sm font-bold text-zinc-500">
-                ไม่พบใบจองในถังขยะ
-              </p>
+            <div className="rounded-[22px] border border-[#dbe4dc] bg-white px-5 py-8 text-center text-sm font-semibold text-zinc-500 shadow-sm">
+              ไม่พบรายการในถังขยะใบจอง
             </div>
           )}
         </section>
 
-        <section className="mt-3 rounded-[22px] border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                Mail
-              </p>
-              <h2 className="mt-1 text-lg font-black text-zinc-900">
-                อีเมลในถังขยะ
-              </h2>
-            </div>
-
-            <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-black text-amber-700">
-              {filteredMailTrash.length} รายการ
-            </span>
-          </div>
+        <section className="mt-7">
+          <h2 className="mb-4 text-lg font-black text-[#14261f]">
+            ขยะเมล
+          </h2>
 
           {filteredMailTrash.length > 0 ? (
-            <div className="mt-3 space-y-3">
+            <div className="space-y-4">
               {filteredMailTrash.map(({ item, originalIndex }) => (
                 <article
                   key={`mail-${item.id || item.bookingNumber || item.email || originalIndex}`}
-                  className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
+                  className="rounded-[22px] border border-[#dbe4dc] bg-white px-5 py-4 shadow-[0_2px_5px_rgba(20,50,39,0.10)] sm:px-6 sm:py-5"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-zinc-400">
-                        เลขที่จอง
+                  <div className="grid gap-x-16 gap-y-2 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          เลขที่จอง:
+                        </strong>{" "}
+                        {item.bookingNumber || "-"}
                       </p>
-                      <h3 className="mt-0.5 truncate text-[15px] font-black text-zinc-900">
-                        {item.bookingNumber || item.subject || "อีเมล"}
-                      </h3>
+
+                      <p className="break-all text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          อีเมล:
+                        </strong>{" "}
+                        {item.email || item.to || "-"}
+                      </p>
                     </div>
 
-                    <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-black text-amber-700">
-                      ขยะเมล
-                    </span>
-                  </div>
-
-                  <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
-                    <div className="min-w-0 py-1">
-                      <p className="text-[10px] font-semibold text-zinc-400">
-                        ชื่อลูกค้า
-                      </p>
-                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
+                    <div className="space-y-2">
+                      <p className="text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          ชื่อลูกค้า:
+                        </strong>{" "}
                         {item.customerName || "-"}
                       </p>
-                    </div>
 
-                    <div className="min-w-0 py-1">
-                      <p className="text-[10px] font-semibold text-zinc-400">
-                        วันที่ลบ
-                      </p>
-                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
+                      <p className="text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          วันที่ลบ:
+                        </strong>{" "}
                         {formatTrashDate(
                           item.deletedAt ||
                             item.deletedDate ||
@@ -1014,31 +977,21 @@ export default function TrashPage() {
                         )}
                       </p>
                     </div>
-
-                    <div className="min-w-0 py-1 sm:col-span-2">
-                      <p className="text-[10px] font-semibold text-zinc-400">
-                        อีเมล
-                      </p>
-                      <p className="mt-0.5 break-all text-[13px] font-bold text-zinc-800">
-                        {item.email || item.to || "-"}
-                      </p>
-                    </div>
                   </div>
 
-                  <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+                  <div className="mt-4 flex flex-wrap gap-3">
                     <button
                       type="button"
                       onClick={() => restoreMailTrash(originalIndex)}
-                      className="min-h-10 rounded-xl px-4 text-sm font-black text-white transition hover:opacity-90"
-                      style={{ backgroundColor: trashAccent }}
+                      className="min-h-10 rounded-xl bg-[#cfa257] px-4 text-sm font-black text-[#17140d] transition hover:bg-[#bd914c]"
                     >
-                      กู้คืน
+                      กู้คืนเมล
                     </button>
 
                     <button
                       type="button"
                       onClick={() => deleteMailTrashForever(originalIndex)}
-                      className="min-h-10 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-600 transition hover:bg-red-100"
+                      className="min-h-10 rounded-xl bg-[#ff4141] px-4 text-sm font-black text-white transition hover:bg-[#e93636]"
                     >
                       ลบถาวร
                     </button>
@@ -1047,136 +1000,115 @@ export default function TrashPage() {
               ))}
             </div>
           ) : (
-            <div className="mt-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center">
-              <p className="text-sm font-bold text-zinc-500">
-                ไม่พบอีเมลในถังขยะ
-              </p>
+            <div className="rounded-[22px] border border-[#dbe4dc] bg-white px-5 py-8 text-center text-sm font-semibold text-zinc-500 shadow-sm">
+              ไม่พบรายการในขยะเมล
             </div>
           )}
         </section>
 
         <section
           data-customer-request-trash="true"
-          className="mt-3 rounded-[22px] border border-zinc-200 bg-white p-3 shadow-sm sm:p-4"
+          className="mt-7"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                Customer Requests
-              </p>
-              <h2 className="mt-1 text-lg font-black text-zinc-900">
-                คำขอจากลูกค้าในถังขยะ
-              </h2>
-            </div>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-black text-[#14261f]">
+              คำขอจากลูกค้าในถังขยะ
+            </h2>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={loadCustomerRequestTrash}
-                className="min-h-8 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-600 hover:bg-zinc-50"
-              >
-                รีเฟรช
-              </button>
-
-              <span className="rounded-full bg-sky-50 px-3 py-1.5 text-xs font-black text-sky-700">
-                {filteredCustomerRequestTrash.length} รายการ
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={loadCustomerRequestTrash}
+              className="min-h-9 rounded-xl border border-zinc-200 bg-white px-4 text-xs font-bold text-zinc-600 shadow-sm hover:bg-zinc-50"
+            >
+              รีเฟรช
+            </button>
           </div>
 
           {customerRequestTrashError && (
-            <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {customerRequestTrashError}
             </p>
           )}
 
           {filteredCustomerRequestTrash.length > 0 ? (
-            <div className="mt-3 space-y-3">
+            <div className="space-y-4">
               {filteredCustomerRequestTrash.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
+                  className="rounded-[22px] border border-[#dbe4dc] bg-white px-5 py-4 shadow-[0_2px_5px_rgba(20,50,39,0.10)] sm:px-6 sm:py-5"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-zinc-400">
-                        ชื่อลูกค้า
+                  <div className="grid gap-x-16 gap-y-2 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <p className="text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          ชื่อลูกค้า:
+                        </strong>{" "}
+                        {item.customerName || "-"}
                       </p>
-                      <h3 className="mt-0.5 truncate text-[15px] font-black text-zinc-900">
-                        {item.customerName || "ไม่ระบุชื่อ"}
-                      </h3>
-                    </div>
 
-                    <span className="shrink-0 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-black text-sky-700">
-                      คำขอ
-                    </span>
-                  </div>
-
-                  <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
-                    <div className="min-w-0 py-1">
-                      <p className="text-[10px] font-semibold text-zinc-400">
-                        เบอร์โทร
-                      </p>
-                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
+                      <p className="text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          เบอร์โทร:
+                        </strong>{" "}
                         {item.phone || "-"}
                       </p>
+
+                      <p className="break-all text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          อีเมล:
+                        </strong>{" "}
+                        {item.email || "-"}
+                      </p>
                     </div>
 
-                    <div className="min-w-0 py-1">
-                      <p className="text-[10px] font-semibold text-zinc-400">
-                        วันงาน
-                      </p>
-                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
+                    <div className="space-y-2">
+                      <p className="text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          วันงาน:
+                        </strong>{" "}
                         {item.eventDate || "-"}
                       </p>
-                    </div>
 
-                    <div className="min-w-0 py-1 sm:col-span-2">
-                      <p className="text-[10px] font-semibold text-zinc-400">
-                        สถานที่จัดงาน
-                      </p>
-                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
+                      <p className="text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          สถานที่จัดงาน:
+                        </strong>{" "}
                         {item.eventLocation || "-"}
                       </p>
-                    </div>
 
-                    <div className="min-w-0 py-1 sm:col-span-2">
-                      <p className="text-[10px] font-semibold text-zinc-400">
-                        วันที่ลบ
-                      </p>
-                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
+                      <p className="text-[15px] text-zinc-600">
+                        <strong className="font-black text-zinc-800">
+                          วันที่ลบ:
+                        </strong>{" "}
                         {formatTrashDate(item.deletedAt)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-4 flex flex-wrap gap-3">
                     {item.slipUrl && (
                       <a
                         href={item.slipUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex min-h-9 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-700 hover:bg-zinc-50"
+                        className="inline-flex min-h-10 items-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-bold text-zinc-700 hover:bg-zinc-50"
                       >
                         เปิดดูสลิป
                       </a>
                     )}
-                  </div>
 
-                  <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={() => restoreCustomerRequest(item)}
-                      className="min-h-10 rounded-xl px-4 text-sm font-black text-white transition hover:opacity-90"
-                      style={{ backgroundColor: trashAccent }}
+                      className="min-h-10 rounded-xl bg-[#cfa257] px-4 text-sm font-black text-[#17140d] transition hover:bg-[#bd914c]"
                     >
-                      กู้คืน
+                      กู้คืนคำขอ
                     </button>
 
                     <button
                       type="button"
                       onClick={() => deleteCustomerRequestForever(item)}
-                      className="min-h-10 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-600 transition hover:bg-red-100"
+                      className="min-h-10 rounded-xl bg-[#ff4141] px-4 text-sm font-black text-white transition hover:bg-[#e93636]"
                     >
                       ลบถาวร
                     </button>
@@ -1185,10 +1117,8 @@ export default function TrashPage() {
               ))}
             </div>
           ) : (
-            <div className="mt-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center">
-              <p className="text-sm font-bold text-zinc-500">
-                ไม่พบคำขอจากลูกค้าในถังขยะ
-              </p>
+            <div className="rounded-[22px] border border-[#dbe4dc] bg-white px-5 py-8 text-center text-sm font-semibold text-zinc-500 shadow-sm">
+              ไม่พบคำขอจากลูกค้าในถังขยะ
             </div>
           )}
         </section>
