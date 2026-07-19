@@ -229,6 +229,13 @@ const buildMenuItems = (brandId, counts) => {
       badgeCount: counts.emailAttention,
     },
     {
+      href: `/google-upload?brand=${brandId}`,
+      icon: "mail",
+      title: "ส่งงานลูกค้า",
+      subtitle: "อัปโหลดและแชร์งาน",
+      badgeCount: 0,
+    },
+    {
       href: `/${brandId}/trash`,
       icon: "trash",
       title: "ถังขยะ",
@@ -247,7 +254,7 @@ const buildMenuItems = (brandId, counts) => {
 const isActiveMenu = (pathname, item) => {
   const paths = [item.href, ...(item.aliases || [])];
   return paths.some((href) =>
-    item.exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`)
+    item.exact ? pathname === href.split("?")[0] : pathname === href.split("?")[0] || pathname.startsWith(`${href}/`)
   );
 };
 

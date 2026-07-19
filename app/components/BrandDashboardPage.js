@@ -422,6 +422,7 @@ export default function BrandDashboardPage({ brandId }) {
     [`/${brandId}/notifications`, "bell", "แจ้งเตือน", "งานใกล้ถึงกำหนด", upcomingJobs],
     [`/${brandId}/settings`, "settings", "ตั้งค่าระบบ", "จัดการข้อมูลระบบ", 0],
     [`/${brandId}/mail`, "mail", "ระบบส่งอีเมล", "ประวัติและสถานะอีเมล", emailAttentionCount],
+    [`/google-upload?brand=${brandId}`, "mail", "ส่งงานลูกค้า", "อัปโหลดไฟล์และแชร์ลิงก์ให้ลูกค้า", 0],
   ];
 
   const mainMenuCards = actionCards.filter(([href]) => href !== dashboardPath);
