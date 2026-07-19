@@ -391,24 +391,51 @@ const handleSubmit = async (event) => {
   const PaymentQrCard = () => (
     <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:rounded-[32px]">
       <div
-        className="grid h-auto min-h-[144px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-[22px] py-[26px] text-white sm:min-h-[132px] sm:gap-[18px] sm:px-[34px] sm:py-4"
-        style={{ background: config.paymentHeaderBackground }}
+        className="grid h-auto min-h-[106px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-[18px] py-[14px] sm:min-h-[110px] sm:gap-4 sm:px-[28px] sm:py-[16px]"
+        style={{
+              background:
+                config.paymentName === "PHARADOL PRODUCTION"
+                  ? "linear-gradient(135deg, #171717 0%, #2b251c 100%)"
+                  : config.paymentHeaderBackground,
+            }}
       >
         <div className="min-w-0 flex-1 overflow-hidden">
-              <p className="mb-2 text-[11px] font-bold uppercase leading-none tracking-[4px] text-[#e9d4a1] sm:mb-2.5 sm:text-xs sm:tracking-[5px]">
+              <p
+                className="mb-1.5 text-[10px] font-bold uppercase leading-none tracking-[4px] sm:mb-2 sm:text-[11px] sm:tracking-[5px]"
+                style={{
+                  color:
+                    config.paymentName === "PHARADOL PRODUCTION"
+                      ? "#d5b46f"
+                      : "#e9d4a1",
+                }}
+              >
                 QR PAYMENT
               </p>
 
-              <p className="m-0 whitespace-nowrap text-[clamp(17px,5vw,20px)] font-extrabold leading-none tracking-[-0.3px] text-white sm:text-[24px]">
+              <p
+                className="m-0 whitespace-nowrap text-[clamp(16px,4.8vw,19px)] font-extrabold leading-none tracking-[-0.3px] sm:text-[23px]"
+                style={{
+                  color:
+                    config.paymentName === "PHARADOL PRODUCTION"
+                      ? "#f7f3ea"
+                      : "#ffffff",
+                }}
+              >
                 {config.paymentName}
               </p>
             </div>
 
             <span
-              className="inline-flex h-[38px] w-[118px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-3 text-[14px] font-extrabold leading-none sm:h-[44px] sm:w-[146px] sm:px-4 sm:text-base"
+              className="inline-flex h-[36px] w-[110px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-3 text-[13px] font-extrabold leading-none sm:h-[40px] sm:w-[136px] sm:px-4 sm:text-[15px]"
               style={{
-                backgroundColor: config.paymentPillBackground || config.accent,
-                color: config.paymentPillText || config.primary,
+                backgroundColor:
+                  config.paymentName === "PHARADOL PRODUCTION"
+                    ? "#d5b46f"
+                    : config.paymentPillBackground || config.accent,
+                color:
+                  config.paymentName === "PHARADOL PRODUCTION"
+                    ? "#171717"
+                    : config.paymentPillText || config.primary,
               }}
             >
               รอแนบสลิป
