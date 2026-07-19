@@ -175,24 +175,55 @@ const normalizeSendErrorMessage = (message) => {
   return message;
 };
 
-const getReadableErrorMessage = (value, fallback) => {
+const getReadableErrorMessage = (
+  value,
+  fallback = "ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง"
+) => {
   if (!value) return fallback;
-  if (typeof value === "string") return normalizeSendErrorMessage(value);
-  if (typeof value?.message === "string") {
-    return normalizeSendErrorMessage(value.message);
+
+  if (typeof value === "string") {
+    const message = value.trim();
+
+    return message && message !== "{}"
+      ? normalizeSendErrorMessage(message)
+      : fallback;
   }
-  if (typeof value?.error === "string") {
-    return normalizeSendErrorMessage(value.error);
-  }
-  if (value?.error && typeof value.error === "object") {
-    return getReadableErrorMessage(value.error, fallback);
+
+  const possibleMessages = [
+    value?.message,
+    value?.error?.message,
+    typeof value?.error === "string" ? value.error : "",
+    value?.detail,
+    value?.details,
+    value?.statusText,
+  ];
+
+  for (const possibleMessage of possibleMessages) {
+    if (
+      typeof possibleMessage === "string" &&
+      possibleMessage.trim() &&
+      possibleMessage.trim() !== "{}"
+    ) {
+      return normalizeSendErrorMessage(possibleMessage.trim());
+    }
   }
 
   try {
-    return normalizeSendErrorMessage(JSON.stringify(value));
+    const serializedValue = JSON.stringify(value);
+
+    if (
+      serializedValue &&
+      serializedValue !== "{}" &&
+      serializedValue !== "[]" &&
+      serializedValue !== "null"
+    ) {
+      return normalizeSendErrorMessage(serializedValue);
+    }
   } catch {
-    return fallback;
+    // ใช้ข้อความ fallback ด้านล่าง
   }
+
+  return fallback;
 };
 
 const isPdfSlipFile = (url, fileType = "", fileName = "") =>
