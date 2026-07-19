@@ -324,7 +324,7 @@ const uploadToSession = async ({ file, uploadUrl, onProgress }) =>
 
 
     })().catch(reject);
-  };);
+  });
 
 export default function GoogleUploadPage() {
   const router = useRouter();
