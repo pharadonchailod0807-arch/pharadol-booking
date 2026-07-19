@@ -425,8 +425,9 @@ const handleSubmit = async (event) => {
               </p>
             </div>
 
-            <span
-              className="inline-flex h-[36px] w-[110px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-3 text-[13px] font-extrabold leading-none sm:h-[40px] sm:w-[136px] sm:px-4 sm:text-[15px]"
+            <label
+              data-payment-slip-trigger="true"
+              className="inline-flex h-[36px] w-[110px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-3 text-[13px] font-extrabold leading-none sm:h-[40px] sm:w-[136px] sm:px-4 sm:text-[15px] cursor-pointer select-none transition active:scale-[0.97]"
               style={{
                 backgroundColor:
                   config.paymentName === "PHARADOL PRODUCTION"
@@ -437,9 +438,19 @@ const handleSubmit = async (event) => {
                     ? "#16211b"
                     : config.paymentPillText || config.primary,
               }}
+              title="แนบสลิปการโอน"
             >
-              รอแนบสลิป
-            </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                onChange={handleFileChange}
+                className="sr-only"
+              />
+
+              <span>
+                {file && !fileError ? "แนบแล้ว ✓" : "แนบสลิป"}
+              </span>
+            </label>
       </div>
 
       <div className="px-3 py-3 text-center sm:px-7 sm:py-8">
