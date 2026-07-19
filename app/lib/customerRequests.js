@@ -82,6 +82,7 @@ export const normalizeCustomerRequest = (request) => ({
   source: request?.source || "customer_form",
   createdAt: request?.createdAt || request?.created_at || new Date().toISOString(),
   bookingId: request?.bookingId || request?.booking_id || "",
+  deletedAt: request?.deletedAt || request?.deleted_at || "",
 });
 
 export const readLocalCustomerRequests = (brand) => {
@@ -175,7 +176,9 @@ export const loadCustomerRequests = async (
 };
 
 export const countNewCustomerRequests = (requests) =>
-  requests.filter((request) => request.status === "new").length;
+  requests.filter(
+    (request) => request.status === "new" && !request.deletedAt
+  ).length;
 
 export const updateLocalCustomerRequest = (brand, id, updates) => {
   const nextRequests = readLocalCustomerRequests(brand).map((request) =>

@@ -47,6 +47,7 @@ const normalizeRequest = (request) => ({
   source: request.source || "customer_form",
   createdAt: request.created_at || "",
   bookingId: request.booking_id || "",
+  deletedAt: request.deleted_at || "",
 });
 
 const getReadableError = (error) => {
@@ -65,16 +66,27 @@ export async function GET(request) {
 
   const { searchParams } = new URL(request.url);
   const brand = normalizeBrand(searchParams.get("brand"));
+  const trashMode = searchParams.get("trash") === "1";
 
   if (!VALID_BRANDS.has(brand)) {
-    return Response.json({ success: false, error: "ไม่พบแบรนด์" }, { status: 400 });
+    return Response.json(
+      { success: false, error: "ไม่พบแบรนด์" },
+      { status: 400 }
+    );
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("customer_requests")
     .select("*")
-    .eq("brand", brand)
-    .order("created_at", { ascending: false });
+    .eq("brand", brand);
+
+  query = trashMode
+    ? query.not("deleted_at", "is", null)
+    : query.is("deleted_at", null);
+
+  const { data, error } = await query.order("created_at", {
+    ascending: false,
+  });
 
   if (error) {
     return Response.json(
@@ -90,7 +102,7 @@ export async function GET(request) {
     },
     {
       headers: {
-        "Cache-Control": "private, max-age=300, stale-while-revalidate=300",
+        "Cache-Control": "no-store",
       },
     }
   );
@@ -189,24 +201,42 @@ export async function PATCH(request) {
   const id = sanitize(payload?.id, 80);
   const brand = normalizeBrand(payload?.brand);
   const status = sanitize(payload?.status, 40);
+  const action = sanitize(payload?.action, 40);
+  const isRestore = action === "restore";
 
-  if (!id || !VALID_BRANDS.has(brand) || !VALID_STATUSES.has(status)) {
+  if (
+    !id ||
+    !VALID_BRANDS.has(brand) ||
+    (!isRestore && !VALID_STATUSES.has(status))
+  ) {
     return Response.json(
       { success: false, error: "ข้อมูลคำขอไม่ถูกต้อง" },
       { status: 400 }
     );
   }
 
-  const updatePayload = {
-    status,
-    ...(payload?.bookingId ? { booking_id: sanitize(payload.bookingId, 120) } : {}),
-  };
+  const updatePayload = isRestore
+    ? {
+        deleted_at: null,
+      }
+    : {
+        status,
+        ...(payload?.bookingId
+          ? { booking_id: sanitize(payload.bookingId, 120) }
+          : {}),
+      };
 
-  const { data, error } = await supabase
+  let updateQuery = supabase
     .from("customer_requests")
     .update(updatePayload)
     .eq("id", id)
-    .eq("brand", brand)
+    .eq("brand", brand);
+
+  updateQuery = isRestore
+    ? updateQuery.not("deleted_at", "is", null)
+    : updateQuery.is("deleted_at", null);
+
+  const { data, error } = await updateQuery
     .select()
     .single();
 
@@ -217,7 +247,10 @@ export async function PATCH(request) {
     );
   }
 
-  return Response.json({ success: true, request: normalizeRequest(data) });
+  return Response.json({
+    success: true,
+    request: normalizeRequest(data),
+  });
 }
 
 export async function DELETE(request) {
@@ -227,6 +260,7 @@ export async function DELETE(request) {
   const { searchParams } = new URL(request.url);
   const id = sanitize(searchParams.get("id"), 80);
   const brand = normalizeBrand(searchParams.get("brand"));
+  const permanent = searchParams.get("permanent") === "1";
 
   if (!id || !VALID_BRANDS.has(brand)) {
     return Response.json(
@@ -235,11 +269,36 @@ export async function DELETE(request) {
     );
   }
 
-  const { error } = await supabase
-    .from("customer_requests")
-    .delete()
-    .eq("id", id)
-    .eq("brand", brand);
+  let data;
+  let error;
+
+  if (permanent) {
+    const result = await supabase
+      .from("customer_requests")
+      .delete()
+      .eq("id", id)
+      .eq("brand", brand)
+      .not("deleted_at", "is", null)
+      .select()
+      .maybeSingle();
+
+    data = result.data;
+    error = result.error;
+  } else {
+    const result = await supabase
+      .from("customer_requests")
+      .update({
+        deleted_at: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("brand", brand)
+      .is("deleted_at", null)
+      .select()
+      .single();
+
+    data = result.data;
+    error = result.error;
+  }
 
   if (error) {
     return Response.json(
@@ -248,5 +307,9 @@ export async function DELETE(request) {
     );
   }
 
-  return Response.json({ success: true });
+  return Response.json({
+    success: true,
+    permanent,
+    request: data ? normalizeRequest(data) : null,
+  });
 }

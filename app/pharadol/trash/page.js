@@ -41,6 +41,9 @@ export default function TrashPage() {
 
   const [trash, setTrash] = useState([]);
   const [mailTrash, setMailTrash] = useState([]);
+  const [customerRequestTrash, setCustomerRequestTrash] = useState([]);
+  const [customerRequestTrashError, setCustomerRequestTrashError] =
+    useState("");
   const [search, setSearch] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
 
@@ -220,6 +223,173 @@ export default function TrashPage() {
       window.removeEventListener("storage", handleMailTrashStorage);
     };
   }, [isAuthorized]);
+
+
+  const loadCustomerRequestTrash = async () => {
+    try {
+      setCustomerRequestTrashError("");
+
+      const response = await fetch(
+        `/api/customer-requests?brand=${BRAND_ID}&trash=1`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.error || "โหลดคำขอจากลูกค้าในถังขยะไม่สำเร็จ"
+        );
+      }
+
+      setCustomerRequestTrash(
+        Array.isArray(result.requests) ? result.requests : []
+      );
+    } catch (error) {
+      console.error("Cannot load customer request trash", error);
+      setCustomerRequestTrashError(
+        error?.message || "โหลดคำขอจากลูกค้าในถังขยะไม่สำเร็จ"
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthorized) return;
+
+    const handleCustomerRequestUpdate = () => {
+      loadCustomerRequestTrash();
+    };
+
+    const handleCustomerRequestPageVisible = () => {
+      if (document.visibilityState === "visible") {
+        loadCustomerRequestTrash();
+      }
+    };
+
+    loadCustomerRequestTrash();
+
+    window.addEventListener("focus", loadCustomerRequestTrash);
+    window.addEventListener("pageshow", loadCustomerRequestTrash);
+    window.addEventListener(
+      "customer-requests-updated",
+      handleCustomerRequestUpdate
+    );
+    document.addEventListener(
+      "visibilitychange",
+      handleCustomerRequestPageVisible
+    );
+
+    return () => {
+      window.removeEventListener("focus", loadCustomerRequestTrash);
+      window.removeEventListener("pageshow", loadCustomerRequestTrash);
+      window.removeEventListener(
+        "customer-requests-updated",
+        handleCustomerRequestUpdate
+      );
+      document.removeEventListener(
+        "visibilitychange",
+        handleCustomerRequestPageVisible
+      );
+    };
+  }, [isAuthorized]);
+
+  const invalidateCustomerRequestCache = () => {
+    localStorage.removeItem(`${BRAND_ID}_customer_requests_cache_meta`);
+    window.dispatchEvent(new Event("customer-requests-updated"));
+  };
+
+  const restoreCustomerRequest = async (item) => {
+    if (!item?.id) return;
+
+    try {
+      const response = await fetch("/api/customer-requests", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: item.id,
+          brand: BRAND_ID,
+          action: "restore",
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "กู้คืนคำขอไม่สำเร็จ");
+      }
+
+      setCustomerRequestTrash((current) =>
+        current.filter((requestItem) => requestItem.id !== item.id)
+      );
+
+      invalidateCustomerRequestCache();
+      alert("กู้คืนคำขอกลับหน้าคำขอจากลูกค้าแล้ว");
+    } catch (error) {
+      console.error("Cannot restore customer request", error);
+      alert(error?.message || "กู้คืนคำขอไม่สำเร็จ");
+    }
+  };
+
+  const deleteCustomerRequestForever = async (item) => {
+    if (!item?.id) return;
+
+    if (
+      !window.confirm(
+        `ยืนยันการลบคำขอของ ${item.customerName || "ลูกค้า"} แบบถาวร?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/customer-requests?id=${encodeURIComponent(
+          item.id
+        )}&brand=${encodeURIComponent(BRAND_ID)}&permanent=1`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "ลบคำขอถาวรไม่สำเร็จ");
+      }
+
+      setCustomerRequestTrash((current) =>
+        current.filter((requestItem) => requestItem.id !== item.id)
+      );
+
+      invalidateCustomerRequestCache();
+      alert("ลบคำขอถาวรเรียบร้อย");
+    } catch (error) {
+      console.error("Cannot permanently delete customer request", error);
+      alert(error?.message || "ลบคำขอถาวรไม่สำเร็จ");
+    }
+  };
+
+  const normalizedCustomerRequestSearch = search.trim().toLowerCase();
+
+  const filteredCustomerRequestTrash = customerRequestTrash.filter((item) => {
+    if (!normalizedCustomerRequestSearch) return true;
+
+    return [
+      item.customerName,
+      item.phone,
+      item.email,
+      item.eventLocation,
+      item.eventDate,
+    ].some((value) =>
+      String(value || "")
+        .toLowerCase()
+        .includes(normalizedCustomerRequestSearch)
+    );
+  });
 
   const restoreCustomer = async (originalIndex) => {
     const customer = trash[originalIndex];
@@ -653,6 +823,131 @@ export default function TrashPage() {
           )}
         </div>
       </div>
-    </main>
+    
+      <section
+        data-customer-request-trash="true"
+        className="mt-8 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm sm:p-6"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
+              Customer Requests
+            </p>
+            <h2 className="mt-1 text-xl font-black text-zinc-900">
+              คำขอจากลูกค้าในถังขยะ
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              กู้คืนกลับหน้าคำขอ หรือลบออกจากระบบแบบถาวร
+            </p>
+          </div>
+
+          <span className="inline-flex min-h-9 items-center rounded-full bg-zinc-100 px-4 text-sm font-black text-zinc-700">
+            {filteredCustomerRequestTrash.length} รายการ
+          </span>
+        </div>
+
+        {customerRequestTrashError && (
+          <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {customerRequestTrashError}
+          </p>
+        )}
+
+        {filteredCustomerRequestTrash.length > 0 ? (
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            {filteredCustomerRequestTrash.map((item) => (
+              <article
+                key={item.id}
+                className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-lg font-black text-zinc-900">
+                      {item.customerName || "ไม่ระบุชื่อลูกค้า"}
+                    </h3>
+                    <p className="mt-1 text-xs font-semibold text-zinc-400">
+                      ลบเมื่อ{" "}
+                      {item.deletedAt
+                        ? new Date(item.deletedAt).toLocaleString("th-TH")
+                        : "-"}
+                    </p>
+                  </div>
+
+                  <span className="shrink-0 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-black text-red-600">
+                    ในถังขยะ
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-xs font-semibold text-zinc-400">
+                      เบอร์โทร
+                    </p>
+                    <p className="mt-1 font-bold text-zinc-800">
+                      {item.phone || "-"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white px-3 py-2">
+                    <p className="text-xs font-semibold text-zinc-400">
+                      วันงาน
+                    </p>
+                    <p className="mt-1 font-bold text-zinc-800">
+                      {item.eventDate || "-"}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white px-3 py-2 sm:col-span-2">
+                    <p className="text-xs font-semibold text-zinc-400">
+                      สถานที่จัดงาน
+                    </p>
+                    <p className="mt-1 font-bold text-zinc-800">
+                      {item.eventLocation || "-"}
+                    </p>
+                  </div>
+                </div>
+
+                {item.slipUrl && (
+                  <a
+                    href={item.slipUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-zinc-200 bg-white px-4 text-sm font-bold text-zinc-700 hover:bg-zinc-50"
+                  >
+                    เปิดดูสลิป
+                  </a>
+                )}
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => restoreCustomerRequest(item)}
+                    className="min-h-11 rounded-xl px-3 text-sm font-black text-white"
+                    style={{
+                      backgroundColor:
+                        BRAND_ID === "pharadol" ? "#173d31" : "#76543b",
+                    }}
+                  >
+                    กู้คืน
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => deleteCustomerRequestForever(item)}
+                    className="min-h-11 rounded-xl border border-red-200 bg-red-50 px-3 text-sm font-black text-red-600 hover:bg-red-100"
+                  >
+                    ลบถาวร
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-10 text-center text-sm font-semibold text-zinc-500">
+            ไม่พบคำขอจากลูกค้าในถังขยะ
+          </div>
+        )}
+      </section>
+
+</main>
   );
 }

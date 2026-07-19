@@ -15,7 +15,8 @@ create table if not exists public.customer_requests (
   status text not null default 'new' check (status in ('new', 'viewed', 'contacted', 'converted', 'created_booking')),
   source text not null default 'customer_form',
   booking_id text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  deleted_at timestamptz
 );
 
 create index if not exists customer_requests_brand_status_idx
@@ -56,3 +57,10 @@ on public.customer_requests
 for delete
 to anon
 using (brand in ('pharadol', 'adisorn'));
+
+
+alter table public.customer_requests
+add column if not exists deleted_at timestamptz;
+
+create index if not exists customer_requests_brand_deleted_idx
+on public.customer_requests (brand, deleted_at, created_at desc);
