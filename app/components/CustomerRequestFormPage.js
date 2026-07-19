@@ -395,7 +395,7 @@ const handleSubmit = async (event) => {
         style={{
               background:
                 config.paymentName === "PHARADOL PRODUCTION"
-                  ? "linear-gradient(135deg, #171717 0%, #2b251c 100%)"
+                  ? "linear-gradient(180deg, #1e3324 0%, #16211b 100%)"
                   : config.paymentHeaderBackground,
             }}
       >
@@ -405,7 +405,7 @@ const handleSubmit = async (event) => {
                 style={{
                   color:
                     config.paymentName === "PHARADOL PRODUCTION"
-                      ? "#d5b46f"
+                      ? "#9f8e66"
                       : "#e9d4a1",
                 }}
               >
@@ -417,7 +417,7 @@ const handleSubmit = async (event) => {
                 style={{
                   color:
                     config.paymentName === "PHARADOL PRODUCTION"
-                      ? "#f7f3ea"
+                      ? "#f5f3ee"
                       : "#ffffff",
                 }}
               >
@@ -430,11 +430,11 @@ const handleSubmit = async (event) => {
               style={{
                 backgroundColor:
                   config.paymentName === "PHARADOL PRODUCTION"
-                    ? "#d5b46f"
+                    ? "#9f8e66"
                     : config.paymentPillBackground || config.accent,
                 color:
                   config.paymentName === "PHARADOL PRODUCTION"
-                    ? "#171717"
+                    ? "#16211b"
                     : config.paymentPillText || config.primary,
               }}
             >
