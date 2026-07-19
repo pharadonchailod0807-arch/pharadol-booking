@@ -1,96 +1,892 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
+const EVENT_TYPES = [
+  ["Wedding", "wedding"],
+  ["Pre Wedding", "pre wedding"],
+  ["Event", "event"],
+  ["Concert", "concert"],
+  ["งานบวช", "งานบวช"],
+  ["งานศพ", "งานศพ"],
+  ["งานสัมมนา", "งานสัมมนา"],
+  ["อื่นๆ", "อื่นๆ"],
+];
+
+const DELIVERY_OPTIONS = {
+  still: ["demo", "final"],
+  video: ["all footage", "teaser", "highlight", "final"],
+};
+
+const EMPTY_FORM = {
+  customerName: "",
+  detail: "",
+  workDate: "",
+  eventType: "wedding",
+  otherEventType: "",
+  mediaType: "still",
+  deliveryType: "demo",
+};
+
+const THEMES = {
+  pharadol: {
+    name: "PHARADOL FILM & STILL",
+    primary: "#173d31",
+    accent: "#cfa257",
+    soft: "#eef5f1",
+    background: "#f4f6f2",
+  },
+  adisorn: {
+    name: "ADISORN WEDDING STUDIO",
+    primary: "#76543b",
+    accent: "#b88763",
+    soft: "#f7efe9",
+    background: "#f7f3ef",
+  },
+};
+
+const cleanFolderPart = (value) =>
+  String(value || "")
+    .replace(/[\\/:*?"<>|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const uploadFileDirectly = ({ file, uploadUrl, onProgress }) =>
+  new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("PUT", uploadUrl, true);
+    xhr.setRequestHeader(
+      "Content-Type",
+      file.type || "application/octet-stream"
+    );
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+
+    xhr.onerror = () =>
+      reject(new Error(`อัปโหลด ${file.name} ไม่สำเร็จ`));
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText || "{}"));
+        } catch {
+          resolve({});
+        }
+        return;
+      }
+
+      reject(
+        new Error(
+          `อัปโหลด ${file.name} ไม่สำเร็จ (${xhr.status || "network"})`
+        )
+      );
+    };
+
+    xhr.send(file);
+  });
 
 export default function GoogleUploadPage() {
-  const [file, setFile] = useState(null);
-  const [brand, setBrand] = useState("pharadol");
-  const [status, setStatus] = useState("");
-  const [uploading, setUploading] = useState(false);
+  const router = useRouter();
 
-  const getReadableErrorMessage = (value, fallback) => {
-    if (!value) return fallback;
-    if (typeof value === "string") return value;
-    if (typeof value?.message === "string") return value.message;
-    if (typeof value?.error === "string") return value.error;
+  const [brand, setBrand] = useState("pharadol");
+  const [authorized, setAuthorized] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [files, setFiles] = useState([]);
+  const [progress, setProgress] = useState({});
+  const [drafts, setDrafts] = useState([]);
+  const [working, setWorking] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [delivery, setDelivery] = useState(null);
+
+  const theme = THEMES[brand];
+  const draftKey = `${brand}_customer_delivery_drafts`;
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const requestedBrand =
+        params.get("brand") === "adisorn" ? "adisorn" : "pharadol";
+
+      const loggedIn = sessionStorage.getItem("loggedIn") === "true";
+      const activeBrand = sessionStorage.getItem("activeBrand");
+
+      if (!loggedIn || activeBrand !== requestedBrand) {
+        window.location.replace("/login");
+        return;
+      }
+
+      setBrand(requestedBrand);
+      setAuthorized(true);
+    } catch {
+      window.location.replace("/login");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authorized) return;
 
     try {
-      return JSON.stringify(value);
+      const saved = JSON.parse(
+        localStorage.getItem(draftKey) || "[]"
+      );
+      setDrafts(Array.isArray(saved) ? saved : []);
     } catch {
-      return fallback;
+      setDrafts([]);
     }
+  }, [authorized, draftKey]);
+
+  useEffect(() => {
+    const allowed = DELIVERY_OPTIONS[form.mediaType] || [];
+
+    if (!allowed.includes(form.deliveryType)) {
+      setForm((current) => ({
+        ...current,
+        deliveryType: allowed[0] || "",
+      }));
+    }
+  }, [form.mediaType, form.deliveryType]);
+
+  const resolvedEventType =
+    form.eventType === "อื่นๆ"
+      ? form.otherEventType.trim()
+      : form.eventType;
+
+  const folderName = useMemo(() => {
+    const mainName = [
+      cleanFolderPart(form.workDate),
+      cleanFolderPart(form.customerName),
+      cleanFolderPart(resolvedEventType),
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const suffix = cleanFolderPart(
+      form.deliveryType
+    ).toLowerCase();
+
+    return mainName && suffix
+      ? `${mainName} (${suffix})`
+      : mainName;
+  }, [
+    form.workDate,
+    form.customerName,
+    resolvedEventType,
+    form.deliveryType,
+  ]);
+
+  const acceptedFiles =
+    form.mediaType === "video" ? "video/*" : "image/*";
+
+  const updateForm = (key, value) => {
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+    }));
+
+    setDelivery(null);
+    setMessage("");
+    setError("");
   };
 
-  async function handleUpload(event) {
-    event.preventDefault();
+  const validate = () => {
+    if (!form.customerName.trim()) return "กรุณากรอกชื่อ";
+    if (!form.workDate) return "กรุณาเลือกวัน เดือน ปี";
+    if (!resolvedEventType) return "กรุณาระบุประเภทงาน";
+    if (!form.deliveryType) return "กรุณาเลือกชนิดงานที่จะส่ง";
+    if (files.length === 0) return "กรุณาเลือกไฟล์ภาพหรือวิดีโอ";
+    return "";
+  };
 
-    if (!file) {
-      setStatus("กรุณาเลือกไฟล์ PDF");
+  const callDriveAction = async (payload) => {
+    const response = await fetch("/api/google/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        brand,
+        ...payload,
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error || "ทำรายการกับ Google Drive ไม่สำเร็จ"
+      );
+    }
+
+    return result;
+  };
+
+  const saveDraft = () => {
+    const draft = {
+      id: `delivery-draft-${Date.now()}`,
+      form,
+      folderName,
+      fileNames: files.map((file) => file.name),
+      savedAt: new Date().toISOString(),
+    };
+
+    const nextDrafts = [draft, ...drafts].slice(0, 30);
+
+    localStorage.setItem(
+      draftKey,
+      JSON.stringify(nextDrafts)
+    );
+
+    setDrafts(nextDrafts);
+    setError("");
+    setMessage(
+      "บันทึกฉบับร่างแล้ว เมื่อเปิดร่างต้องเลือกไฟล์ใหม่อีกครั้ง"
+    );
+  };
+
+  const openDraft = (draft) => {
+    setForm({
+      ...EMPTY_FORM,
+      ...(draft?.form || {}),
+    });
+    setFiles([]);
+    setProgress({});
+    setDelivery(null);
+    setError("");
+    setMessage(
+      "เปิดฉบับร่างแล้ว กรุณาเลือกไฟล์ที่จะอัปโหลด"
+    );
+  };
+
+  const deleteDraft = (id) => {
+    const nextDrafts = drafts.filter(
+      (draft) => draft.id !== id
+    );
+
+    localStorage.setItem(
+      draftKey,
+      JSON.stringify(nextDrafts)
+    );
+
+    setDrafts(nextDrafts);
+  };
+
+  const createAndUpload = async () => {
+    const folderResult = await callDriveAction({
+      action: "create-folder",
+      folderName,
+      description: form.detail.trim(),
+    });
+
+    const uploadedFiles = [];
+
+    for (const file of files) {
+      setProgress((current) => ({
+        ...current,
+        [file.name]: 0,
+      }));
+
+      const session = await callDriveAction({
+        action: "create-upload-session",
+        folderId: folderResult.folder.id,
+        fileName: file.name,
+        mimeType:
+          file.type || "application/octet-stream",
+        size: file.size,
+      });
+
+      const uploaded = await uploadFileDirectly({
+        file,
+        uploadUrl: session.uploadUrl,
+        onProgress: (percent) =>
+          setProgress((current) => ({
+            ...current,
+            [file.name]: percent,
+          })),
+      });
+
+      setProgress((current) => ({
+        ...current,
+        [file.name]: 100,
+      }));
+
+      uploadedFiles.push(uploaded);
+    }
+
+    return {
+      folder: folderResult.folder,
+      uploadedFiles,
+      shareLink: "",
+    };
+  };
+
+  const performSave = async ({ share }) => {
+    const validationError = validate();
+
+    if (validationError) {
+      setError(validationError);
+      setMessage("");
       return;
     }
 
-    setUploading(true);
-    setStatus("กำลังอัปโหลด...");
+    setWorking(true);
+    setError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("brandId", brand);
-      formData.append("expectedBrandId", brand);
+      let nextDelivery = delivery;
 
-      const response = await fetch("/api/google/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          getReadableErrorMessage(data.error || data, "อัปโหลดไม่สำเร็จ")
+      if (!nextDelivery?.folder?.id) {
+        setMessage(
+          "กำลังสร้างโฟลเดอร์และอัปโหลดไฟล์..."
         );
+
+        nextDelivery = await createAndUpload();
       }
 
-      setStatus("อัปโหลด PDF ไป Google Drive สำเร็จ");
-    } catch (error) {
-      setStatus(getReadableErrorMessage(error, "อัปโหลดไม่สำเร็จ"));
+      if (share) {
+        setMessage("กำลังสร้างลิงก์ส่งงาน...");
+
+        const shareResult = await callDriveAction({
+          action: "share-folder",
+          folderId: nextDelivery.folder.id,
+        });
+
+        nextDelivery = {
+          ...nextDelivery,
+          folder: shareResult.folder,
+          shareLink:
+            shareResult.folder.webViewLink || "",
+        };
+      }
+
+      setDelivery(nextDelivery);
+
+      setMessage(
+        share
+          ? "ส่งงานพร้อมแล้ว กดคัดลอกลิงก์เพื่อส่งให้ลูกค้า"
+          : "บันทึกไฟล์ลง Google Drive เรียบร้อย"
+      );
+    } catch (workError) {
+      console.error(workError);
+      setError(
+        workError?.message || "ทำรายการไม่สำเร็จ"
+      );
+      setMessage("");
     } finally {
-      setUploading(false);
+      setWorking(false);
     }
+  };
+
+  const copyLink = async () => {
+    if (!delivery?.shareLink) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        delivery.shareLink
+      );
+      setMessage("คัดลอกลิงก์ Google Drive แล้ว");
+    } catch {
+      window.prompt(
+        "คัดลอกลิงก์นี้",
+        delivery.shareLink
+      );
+    }
+  };
+
+  if (!authorized) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-zinc-100 text-sm font-semibold text-zinc-500">
+        กำลังตรวจสอบสิทธิ์...
+      </main>
+    );
   }
 
   return (
-    <main style={{ padding: "40px", maxWidth: "600px", margin: "auto" }}>
-      <h1>อัปโหลด PDF ไป Google Drive</h1>
+    <main
+      className="min-h-screen px-4 py-5 text-zinc-950 sm:px-6 sm:py-8"
+      style={{
+        backgroundColor: theme.background,
+      }}
+    >
+      <div className="mx-auto w-full max-w-6xl">
+        <header className="rounded-[28px] border border-white bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-zinc-400">
+                {theme.name}
+              </p>
 
-      <form onSubmit={handleUpload}>
-        <label>
-          แบรนด์
-          <select
-            value={brand}
-            onChange={(event) => setBrand(event.target.value)}
-            style={{ display: "block", marginTop: 8, marginBottom: 16 }}
-          >
-            <option value="pharadol">Pharadol</option>
-            <option value="adisorn">Adisorn</option>
-          </select>
-        </label>
+              <h1 className="mt-2 text-3xl font-black tracking-[-0.03em]">
+                ส่งงานลูกค้า
+              </h1>
 
-        <input
-          type="file"
-          accept=".pdf,application/pdf"
-          onChange={(event) => setFile(event.target.files?.[0] || null)}
-        />
+              <p className="mt-1 text-sm font-medium text-zinc-500">
+                สร้างโฟลเดอร์ อัปโหลดไฟล์ และแชร์ลิงก์จากหน้านี้
+              </p>
+            </div>
 
-        <br />
-        <br />
+            <button
+              type="button"
+              onClick={() =>
+                router.push(`/${brand}/dashboard`)
+              }
+              className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-black text-zinc-700 hover:bg-zinc-50"
+            >
+              กลับหน้าแรก
+            </button>
+          </div>
+        </header>
 
-        <button type="submit" disabled={uploading}>
-          {uploading ? "กำลังอัปโหลด..." : "อัปโหลด PDF"}
-        </button>
-      </form>
+        <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="rounded-[28px] border border-zinc-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="sm:col-span-2">
+                <span className="text-sm font-black text-zinc-800">
+                  ชื่อ
+                </span>
 
-      {status && <p>{status}</p>}
+                <input
+                  value={form.customerName}
+                  onChange={(event) =>
+                    updateForm(
+                      "customerName",
+                      event.target.value
+                    )
+                  }
+                  placeholder="เช่น Bow Bank"
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-semibold outline-none focus:border-zinc-400 focus:bg-white"
+                />
+              </label>
+
+              <label className="sm:col-span-2">
+                <span className="text-sm font-black text-zinc-800">
+                  รายละเอียด{" "}
+                  <span className="font-medium text-zinc-400">
+                    (ไม่จำเป็น)
+                  </span>
+                </span>
+
+                <textarea
+                  value={form.detail}
+                  onChange={(event) =>
+                    updateForm(
+                      "detail",
+                      event.target.value
+                    )
+                  }
+                  rows={3}
+                  placeholder="รายละเอียดเพิ่มเติม"
+                  className="mt-2 w-full resize-none rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-semibold outline-none focus:border-zinc-400 focus:bg-white"
+                />
+              </label>
+
+              <label>
+                <span className="text-sm font-black text-zinc-800">
+                  วัน เดือน ปี
+                </span>
+
+                <input
+                  type="date"
+                  value={form.workDate}
+                  onChange={(event) =>
+                    updateForm(
+                      "workDate",
+                      event.target.value
+                    )
+                  }
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-semibold outline-none focus:border-zinc-400 focus:bg-white"
+                />
+              </label>
+
+              <label>
+                <span className="text-sm font-black text-zinc-800">
+                  ประเภทงาน
+                </span>
+
+                <select
+                  value={form.eventType}
+                  onChange={(event) =>
+                    updateForm(
+                      "eventType",
+                      event.target.value
+                    )
+                  }
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-semibold outline-none focus:border-zinc-400 focus:bg-white"
+                >
+                  {EVENT_TYPES.map(
+                    ([label, value]) => (
+                      <option
+                        key={value}
+                        value={value}
+                      >
+                        {label}
+                      </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+              {form.eventType === "อื่นๆ" && (
+                <label className="sm:col-span-2">
+                  <span className="text-sm font-black text-zinc-800">
+                    ระบุประเภทงานอื่นๆ
+                  </span>
+
+                  <input
+                    value={form.otherEventType}
+                    onChange={(event) =>
+                      updateForm(
+                        "otherEventType",
+                        event.target.value
+                      )
+                    }
+                    className="mt-2 min-h-12 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-semibold outline-none focus:border-zinc-400 focus:bg-white"
+                  />
+                </label>
+              )}
+
+              <div>
+                <span className="text-sm font-black text-zinc-800">
+                  ประเภทไฟล์
+                </span>
+
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {[
+                    ["still", "ภาพนิ่ง"],
+                    ["video", "วิดีโอ"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() =>
+                        updateForm(
+                          "mediaType",
+                          value
+                        )
+                      }
+                      className="min-h-12 rounded-2xl border px-3 text-sm font-black"
+                      style={
+                        form.mediaType === value
+                          ? {
+                              backgroundColor:
+                                theme.primary,
+                              borderColor:
+                                theme.primary,
+                              color: "white",
+                            }
+                          : {
+                              backgroundColor:
+                                "white",
+                              borderColor:
+                                "#e4e4e7",
+                              color: "#3f3f46",
+                            }
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <label>
+                <span className="text-sm font-black text-zinc-800">
+                  ชนิดงานที่จะส่ง
+                </span>
+
+                <select
+                  value={form.deliveryType}
+                  onChange={(event) =>
+                    updateForm(
+                      "deliveryType",
+                      event.target.value
+                    )
+                  }
+                  className="mt-2 min-h-12 w-full rounded-2xl border border-zinc-200 bg-zinc-50 px-4 text-sm font-semibold capitalize outline-none focus:border-zinc-400 focus:bg-white"
+                >
+                  {(
+                    DELIVERY_OPTIONS[
+                      form.mediaType
+                    ] || []
+                  ).map((item) => (
+                    <option
+                      key={item}
+                      value={item}
+                    >
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div
+              className="mt-5 rounded-2xl border px-4 py-4"
+              style={{
+                backgroundColor: theme.soft,
+                borderColor: `${theme.primary}22`,
+              }}
+            >
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">
+                ชื่อโฟลเดอร์ Google Drive
+              </p>
+
+              <p
+                className="mt-2 break-words text-base font-black"
+                style={{
+                  color: theme.primary,
+                }}
+              >
+                {folderName ||
+                  "กรอกข้อมูลเพื่อสร้างชื่อโฟลเดอร์"}
+              </p>
+            </div>
+
+            <label className="mt-5 block cursor-pointer rounded-[24px] border-2 border-dashed border-zinc-300 bg-zinc-50 px-5 py-8 text-center transition hover:bg-white">
+              <input
+                type="file"
+                multiple
+                accept={acceptedFiles}
+                className="sr-only"
+                onChange={(event) => {
+                  setFiles(
+                    Array.from(
+                      event.target.files || []
+                    )
+                  );
+                  setProgress({});
+                  setDelivery(null);
+                  setMessage("");
+                  setError("");
+                }}
+              />
+
+              <span
+                className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-xl font-black"
+                style={{
+                  backgroundColor: theme.soft,
+                  color: theme.primary,
+                }}
+              >
+                ↑
+              </span>
+
+              <p className="mt-3 text-base font-black text-zinc-800">
+                อัปโหลดไฟล์ภาพและวิดีโอ
+              </p>
+
+              <p className="mt-1 text-sm font-medium text-zinc-500">
+                เลือกได้หลายไฟล์ และอัปโหลดตรงไปยัง Google Drive
+              </p>
+            </label>
+
+            {files.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {files.map((file) => (
+                  <div
+                    key={`${file.name}-${file.size}`}
+                    className="rounded-xl border border-zinc-200 bg-white px-4 py-3"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="min-w-0 truncate text-sm font-bold text-zinc-700">
+                        {file.name}
+                      </p>
+
+                      <span className="shrink-0 text-xs font-black text-zinc-400">
+                        {progress[file.name] ?? 0}%
+                      </span>
+                    </div>
+
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${
+                            progress[file.name] ?? 0
+                          }%`,
+                          backgroundColor:
+                            theme.primary,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {error && (
+              <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                {error}
+              </p>
+            )}
+
+            {message && (
+              <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
+                {message}
+              </p>
+            )}
+
+            {delivery?.shareLink && (
+              <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-zinc-400">
+                  ลิงก์ส่งงาน
+                </p>
+
+                <p className="mt-2 break-all text-sm font-semibold text-zinc-700">
+                  {delivery.shareLink}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={copyLink}
+                  className="mt-3 min-h-10 rounded-xl px-4 text-sm font-black text-white"
+                  style={{
+                    backgroundColor:
+                      theme.primary,
+                  }}
+                >
+                  คัดลอกลิงก์ Google Drive
+                </button>
+              </div>
+            )}
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-4">
+              <button
+                type="button"
+                disabled={working}
+                onClick={() =>
+                  performSave({
+                    share: false,
+                  })
+                }
+                className="min-h-12 rounded-2xl text-sm font-black text-white disabled:opacity-50"
+                style={{
+                  backgroundColor: theme.primary,
+                }}
+              >
+                {working
+                  ? "กำลังทำงาน..."
+                  : "บันทึก"}
+              </button>
+
+              <button
+                type="button"
+                disabled={working}
+                onClick={saveDraft}
+                className="min-h-12 rounded-2xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                บันทึกฉบับร่าง
+              </button>
+
+              <button
+                type="button"
+                disabled={working}
+                onClick={() =>
+                  performSave({
+                    share: true,
+                  })
+                }
+                className="min-h-12 rounded-2xl text-sm font-black text-white disabled:opacity-50"
+                style={{
+                  backgroundColor: theme.accent,
+                }}
+              >
+                ส่งงาน
+              </button>
+
+              <button
+                type="button"
+                disabled={working}
+                onClick={() =>
+                  router.push(
+                    `/${brand}/dashboard`
+                  )
+                }
+                className="min-h-12 rounded-2xl border border-red-200 bg-red-50 text-sm font-black text-red-600 hover:bg-red-100 disabled:opacity-50"
+              >
+                ยกเลิก
+              </button>
+            </div>
+          </section>
+
+          <aside className="rounded-[28px] border border-zinc-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                  Drafts
+                </p>
+
+                <h2 className="mt-1 text-lg font-black text-zinc-900">
+                  ฉบับร่าง
+                </h2>
+              </div>
+
+              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-black text-zinc-600">
+                {drafts.length}
+              </span>
+            </div>
+
+            {drafts.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {drafts.map((draft) => (
+                  <article
+                    key={draft.id}
+                    className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3"
+                  >
+                    <p className="truncate text-sm font-black text-zinc-800">
+                      {draft.folderName ||
+                        draft.form
+                          ?.customerName ||
+                        "ฉบับร่าง"}
+                    </p>
+
+                    <p className="mt-1 text-xs font-medium text-zinc-400">
+                      {new Date(
+                        draft.savedAt
+                      ).toLocaleString("th-TH")}
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openDraft(draft)
+                        }
+                        className="min-h-9 rounded-xl text-xs font-black text-white"
+                        style={{
+                          backgroundColor:
+                            theme.primary,
+                        }}
+                      >
+                        เปิดร่าง
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          deleteDraft(draft.id)
+                        }
+                        className="min-h-9 rounded-xl border border-red-200 bg-red-50 text-xs font-black text-red-600"
+                      >
+                        ลบร่าง
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center text-sm font-semibold text-zinc-500">
+                ยังไม่มีฉบับร่าง
+              </div>
+            )}
+          </aside>
+        </div>
+      </div>
     </main>
   );
 }
