@@ -74,40 +74,253 @@ const formatDuration = (seconds) => {
   return `${minutes} นาที ${remainingSeconds} วินาที`;
 };
 
-const uploadToSession = ({ file, uploadUrl, onProgress }) =>
+const uploadToSession = async ({ file, uploadUrl, onProgress }) =>
   new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
+  const fileToUpload = file;
 
-    xhr.open("PUT", uploadUrl, true);
-    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+  if (
+    !fileToUpload ||
+    typeof fileToUpload.size !== "number" ||
+    fileToUpload.size <= 0
+  ) {
+    throw new Error("ไฟล์ที่เลือกไม่ถูกต้องหรือไฟล์มีขนาด 0 ไบต์");
+  }
 
-    xhr.upload.onprogress = (event) => {
-      if (!event.lengthComputable) return;
+  const reportProgress =
+    typeof onProgress === "function" ? onProgress : () => {};
 
-      onProgress({
-        loaded: event.loaded,
-        total: event.total,
-        percent: Math.round((event.loaded / event.total) * 100),
-      });
-    };
+  let resumableUrl = String(uploadUrl || "").trim();
 
-    xhr.onerror = () => reject(new Error(`อัปโหลด ${file.name} ไม่สำเร็จ`));
+  if (!resumableUrl) {
+    throw new Error("ไม่พบ Google Drive upload session URL");
+  }
 
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        try {
-          resolve(JSON.parse(xhr.responseText || "{}"));
-        } catch {
-          resolve({});
+
+  const totalBytes = fileToUpload.size;
+  const mimeType =
+    fileToUpload.type || "application/octet-stream";
+
+  // Google Drive กำหนดให้ chunk เป็นจำนวนเท่าของ 256 KiB
+  const chunkSize = 8 * 1024 * 1024;
+  const maxRetries = 4;
+
+  const wait = (milliseconds) =>
+    new Promise((resolve) =>
+      window.setTimeout(resolve, milliseconds)
+    );
+
+  const safeJsonParse = (value) => {
+    if (!value) return {};
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return {};
+    }
+  };
+
+  const sendChunk = (chunk, startByte, endByte) =>
+    new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.open("PUT", resumableUrl, true);
+      xhr.setRequestHeader("Content-Type", mimeType);
+      xhr.setRequestHeader(
+        "Content-Range",
+        `bytes ${startByte}-${endByte}/${totalBytes}`
+      );
+
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return;
+
+        const uploadedBytes = Math.min(
+          totalBytes,
+          startByte + event.loaded
+        );
+
+        const percent = Math.min(
+          100,
+          Math.round((uploadedBytes / totalBytes) * 100)
+        );
+
+        reportProgress(percent, uploadedBytes, totalBytes);
+      };
+
+      xhr.onerror = () => {
+        reject(
+          new Error(
+            "เชื่อมต่อ Google Drive ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ต"
+          )
+        );
+      };
+
+      xhr.onabort = () => {
+        reject(new Error("การอัปโหลดถูกยกเลิก"));
+      };
+
+      xhr.onload = () => {
+        const status = xhr.status;
+        const responseBody = safeJsonParse(xhr.responseText);
+        const acceptedRange =
+          xhr.getResponseHeader("Range") || "";
+
+        if (
+          status === 308 ||
+          (status >= 200 && status < 300)
+        ) {
+          resolve({
+            status,
+            responseBody,
+            acceptedRange,
+          });
+          return;
         }
-        return;
+
+        reject(
+          new Error(
+            responseBody?.error?.message ||
+              responseBody?.error ||
+              `Google Drive ตอบกลับ HTTP ${status}`
+          )
+        );
+      };
+
+      xhr.send(chunk);
+    });
+
+  const queryUploadStatus = () =>
+    new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.open("PUT", resumableUrl, true);
+      xhr.setRequestHeader(
+        "Content-Range",
+        `bytes */${totalBytes}`
+      );
+
+      xhr.onerror = () =>
+        reject(new Error("ตรวจสอบสถานะการอัปโหลดไม่สำเร็จ"));
+
+      xhr.onload = () => {
+        const responseBody = safeJsonParse(xhr.responseText);
+
+        if (
+          xhr.status === 308 ||
+          (xhr.status >= 200 && xhr.status < 300)
+        ) {
+          resolve({
+            status: xhr.status,
+            responseBody,
+            acceptedRange:
+              xhr.getResponseHeader("Range") || "",
+          });
+          return;
+        }
+
+        reject(
+          new Error(
+            responseBody?.error?.message ||
+              `ตรวจสอบสถานะไม่สำเร็จ HTTP ${xhr.status}`
+          )
+        );
+      };
+
+      xhr.send();
+    });
+
+  let offset = 0;
+  let completedFile = null;
+
+  while (offset < totalBytes) {
+    const endExclusive = Math.min(
+      offset + chunkSize,
+      totalBytes
+    );
+
+    const endByte = endExclusive - 1;
+    const chunk = fileToUpload.slice(offset, endExclusive);
+
+    let result = null;
+    let lastError = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+      try {
+        result = await sendChunk(
+          chunk,
+          offset,
+          endByte
+        );
+        lastError = null;
+        break;
+      } catch (uploadError) {
+        lastError = uploadError;
+
+        if (attempt < maxRetries - 1) {
+          await wait(1000 * 2 ** attempt);
+        }
       }
+    }
 
-      reject(new Error(`อัปโหลด ${file.name} ไม่สำเร็จ (${xhr.status})`));
-    };
+    if (!result) {
+      throw (
+        lastError ||
+        new Error("อัปโหลดไฟล์ไป Google Drive ไม่สำเร็จ")
+      );
+    }
 
-    xhr.send(file);
-  });
+    if (
+      result.status >= 200 &&
+      result.status < 300
+    ) {
+      completedFile = result.responseBody;
+      offset = totalBytes;
+      reportProgress(100, totalBytes, totalBytes);
+      break;
+    }
+
+    const rangeMatch = String(
+      result.acceptedRange || ""
+    ).match(/bytes=0-(\d+)/i);
+
+    offset = rangeMatch
+      ? Number(rangeMatch[1]) + 1
+      : endExclusive;
+
+    reportProgress(
+      Math.min(
+        100,
+        Math.round((offset / totalBytes) * 100)
+      ),
+      offset,
+      totalBytes
+    );
+  }
+
+  // บางครั้ง Google ตอบ 308 หลังรับ byte สุดท้าย
+  if (!completedFile) {
+    const statusResult = await queryUploadStatus();
+
+    if (
+      statusResult.status >= 200 &&
+      statusResult.status < 300
+    ) {
+      completedFile = statusResult.responseBody;
+    } else {
+      throw new Error(
+        "Google Drive ยังไม่ได้ยืนยันว่าอัปโหลดไฟล์เสร็จสมบูรณ์"
+      );
+    }
+  }
+
+  reportProgress(100, totalBytes, totalBytes);
+
+  return {
+    ...completedFile,
+    success: true,
+    file: completedFile,
+  };
+
+};);
 
 export default function GoogleUploadPage() {
   const router = useRouter();
@@ -330,6 +543,7 @@ export default function GoogleUploadPage() {
 
       const session = await callDrive({
         action: "create-upload-session",
+        uploadOrigin: window.location.origin,
         folderId: folderResult.folder.id,
         fileName: file.name,
         mimeType: file.type || "application/octet-stream",

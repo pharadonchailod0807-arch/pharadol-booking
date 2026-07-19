@@ -200,16 +200,41 @@ const isPdfSlipFile = (url, fileType = "", fileName = "") =>
   String(fileName || "").toLowerCase().endsWith(".pdf") ||
   String(url || "").toLowerCase().includes(".pdf");
 
-const isImageSlipFile = (url, fileType = "", fileName = "") => {
-  const normalizedType = String(fileType || "").toLowerCase();
-  const normalizedName = String(fileName || url || "").toLowerCase();
+const isImageSlipFile = (
+  url,
+  fileType = "",
+  fileName = ""
+) => {
+  const normalizedType =
+    String(fileType || "").toLowerCase();
+
+  const normalizedName =
+    String(fileName || url || "").toLowerCase();
+
+  if (
+    isPdfSlipFile(
+      url,
+      fileType,
+      fileName
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    normalizedType.startsWith("image/") ||
+    String(url || "").startsWith("data:image/") ||
+    getGoogleDriveFileId(url)
+  ) {
+    return true;
+  }
 
   return (
-    !url ||
-    normalizedType.startsWith("image/") ||
-    String(url).startsWith("data:image/") ||
-    /\.(jpe?g|png|webp)$/i.test(normalizedName) ||
-    (!normalizedType && !isPdfSlipFile(url, fileType, fileName))
+    /\.(jpe?g|png|webp|heic|heif)$/i.test(
+      normalizedName
+    ) ||
+    !normalizedType ||
+    normalizedType === "application/octet-stream"
   );
 };
 
@@ -301,22 +326,83 @@ const normalizePaymentTransactionSlip = (transaction = {}, fallback = {}) => {
 
 async function imageUrlToDataUrl(url) {
   if (!url) return "";
-  if (String(url).startsWith("data:")) return url;
+
+  if (String(url).startsWith("data:")) {
+    return url;
+  }
+
+  const googleDriveFileId =
+    getGoogleDriveFileId(url);
+
+  if (googleDriveFileId) {
+    try {
+      const response = await fetch(
+        "/api/google/upload",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "get-slip-data-url",
+            brand: BRAND_ID,
+            fileId: googleDriveFileId,
+          }),
+        }
+      );
+
+      const payload = await response
+        .json()
+        .catch(() => ({}));
+
+      if (
+        response.ok &&
+        payload?.success &&
+        payload?.dataUrl
+      ) {
+        return payload.dataUrl;
+      }
+
+      throw new Error(
+        payload?.error ||
+          "โหลดสลิปจาก Google Drive ไม่สำเร็จ"
+      );
+    } catch (error) {
+      console.error(
+        "Cannot load Google Drive slip through API",
+        error
+      );
+      return "";
+    }
+  }
 
   try {
-    const response = await fetch(url, { mode: "cors" });
-    if (!response.ok) throw new Error("Cannot fetch image");
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Cannot fetch image");
+    }
 
     const blob = await response.blob();
 
-    return await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+    return await new Promise(
+      (resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onloadend = () =>
+          resolve(reader.result);
+
+        reader.onerror = reject;
+
+        reader.readAsDataURL(blob);
+      }
+    );
   } catch (error) {
-    console.error("Cannot convert slip image to data url", error);
+    console.error(
+      "Cannot convert slip image to data url",
+      error
+    );
+
     return "";
   }
 }

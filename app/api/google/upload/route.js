@@ -175,6 +175,7 @@ const createUploadSession = async ({
   fileName,
   mimeType,
   size,
+  origin,
 }) => {
   const tokenResult =
     await auth.getAccessToken();
@@ -195,6 +196,7 @@ const createUploadSession = async ({
     {
       method: "POST",
       headers: {
+        ...(origin ? { Origin: origin } : {}),
         Authorization:
           `Bearer ${accessToken}`,
         "Content-Type":
@@ -365,6 +367,13 @@ const handleJsonAction = async (
       payload?.size || 0
     );
 
+    const uploadOrigin = sanitizeText(
+      request.headers.get("origin") ||
+        payload?.uploadOrigin ||
+        "",
+      500
+    );
+
     const safeType =
       mimeType.startsWith("image/") ||
       mimeType.startsWith("video/");
@@ -402,12 +411,229 @@ const handleJsonAction = async (
         fileName,
         mimeType,
         size,
+        origin: uploadOrigin,
       });
 
     return Response.json({
       success: true,
       uploadUrl,
     });
+  }
+
+  if (
+    action === "get-slip-data-url"
+  ) {
+    const fileId = sanitizeText(
+      payload?.fileId,
+      240
+    );
+
+    if (!fileId) {
+      return Response.json(
+        {
+          success: false,
+          error: "ไม่พบรหัสไฟล์สลิป",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const metadataResponse =
+      await drive.files.get({
+        fileId,
+        supportsAllDrives: true,
+        fields:
+          "id,name,mimeType,size,trashed",
+      });
+
+    const metadata =
+      metadataResponse?.data || {};
+
+    if (metadata?.trashed) {
+      return Response.json(
+        {
+          success: false,
+          error: "ไฟล์สลิปถูกลบแล้ว",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const mimeType =
+      String(
+        metadata?.mimeType ||
+          "application/octet-stream"
+      ).toLowerCase();
+
+    if (!mimeType.startsWith("image/")) {
+      return Response.json(
+        {
+          success: false,
+          error:
+            "ไฟล์หลักฐานนี้ไม่ใช่ไฟล์รูปภาพ",
+          mimeType,
+        },
+        {
+          status: 415,
+        }
+      );
+    }
+
+    const mediaResponse =
+      await drive.files.get(
+        {
+          fileId,
+          alt: "media",
+          supportsAllDrives: true,
+        },
+        {
+          responseType: "arraybuffer",
+        }
+      );
+
+    const fileBuffer = Buffer.from(
+      mediaResponse.data
+    );
+
+    if (!fileBuffer.length) {
+      return Response.json(
+        {
+          success: false,
+          error: "ไฟล์สลิปไม่มีข้อมูล",
+        },
+        {
+          status: 404,
+        }
+      );
+    }
+
+    const dataUrl =
+      `data:${mimeType};base64,` +
+      fileBuffer.toString("base64");
+
+    return Response.json({
+      success: true,
+      fileName: metadata?.name || "",
+      mimeType,
+      size: fileBuffer.length,
+      dataUrl,
+    });
+  }
+
+  if (
+    action === "query-upload-session"
+  ) {
+    const uploadUrl = sanitizeText(
+      payload?.uploadUrl,
+      5000
+    );
+
+    const size = Number(
+      payload?.size || 0
+    );
+
+    let parsedUploadUrl = null;
+
+    try {
+      parsedUploadUrl = new URL(uploadUrl);
+    } catch {
+      parsedUploadUrl = null;
+    }
+
+    const hostname =
+      parsedUploadUrl?.hostname || "";
+
+    const validGoogleUrl =
+      parsedUploadUrl?.protocol === "https:" &&
+      (
+        hostname === "googleapis.com" ||
+        hostname === "www.googleapis.com" ||
+        hostname.endsWith(".googleapis.com")
+      );
+
+    if (
+      !validGoogleUrl ||
+      !Number.isFinite(size) ||
+      size <= 0
+    ) {
+      return Response.json(
+        {
+          success: false,
+          error: "ข้อมูล Upload Session ไม่ถูกต้อง",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const googleResponse = await fetch(
+      uploadUrl,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Length": "0",
+          "Content-Range": `bytes */${size}`,
+        },
+        cache: "no-store",
+        redirect: "manual",
+      }
+    );
+
+    const responseText =
+      await googleResponse.text();
+
+    let responseData = {};
+
+    if (responseText) {
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        responseData = {};
+      }
+    }
+
+    const complete =
+      googleResponse.status >= 200 &&
+      googleResponse.status < 300;
+
+    const resumable =
+      googleResponse.status === 308;
+
+    const errorMessage =
+      responseData?.error?.message ||
+      (
+        complete || resumable
+          ? ""
+          : `Google Drive ตอบกลับ HTTP ${googleResponse.status}`
+      );
+
+    return Response.json(
+      {
+        success: complete || resumable,
+        complete,
+        resumable,
+        status: googleResponse.status,
+        range:
+          googleResponse.headers.get("range") ||
+          "",
+        file:
+          complete
+            ? responseData
+            : null,
+        error: errorMessage,
+      },
+      {
+        status:
+          complete || resumable
+            ? 200
+            : 502,
+      }
+    );
   }
 
   if (
