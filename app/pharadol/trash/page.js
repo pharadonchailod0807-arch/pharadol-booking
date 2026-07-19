@@ -852,7 +852,7 @@ export default function TrashPage() {
           </div>
 
           {filteredTrash.length > 0 ? (
-            <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
+            <div className="mt-3 space-y-3">
               {filteredTrash.map(({ item, originalIndex }) => {
                 const restoreToArchives =
                   item.deletedFrom === "archives" ||
@@ -867,7 +867,7 @@ export default function TrashPage() {
                 return (
                   <article
                     key={`${item.bookingNumber || "trash"}-${originalIndex}`}
-                    className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 p-3"
+                    className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -884,8 +884,8 @@ export default function TrashPage() {
                       </span>
                     </div>
 
-                    <div className="mt-2 grid grid-cols-2 gap-1.5">
-                      <div className="rounded-lg bg-white px-2.5 py-2">
+                    <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+                      <div className="min-w-0 py-1">
                         <p className="text-[10px] font-semibold text-zinc-400">
                           ชื่อลูกค้า
                         </p>
@@ -894,7 +894,7 @@ export default function TrashPage() {
                         </p>
                       </div>
 
-                      <div className="rounded-lg bg-white px-2.5 py-2">
+                      <div className="min-w-0 py-1">
                         <p className="text-[10px] font-semibold text-zinc-400">
                           เบอร์โทร
                         </p>
@@ -903,7 +903,7 @@ export default function TrashPage() {
                         </p>
                       </div>
 
-                      <div className="rounded-lg bg-white px-2.5 py-2">
+                      <div className="min-w-0 py-1">
                         <p className="text-[10px] font-semibold text-zinc-400">
                           ประเภทงาน
                         </p>
@@ -912,7 +912,7 @@ export default function TrashPage() {
                         </p>
                       </div>
 
-                      <div className="rounded-lg bg-white px-2.5 py-2">
+                      <div className="min-w-0 py-1">
                         <p className="text-[10px] font-semibold text-zinc-400">
                           วันที่ลบ
                         </p>
@@ -922,11 +922,11 @@ export default function TrashPage() {
                       </div>
                     </div>
 
-                    <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
                       <button
                         type="button"
                         onClick={() => restoreCustomer(originalIndex)}
-                        className="min-h-9 rounded-lg px-3 text-xs font-black text-white transition hover:opacity-90"
+                        className="min-h-10 rounded-xl px-4 text-sm font-black text-white transition hover:opacity-90"
                         style={{ backgroundColor: trashAccent }}
                       >
                         กู้คืน
@@ -935,7 +935,7 @@ export default function TrashPage() {
                       <button
                         type="button"
                         onClick={() => deleteForever(originalIndex)}
-                        className="min-h-9 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-black text-red-600 transition hover:bg-red-100"
+                        className="min-h-10 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-600 transition hover:bg-red-100"
                       >
                         ลบถาวร
                       </button>
@@ -970,11 +970,11 @@ export default function TrashPage() {
           </div>
 
           {filteredMailTrash.length > 0 ? (
-            <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
+            <div className="mt-3 space-y-3">
               {filteredMailTrash.map(({ item, originalIndex }) => (
                 <article
                   key={`mail-${item.id || item.bookingNumber || item.email || originalIndex}`}
-                  className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 p-3"
+                  className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -991,8 +991,8 @@ export default function TrashPage() {
                     </span>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-2 gap-1.5">
-                    <div className="rounded-lg bg-white px-2.5 py-2">
+                  <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+                    <div className="min-w-0 py-1">
                       <p className="text-[10px] font-semibold text-zinc-400">
                         ชื่อลูกค้า
                       </p>
@@ -1001,7 +1001,7 @@ export default function TrashPage() {
                       </p>
                     </div>
 
-                    <div className="rounded-lg bg-white px-2.5 py-2">
+                    <div className="min-w-0 py-1">
                       <p className="text-[10px] font-semibold text-zinc-400">
                         วันที่ลบ
                       </p>
@@ -1015,7 +1015,7 @@ export default function TrashPage() {
                       </p>
                     </div>
 
-                    <div className="col-span-2 rounded-lg bg-white px-2.5 py-2">
+                    <div className="min-w-0 py-1 sm:col-span-2">
                       <p className="text-[10px] font-semibold text-zinc-400">
                         อีเมล
                       </p>
@@ -1025,11 +1025,11 @@ export default function TrashPage() {
                     </div>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={() => restoreMailTrash(originalIndex)}
-                      className="min-h-9 rounded-lg px-3 text-xs font-black text-white transition hover:opacity-90"
+                      className="min-h-10 rounded-xl px-4 text-sm font-black text-white transition hover:opacity-90"
                       style={{ backgroundColor: trashAccent }}
                     >
                       กู้คืน
@@ -1038,7 +1038,7 @@ export default function TrashPage() {
                     <button
                       type="button"
                       onClick={() => deleteMailTrashForever(originalIndex)}
-                      className="min-h-9 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-black text-red-600 transition hover:bg-red-100"
+                      className="min-h-10 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-600 transition hover:bg-red-100"
                     >
                       ลบถาวร
                     </button>
@@ -1091,11 +1091,11 @@ export default function TrashPage() {
           )}
 
           {filteredCustomerRequestTrash.length > 0 ? (
-            <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
+            <div className="mt-3 space-y-3">
               {filteredCustomerRequestTrash.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 p-3"
+                  className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -1112,8 +1112,8 @@ export default function TrashPage() {
                     </span>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-2 gap-1.5">
-                    <div className="rounded-lg bg-white px-2.5 py-2">
+                  <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+                    <div className="min-w-0 py-1">
                       <p className="text-[10px] font-semibold text-zinc-400">
                         เบอร์โทร
                       </p>
@@ -1122,7 +1122,7 @@ export default function TrashPage() {
                       </p>
                     </div>
 
-                    <div className="rounded-lg bg-white px-2.5 py-2">
+                    <div className="min-w-0 py-1">
                       <p className="text-[10px] font-semibold text-zinc-400">
                         วันงาน
                       </p>
@@ -1131,7 +1131,7 @@ export default function TrashPage() {
                       </p>
                     </div>
 
-                    <div className="col-span-2 rounded-lg bg-white px-2.5 py-2">
+                    <div className="min-w-0 py-1 sm:col-span-2">
                       <p className="text-[10px] font-semibold text-zinc-400">
                         สถานที่จัดงาน
                       </p>
@@ -1140,7 +1140,7 @@ export default function TrashPage() {
                       </p>
                     </div>
 
-                    <div className="col-span-2 rounded-lg bg-white px-2.5 py-2">
+                    <div className="min-w-0 py-1 sm:col-span-2">
                       <p className="text-[10px] font-semibold text-zinc-400">
                         วันที่ลบ
                       </p>
@@ -1163,11 +1163,11 @@ export default function TrashPage() {
                     )}
                   </div>
 
-                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                  <div className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={() => restoreCustomerRequest(item)}
-                      className="min-h-9 rounded-lg px-3 text-xs font-black text-white transition hover:opacity-90"
+                      className="min-h-10 rounded-xl px-4 text-sm font-black text-white transition hover:opacity-90"
                       style={{ backgroundColor: trashAccent }}
                     >
                       กู้คืน
@@ -1176,7 +1176,7 @@ export default function TrashPage() {
                     <button
                       type="button"
                       onClick={() => deleteCustomerRequestForever(item)}
-                      className="min-h-9 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-black text-red-600 transition hover:bg-red-100"
+                      className="min-h-10 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-600 transition hover:bg-red-100"
                     >
                       ลบถาวร
                     </button>
