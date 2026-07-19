@@ -76,6 +76,8 @@ const formatDuration = (seconds) => {
 
 const uploadToSession = async ({ file, uploadUrl, onProgress }) =>
   new Promise((resolve, reject) => {
+    void (async () => {
+
   const fileToUpload = file;
 
   if (
@@ -320,7 +322,9 @@ const uploadToSession = async ({ file, uploadUrl, onProgress }) =>
     file: completedFile,
   };
 
-};);
+
+    })().catch(reject);
+  };);
 
 export default function GoogleUploadPage() {
   const router = useRouter();
