@@ -462,78 +462,78 @@ export default function GoogleUploadPage() {
     <>
       {working && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#253b34]/70 px-4 py-6 backdrop-blur-md">
-          <div className="w-full max-w-[340px] rounded-[20px] bg-white px-4 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.30)]">
-            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-[5px] border-[#e1e9e5] border-t-[#0d5a42]" />
+          <div className="w-full max-w-[540px] rounded-[28px] bg-white px-6 py-6 shadow-[0_26px_75px_rgba(0,0,0,0.32)] sm:px-8 sm:py-7">
+            <div className="mx-auto h-14 w-14 animate-spin rounded-full border-[7px] border-[#e1e9e5] border-t-[#0d5a42]" />
 
-            <div className="mt-3 text-center">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-[#b78a31]">
+            <div className="mt-5 text-center">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#b78a31]">
                 {theme.label}
               </p>
 
-              <h2 className="mt-1 text-[19px] font-black tracking-[-0.03em] text-[#073e2f]">
+              <h2 className="mt-1.5 text-2xl font-black tracking-[-0.04em] text-[#073e2f] sm:text-3xl">
                 {overlayTitle}
               </h2>
 
-              <p className="mt-1 text-[10px] font-medium text-[#687872]">
+              <p className="mt-2 text-sm font-medium text-[#687872] sm:text-base">
                 {overlayDescription}
               </p>
             </div>
 
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#e4ece8]">
+            <div className="mt-6 h-3 overflow-hidden rounded-full bg-[#e4ece8]">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-[#0c5941] to-[#2b8e6e] transition-[width] duration-300"
                 style={{ width: `${uploadPercent}%` }}
               />
             </div>
 
-            <div className="mt-2 flex items-end justify-between gap-2">
-              <p className="text-[18px] font-black text-[#07513c]">
+            <div className="mt-3 flex items-end justify-between gap-3">
+              <p className="text-2xl font-black text-[#07513c] sm:text-3xl">
                 {uploadPercent}%
               </p>
 
-              <p className="text-right text-[9px] font-bold text-[#687872]">
+              <p className="text-right text-xs font-bold text-[#687872] sm:text-sm">
                 {uploadStats.completedFiles}/{files.length} ไฟล์ •{" "}
                 {formatBytes(transferredBytes)} /{" "}
                 {formatBytes(uploadStats.totalBytes)}
               </p>
             </div>
 
-            <p className="mt-2 truncate text-center text-[9px] font-semibold text-[#5d7069]">
+            <p className="mt-3 truncate text-center text-xs font-semibold text-[#5d7069] sm:text-sm">
               ไฟล์ {Math.max(1, uploadStats.currentFileIndex)}/
               {Math.max(1, files.length)}:{" "}
               {uploadStats.currentFileName || "กำลังเตรียมไฟล์..."}
             </p>
 
-            <div className="mt-3 grid grid-cols-3 gap-1 rounded-[14px] bg-[#f1f6f3] px-2 py-2.5 text-center">
+            <div className="mt-5 grid grid-cols-3 gap-2 rounded-[20px] bg-[#f1f6f3] px-4 py-4 text-center sm:px-5">
               <div>
-                <p className="text-[7px] font-semibold text-[#718078]">
+                <p className="text-[11px] font-semibold text-[#718078] sm:text-xs">
                   ใช้เวลาแล้ว
                 </p>
-                <p className="mt-0.5 text-[10px] font-black text-[#073e2f]">
+                <p className="mt-1 text-sm font-black text-[#073e2f] sm:text-base">
                   {formatDuration(uploadElapsedSeconds)}
                 </p>
               </div>
 
               <div>
-                <p className="text-[7px] font-semibold text-[#718078]">
+                <p className="text-[11px] font-semibold text-[#718078] sm:text-xs">
                   ความเร็ว
                 </p>
-                <p className="mt-0.5 text-[10px] font-black text-[#073e2f]">
+                <p className="mt-1 text-sm font-black text-[#073e2f] sm:text-base">
                   {formatBytes(uploadSpeed)}/วินาที
                 </p>
               </div>
 
               <div>
-                <p className="text-[7px] font-semibold text-[#718078]">
+                <p className="text-[11px] font-semibold text-[#718078] sm:text-xs">
                   เหลือประมาณ
                 </p>
-                <p className="mt-0.5 text-[10px] font-black text-[#073e2f]">
+                <p className="mt-1 text-sm font-black text-[#073e2f] sm:text-base">
                   {formatDuration(remainingSeconds)}
                 </p>
               </div>
             </div>
 
-            <p className="mt-2 text-center text-[7px] font-medium text-[#92a09a]">
+            <p className="mt-4 text-center text-[10px] font-medium text-[#92a09a] sm:text-xs">
               เปอร์เซ็นต์คำนวณจากข้อมูลที่ส่งจริงจากเครื่องนี้ไปยัง Google Drive
             </p>
           </div>
