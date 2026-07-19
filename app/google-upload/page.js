@@ -462,7 +462,7 @@ export default function GoogleUploadPage() {
     <>
       {working && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#253b34]/70 px-4 py-6 backdrop-blur-md">
-          <div className="w-full max-w-[380px] rounded-[22px] bg-white px-4 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.30)]">
+          <div className="w-full max-w-[280px] rounded-[18px] bg-white px-3 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.30)]">
             <div className="mx-auto h-10 w-10 animate-spin rounded-full border-[5px] border-[#e1e9e5] border-t-[#0d5a42]" />
 
             <div className="mt-3 text-center">
