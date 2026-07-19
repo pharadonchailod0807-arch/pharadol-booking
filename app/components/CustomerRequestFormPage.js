@@ -552,31 +552,85 @@ const handleSubmit = async (event) => {
 
   if (successMessage) {
     return (
-      <main className="min-h-screen px-4 py-8 text-zinc-950" style={{ backgroundColor: config.background }}>
-        <section className="mx-auto flex min-h-[calc(100vh-64px)] max-w-2xl flex-col items-center justify-center text-center">
-          <div className={step === 2 ? "hidden sm:block" : ""}>
-          {renderLogo()}
-        </div>
+      <main
+        className="min-h-screen px-4 py-6 text-zinc-950 sm:px-6 sm:py-10"
+        style={{
+          background: `radial-gradient(circle at top, ${config.soft} 0%, ${config.background} 46%, ${config.background} 100%)`,
+        }}
+      >
+        <section className="mx-auto flex min-h-[calc(100dvh-48px)] max-w-xl items-center justify-center sm:min-h-[calc(100vh-80px)]">
+          <div className="w-full overflow-hidden rounded-[30px] border border-white/80 bg-white/90 px-6 py-8 text-center shadow-[0_24px_70px_rgba(15,23,42,0.12)] backdrop-blur sm:px-10 sm:py-10">
+            <div
+              className="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: config.soft,
+                color: config.primary,
+              }}
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-8 w-8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="m5 12 4 4L19 6" />
+              </svg>
+            </div>
 
-        {step === 2 && (
-          <p
-            data-payment-mobile-compact-brand="true"
-            className="mb-2 text-center text-[11px] font-black uppercase tracking-[3px] text-zinc-400 sm:hidden"
-          >
-            {config.paymentName}
-          </p>
-        )}
-          <h1 className="mt-8 text-3xl font-bold leading-tight sm:text-4xl">
-            ส่งข้อมูลเรียบร้อยแล้ว
-          </h1>
-          <p className="mt-4 max-w-xl text-base leading-8 text-zinc-600">
-            ขอบคุณสำหรับข้อมูล ทีมงานจะติดต่อกลับโดยเร็วที่สุด
-          </p>
-          {successMessage !== "ส่งข้อมูลเรียบร้อยแล้ว" && (
-            <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-              {successMessage}
+            <div className="mx-auto mt-5 flex justify-center [&_img]:max-h-[82px] [&_img]:w-auto">
+              {renderLogo()}
+            </div>
+
+            <p className="mt-5 text-[11px] font-black uppercase tracking-[0.3em] text-zinc-400">
+              ส่งข้อมูลสำเร็จ
             </p>
-          )}
+
+            <h1 className="mt-3 text-[30px] font-black leading-tight tracking-[-0.03em] text-zinc-950 sm:text-4xl">
+              ส่งข้อมูลเรียบร้อยแล้ว
+            </h1>
+
+            <p className="mx-auto mt-4 max-w-md text-[15px] font-medium leading-7 text-zinc-600 sm:text-base">
+              ขอบคุณสำหรับข้อมูลและสลิปการโอน ทีมงานได้รับข้อมูลแล้ว
+              และจะติดต่อกลับโดยเร็วที่สุด
+            </p>
+
+            <div className="mx-auto mt-6 max-w-md rounded-2xl border border-zinc-100 bg-zinc-50/90 px-4 py-4 text-left">
+              <div className="flex items-center gap-3">
+                <span
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base font-black"
+                  style={{
+                    backgroundColor: config.soft,
+                    color: config.primary,
+                  }}
+                >
+                  ✓
+                </span>
+
+                <div>
+                  <p className="text-sm font-black text-zinc-800">
+                    ระบบบันทึกข้อมูลแล้ว
+                  </p>
+                  <p className="mt-0.5 text-xs font-semibold leading-5 text-zinc-500">
+                    ไม่ต้องกรอกหรือส่งข้อมูลซ้ำอีกครั้ง
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {successMessage !== "ส่งข้อมูลเรียบร้อยแล้ว" && (
+              <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">
+                {successMessage}
+              </p>
+            )}
+
+            <p className="mt-6 text-xs font-semibold text-zinc-400">
+              สามารถปิดหน้านี้ได้เลย
+            </p>
+          </div>
         </section>
       </main>
     );
