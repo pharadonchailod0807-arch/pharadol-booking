@@ -829,8 +829,8 @@ export default function TrashPage() {
           </span>
         </div>
 
-        <section className="mt-4 rounded-[26px] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
+        <section className="mt-3 rounded-[22px] border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
                 Bookings
@@ -852,7 +852,7 @@ export default function TrashPage() {
           </div>
 
           {filteredTrash.length > 0 ? (
-            <div className="mt-4 grid gap-3 xl:grid-cols-2">
+            <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
               {filteredTrash.map(({ item, originalIndex }) => {
                 const restoreToArchives =
                   item.deletedFrom === "archives" ||
@@ -867,14 +867,14 @@ export default function TrashPage() {
                 return (
                   <article
                     key={`${item.bookingNumber || "trash"}-${originalIndex}`}
-                    className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4"
+                    className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-zinc-400">
                           เลขที่จอง
                         </p>
-                        <h3 className="mt-1 truncate text-base font-black text-zinc-900">
+                        <h3 className="mt-0.5 truncate text-[15px] font-black text-zinc-900">
                           {item.bookingNumber || "-"}
                         </h3>
                       </div>
@@ -884,49 +884,49 @@ export default function TrashPage() {
                       </span>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <div className="rounded-xl bg-white px-3 py-2.5">
-                        <p className="text-[11px] font-semibold text-zinc-400">
+                    <div className="mt-2 grid grid-cols-2 gap-1.5">
+                      <div className="rounded-lg bg-white px-2.5 py-2">
+                        <p className="text-[10px] font-semibold text-zinc-400">
                           ชื่อลูกค้า
                         </p>
-                        <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                        <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                           {item.customerName || "-"}
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-white px-3 py-2.5">
-                        <p className="text-[11px] font-semibold text-zinc-400">
+                      <div className="rounded-lg bg-white px-2.5 py-2">
+                        <p className="text-[10px] font-semibold text-zinc-400">
                           เบอร์โทร
                         </p>
-                        <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                        <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                           {item.phone || "-"}
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-white px-3 py-2.5">
-                        <p className="text-[11px] font-semibold text-zinc-400">
+                      <div className="rounded-lg bg-white px-2.5 py-2">
+                        <p className="text-[10px] font-semibold text-zinc-400">
                           ประเภทงาน
                         </p>
-                        <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                        <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                           {item.service || "-"}
                         </p>
                       </div>
 
-                      <div className="rounded-xl bg-white px-3 py-2.5">
-                        <p className="text-[11px] font-semibold text-zinc-400">
+                      <div className="rounded-lg bg-white px-2.5 py-2">
+                        <p className="text-[10px] font-semibold text-zinc-400">
                           วันที่ลบ
                         </p>
-                        <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                        <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                           {formatTrashDate(item.deletedAt || item.deletedDate)}
                         </p>
                       </div>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="mt-2 grid grid-cols-2 gap-1.5">
                       <button
                         type="button"
                         onClick={() => restoreCustomer(originalIndex)}
-                        className="min-h-11 rounded-xl text-sm font-black text-white transition hover:opacity-90"
+                        className="min-h-9 rounded-lg px-3 text-xs font-black text-white transition hover:opacity-90"
                         style={{ backgroundColor: trashAccent }}
                       >
                         กู้คืน
@@ -935,7 +935,7 @@ export default function TrashPage() {
                       <button
                         type="button"
                         onClick={() => deleteForever(originalIndex)}
-                        className="min-h-11 rounded-xl border border-red-200 bg-red-50 text-sm font-black text-red-600 transition hover:bg-red-100"
+                        className="min-h-9 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-black text-red-600 transition hover:bg-red-100"
                       >
                         ลบถาวร
                       </button>
@@ -945,7 +945,7 @@ export default function TrashPage() {
               })}
             </div>
           ) : (
-            <div className="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center">
+            <div className="mt-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center">
               <p className="text-sm font-bold text-zinc-500">
                 ไม่พบใบจองในถังขยะ
               </p>
@@ -953,8 +953,8 @@ export default function TrashPage() {
           )}
         </section>
 
-        <section className="mt-4 rounded-[26px] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
+        <section className="mt-3 rounded-[22px] border border-zinc-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
                 Mail
@@ -970,18 +970,18 @@ export default function TrashPage() {
           </div>
 
           {filteredMailTrash.length > 0 ? (
-            <div className="mt-4 grid gap-3 xl:grid-cols-2">
+            <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
               {filteredMailTrash.map(({ item, originalIndex }) => (
                 <article
                   key={`mail-${item.id || item.bookingNumber || item.email || originalIndex}`}
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4"
+                  className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 p-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-zinc-400">
                         เลขที่จอง
                       </p>
-                      <h3 className="mt-1 truncate text-base font-black text-zinc-900">
+                      <h3 className="mt-0.5 truncate text-[15px] font-black text-zinc-900">
                         {item.bookingNumber || item.subject || "อีเมล"}
                       </h3>
                     </div>
@@ -991,21 +991,21 @@ export default function TrashPage() {
                     </span>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div className="rounded-xl bg-white px-3 py-2.5">
-                      <p className="text-[11px] font-semibold text-zinc-400">
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    <div className="rounded-lg bg-white px-2.5 py-2">
+                      <p className="text-[10px] font-semibold text-zinc-400">
                         ชื่อลูกค้า
                       </p>
-                      <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                         {item.customerName || "-"}
                       </p>
                     </div>
 
-                    <div className="rounded-xl bg-white px-3 py-2.5">
-                      <p className="text-[11px] font-semibold text-zinc-400">
+                    <div className="rounded-lg bg-white px-2.5 py-2">
+                      <p className="text-[10px] font-semibold text-zinc-400">
                         วันที่ลบ
                       </p>
-                      <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                         {formatTrashDate(
                           item.deletedAt ||
                             item.deletedDate ||
@@ -1015,21 +1015,21 @@ export default function TrashPage() {
                       </p>
                     </div>
 
-                    <div className="col-span-2 rounded-xl bg-white px-3 py-2.5">
-                      <p className="text-[11px] font-semibold text-zinc-400">
+                    <div className="col-span-2 rounded-lg bg-white px-2.5 py-2">
+                      <p className="text-[10px] font-semibold text-zinc-400">
                         อีเมล
                       </p>
-                      <p className="mt-1 break-all text-sm font-bold text-zinc-800">
+                      <p className="mt-0.5 break-all text-[13px] font-bold text-zinc-800">
                         {item.email || item.to || "-"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
                     <button
                       type="button"
                       onClick={() => restoreMailTrash(originalIndex)}
-                      className="min-h-11 rounded-xl text-sm font-black text-white transition hover:opacity-90"
+                      className="min-h-9 rounded-lg px-3 text-xs font-black text-white transition hover:opacity-90"
                       style={{ backgroundColor: trashAccent }}
                     >
                       กู้คืน
@@ -1038,7 +1038,7 @@ export default function TrashPage() {
                     <button
                       type="button"
                       onClick={() => deleteMailTrashForever(originalIndex)}
-                      className="min-h-11 rounded-xl border border-red-200 bg-red-50 text-sm font-black text-red-600 transition hover:bg-red-100"
+                      className="min-h-9 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-black text-red-600 transition hover:bg-red-100"
                     >
                       ลบถาวร
                     </button>
@@ -1047,7 +1047,7 @@ export default function TrashPage() {
               ))}
             </div>
           ) : (
-            <div className="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center">
+            <div className="mt-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center">
               <p className="text-sm font-bold text-zinc-500">
                 ไม่พบอีเมลในถังขยะ
               </p>
@@ -1057,9 +1057,9 @@ export default function TrashPage() {
 
         <section
           data-customer-request-trash="true"
-          className="mt-4 rounded-[26px] border border-zinc-200 bg-white p-4 shadow-sm sm:p-5"
+          className="mt-3 rounded-[22px] border border-zinc-200 bg-white p-3 shadow-sm sm:p-4"
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
                 Customer Requests
@@ -1091,18 +1091,18 @@ export default function TrashPage() {
           )}
 
           {filteredCustomerRequestTrash.length > 0 ? (
-            <div className="mt-4 grid gap-3 xl:grid-cols-2">
+            <div className="mt-3 grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
               {filteredCustomerRequestTrash.map((item) => (
                 <article
                   key={item.id}
-                  className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4"
+                  className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 p-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-zinc-400">
                         ชื่อลูกค้า
                       </p>
-                      <h3 className="mt-1 truncate text-base font-black text-zinc-900">
+                      <h3 className="mt-0.5 truncate text-[15px] font-black text-zinc-900">
                         {item.customerName || "ไม่ระบุชื่อ"}
                       </h3>
                     </div>
@@ -1112,39 +1112,39 @@ export default function TrashPage() {
                     </span>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div className="rounded-xl bg-white px-3 py-2.5">
-                      <p className="text-[11px] font-semibold text-zinc-400">
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    <div className="rounded-lg bg-white px-2.5 py-2">
+                      <p className="text-[10px] font-semibold text-zinc-400">
                         เบอร์โทร
                       </p>
-                      <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                         {item.phone || "-"}
                       </p>
                     </div>
 
-                    <div className="rounded-xl bg-white px-3 py-2.5">
-                      <p className="text-[11px] font-semibold text-zinc-400">
+                    <div className="rounded-lg bg-white px-2.5 py-2">
+                      <p className="text-[10px] font-semibold text-zinc-400">
                         วันงาน
                       </p>
-                      <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                         {item.eventDate || "-"}
                       </p>
                     </div>
 
-                    <div className="col-span-2 rounded-xl bg-white px-3 py-2.5">
-                      <p className="text-[11px] font-semibold text-zinc-400">
+                    <div className="col-span-2 rounded-lg bg-white px-2.5 py-2">
+                      <p className="text-[10px] font-semibold text-zinc-400">
                         สถานที่จัดงาน
                       </p>
-                      <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                         {item.eventLocation || "-"}
                       </p>
                     </div>
 
-                    <div className="col-span-2 rounded-xl bg-white px-3 py-2.5">
-                      <p className="text-[11px] font-semibold text-zinc-400">
+                    <div className="col-span-2 rounded-lg bg-white px-2.5 py-2">
+                      <p className="text-[10px] font-semibold text-zinc-400">
                         วันที่ลบ
                       </p>
-                      <p className="mt-1 truncate text-sm font-bold text-zinc-800">
+                      <p className="mt-0.5 truncate text-[13px] font-bold text-zinc-800">
                         {formatTrashDate(item.deletedAt)}
                       </p>
                     </div>
@@ -1156,18 +1156,18 @@ export default function TrashPage() {
                         href={item.slipUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex min-h-10 flex-1 items-center justify-center rounded-xl border border-zinc-200 bg-white px-3 text-sm font-bold text-zinc-700 hover:bg-zinc-50"
+                        className="inline-flex min-h-9 flex-1 items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 text-xs font-bold text-zinc-700 hover:bg-zinc-50"
                       >
                         เปิดดูสลิป
                       </a>
                     )}
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
                     <button
                       type="button"
                       onClick={() => restoreCustomerRequest(item)}
-                      className="min-h-11 rounded-xl text-sm font-black text-white transition hover:opacity-90"
+                      className="min-h-9 rounded-lg px-3 text-xs font-black text-white transition hover:opacity-90"
                       style={{ backgroundColor: trashAccent }}
                     >
                       กู้คืน
@@ -1176,7 +1176,7 @@ export default function TrashPage() {
                     <button
                       type="button"
                       onClick={() => deleteCustomerRequestForever(item)}
-                      className="min-h-11 rounded-xl border border-red-200 bg-red-50 text-sm font-black text-red-600 transition hover:bg-red-100"
+                      className="min-h-9 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-black text-red-600 transition hover:bg-red-100"
                     >
                       ลบถาวร
                     </button>
@@ -1185,7 +1185,7 @@ export default function TrashPage() {
               ))}
             </div>
           ) : (
-            <div className="mt-4 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-8 text-center">
+            <div className="mt-3 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-6 text-center">
               <p className="text-sm font-bold text-zinc-500">
                 ไม่พบคำขอจากลูกค้าในถังขยะ
               </p>
