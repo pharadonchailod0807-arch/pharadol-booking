@@ -394,23 +394,25 @@ const handleSubmit = async (event) => {
         className="grid h-auto min-h-[144px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-[22px] py-[26px] text-white sm:min-h-[132px] sm:gap-[18px] sm:px-[34px] sm:py-4"
         style={{ background: config.paymentHeaderBackground }}
       >
-        <div className="min-w-0 flex-1">
-          <p className="mb-2.5 text-xs font-black uppercase leading-none tracking-[0.18em] text-white/75 sm:text-sm">
-            QR PAYMENT
-          </p>
-          <p className="m-0 inline-block w-max origin-left whitespace-nowrap text-[20px] font-extrabold leading-none tracking-[-0.3px] text-white [transform:scaleX(0.63)] min-[430px]:text-2xl sm:text-[clamp(24px,5vw,34px)] sm:[transform:scaleX(1)]">
-            {config.paymentName}
-          </p>
-        </div>
-        <span
-          className="inline-flex h-10 w-[140px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-4 text-[14px] font-black leading-none sm:h-[42px] sm:w-[150px] sm:text-[17px]"
-          style={{
-            backgroundColor: config.paymentPillBackground || config.accent,
-            color: config.paymentPillText || config.primary,
-          }}
-        >
-          รอแนบสลิป
-        </span>
+        <div className="min-w-0 flex-1 overflow-hidden">
+              <p className="mb-2 text-[11px] font-bold uppercase leading-none tracking-[4px] text-[#e9d4a1] sm:mb-2.5 sm:text-xs sm:tracking-[5px]">
+                QR PAYMENT
+              </p>
+
+              <p className="m-0 whitespace-nowrap text-[clamp(17px,5vw,20px)] font-extrabold leading-none tracking-[-0.3px] text-white sm:text-[24px]">
+                {config.paymentName}
+              </p>
+            </div>
+
+            <span
+              className="inline-flex h-[38px] w-[118px] shrink-0 items-center justify-center justify-self-end whitespace-nowrap rounded-full px-3 text-[14px] font-extrabold leading-none sm:h-[44px] sm:w-[146px] sm:px-4 sm:text-base"
+              style={{
+                backgroundColor: config.paymentPillBackground || config.accent,
+                color: config.paymentPillText || config.primary,
+              }}
+            >
+              รอแนบสลิป
+            </span>
       </div>
 
       <div className="px-[18px] py-5 text-center sm:px-7 sm:py-8">
