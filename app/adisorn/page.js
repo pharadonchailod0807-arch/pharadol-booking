@@ -1527,8 +1527,49 @@ const chooseLocationSuggestion = (suggestion) => {
 // DATE
 // =========================
 
-const bookingNumber =
-  loadedBookingNumber || customBookingNumber.trim() || "รอออกเลขเมื่อบันทึก";
+const bookingNumber = loadedBookingNumber || lastSavedBookingNumber || "";
+const hasBookingNumber = Boolean(bookingNumber);
+const placeholderBookingNumber = "BK-00000000-0000";
+const placeholderBookingDate = "00/00/0000 00:00:00";
+const renderBookingHeaderMeta = (dateValue, className = "") => (
+  <div className={`ml-auto flex w-[220px] flex-col items-end ${className}`}>
+    <div className="flex h-[32px] w-full justify-end overflow-hidden">
+      {hasBookingNumber ? (
+        <Barcode
+          value={bookingNumber}
+          width={Math.max(
+            0.55,
+            Math.min(0.9, 13 / Math.max(bookingNumber.length, 1))
+          )}
+          height={32}
+          margin={0}
+          displayValue={false}
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          className="h-[32px] w-[180px] shrink-0"
+        />
+      )}
+    </div>
+
+    <p
+      className={`mt-2 h-[24px] w-full whitespace-nowrap text-right text-[16px] font-black leading-[24px] tracking-normal ${
+        hasBookingNumber ? "text-black" : "select-none text-transparent"
+      }`}
+    >
+      {hasBookingNumber ? bookingNumber : placeholderBookingNumber}
+    </p>
+
+    <p
+      className={`mt-1 h-[14px] w-full whitespace-nowrap text-right text-[11px] leading-[14px] ${
+        hasBookingNumber ? "text-black" : "select-none text-transparent"
+      }`}
+    >
+      วันที่จอง : {hasBookingNumber ? dateValue : placeholderBookingDate}
+    </p>
+  </div>
+);
 const documentBookingDate = bookingDate || new Date().toLocaleString("th-TH");
 const documentToday = today || new Date().toLocaleDateString("th-TH");
 
@@ -3333,6 +3374,10 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
 const downloadPDF = async () => {
   if (isExporting) return;
+  if (!hasBookingNumber) {
+    window.alert("กรุณาบันทึกใบจองก่อนดาวน์โหลด PDF เพื่อให้ระบบออกเลขใบจองจริง");
+    return;
+  }
   if (!validateBooking()) return;
 
   setIsExporting(true);
@@ -4353,6 +4398,10 @@ const saveEmailHistoryRecord = ({ driveFile, messageId, subject, body }) => {
 
 const downloadJPG = async () => {
   if (isExporting) return;
+  if (!hasBookingNumber) {
+    window.alert("กรุณาบันทึกใบจองก่อนดาวน์โหลด JPG เพื่อให้ระบบออกเลขใบจองจริง");
+    return;
+  }
   if (!validateBooking()) return;
 
   setIsExporting(true);
@@ -6115,28 +6164,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
 
             </div>
 
-            <div className="ml-auto flex w-[220px] -translate-y-4 flex-col items-end">
-              <div className="flex w-full justify-end overflow-hidden">
-                <Barcode
-                  value={bookingNumber}
-                  width={Math.max(
-                    0.55,
-                    Math.min(0.9, 13 / Math.max(bookingNumber.length, 1))
-                  )}
-                  height={32}
-                  margin={0}
-                  displayValue={false}
-                />
-              </div>
-
-              <p className="mt-2 w-full whitespace-nowrap text-right text-[16px] font-black tracking-normal">
-                {bookingNumber}
-              </p>
-
-              <p className="mt-1 w-full whitespace-nowrap text-right text-[11px] text-black">
-                วันที่จอง : {documentBookingDate}
-              </p>
-            </div>
+            {renderBookingHeaderMeta(documentBookingDate, "-translate-y-4")}
 
           </div>
 
@@ -6367,28 +6395,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               </div>
             </div>
 
-            <div className="ml-auto flex w-[220px] -translate-y-4 flex-col items-end">
-              <div className="flex w-full justify-end overflow-hidden">
-                <Barcode
-                  value={bookingNumber}
-                  width={Math.max(
-                    0.55,
-                    Math.min(0.9, 13 / Math.max(bookingNumber.length, 1))
-                  )}
-                  height={32}
-                  margin={0}
-                  displayValue={false}
-                />
-              </div>
-
-              <p className="mt-2 w-full whitespace-nowrap text-right text-[16px] font-black tracking-normal">
-                {bookingNumber}
-              </p>
-
-              <p className="mt-1 w-full whitespace-nowrap text-right text-[11px] text-black">
-                วันที่จอง : {documentBookingDate}
-              </p>
-            </div>
+            {renderBookingHeaderMeta(documentBookingDate, "-translate-y-4")}
           </div>
 
           <div className="-translate-y-8 border-t border-black shrink-0" />
@@ -6614,28 +6621,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               </div>
             </div>
 
-            <div className="ml-auto flex w-[220px] -translate-y-4 flex-col items-end">
-              <div className="flex w-full justify-end overflow-hidden">
-                <Barcode
-                  value={bookingNumber}
-                  width={Math.max(
-                    0.55,
-                    Math.min(0.9, 13 / Math.max(bookingNumber.length, 1))
-                  )}
-                  height={32}
-                  margin={0}
-                  displayValue={false}
-                />
-              </div>
-
-              <p className="mt-2 w-full whitespace-nowrap text-right text-[16px] font-black tracking-normal">
-                {bookingNumber}
-              </p>
-
-              <p className="mt-1 w-full whitespace-nowrap text-right text-[11px] text-black">
-                วันที่จอง : {documentBookingDate}
-              </p>
-            </div>
+            {renderBookingHeaderMeta(documentBookingDate, "-translate-y-4")}
           </div>
 
           <div className="-translate-y-8 border-t border-black shrink-0" />
@@ -6848,28 +6834,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               </div>
             </div>
 
-            <div className="ml-auto flex w-[220px] flex-col items-end">
-              <div className="flex w-full justify-end overflow-hidden">
-                <Barcode
-                  value={bookingNumber}
-                  width={Math.max(
-                    0.55,
-                    Math.min(0.9, 13 / Math.max(bookingNumber.length, 1))
-                  )}
-                  height={32}
-                  margin={0}
-                  displayValue={false}
-                />
-              </div>
-
-              <p className="mt-2 w-full whitespace-nowrap text-right text-[16px] font-black tracking-normal">
-                {bookingNumber}
-              </p>
-
-              <p className="mt-1 w-full whitespace-nowrap text-right text-[11px] text-black">
-                วันที่จอง : {documentBookingDate}
-              </p>
-            </div>
+            {renderBookingHeaderMeta(documentBookingDate)}
           </div>
 
           <div className="-translate-y-8 border-t border-black shrink-0" />
