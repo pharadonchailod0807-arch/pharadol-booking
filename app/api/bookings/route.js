@@ -96,11 +96,12 @@ const getBookingBrand = (row) => {
 const getBookingNumberSources = async (brandId) => {
   const { data, error } = await supabase
     .from("bookings")
-    .select("booking_number, booking_data, deleted, archived");
+    .select("booking_number, booking_data, deleted, archived, job_status");
 
   if (error) throw error;
 
   return (Array.isArray(data) ? data : [])
+    .filter((row) => !isDraftBooking(row))
     .map((row) => {
       const bookingData = row?.booking_data || {};
       return {
@@ -109,35 +110,6 @@ const getBookingNumberSources = async (brandId) => {
       };
     })
     .filter((item) => item.brandId === brandId && item.bookingNumber);
-};
-
-const findDraftByReservation = async ({ brandId, reservationKey, customerRequestId }) => {
-  const keys = [
-    reservationKey ? { field: "reservationKey", value: reservationKey } : null,
-    customerRequestId
-      ? { field: "pendingCustomerRequestId", value: customerRequestId }
-      : null,
-    customerRequestId ? { field: "customerRequestId", value: customerRequestId } : null,
-  ].filter(Boolean);
-
-  for (const key of keys) {
-    const { data, error } = await supabase
-      .from("bookings")
-      .select("*")
-      .eq(`booking_data->>${key.field}`, key.value)
-      .eq("deleted", false);
-
-    if (error) throw error;
-
-    const draft = (Array.isArray(data) ? data : []).find((row) => {
-      const rowBrand = getBookingBrand(row);
-      return rowBrand === brandId && isDraftBooking(row);
-    });
-
-    if (draft) return draft;
-  }
-
-  return null;
 };
 
 const getNextBookingNumberFromDatabase = async (
@@ -170,7 +142,6 @@ const createBookingPayload = ({
   brandId,
   bangkokNow,
   bookingStatus = "active",
-  reservationKey = "",
   customerRequestId = "",
 } = {}) => {
   const bookingData = {
@@ -181,7 +152,6 @@ const createBookingPayload = ({
     brandId,
     bookingStatus,
     status: bookingStatus,
-    reservationKey: reservationKey || booking.reservationKey || "",
     pendingCustomerRequestId:
       customerRequestId ||
       booking.pendingCustomerRequestId ||
@@ -218,7 +188,6 @@ const updateBookingPayload = ({ booking, existingRow, brandId }) => {
     brandId,
     bookingStatus: "active",
     status: booking.status === "draft" ? "active" : booking.status || "active",
-    reservationKey: booking.reservationKey || existingBooking.reservationKey || "",
     pendingCustomerRequestId:
       booking.pendingCustomerRequestId ||
       existingBooking.pendingCustomerRequestId ||
@@ -278,6 +247,53 @@ const findExistingBooking = async ({ bookingId, bookingNumber, brandId }) => {
   return matchingRows[0] || null;
 };
 
+export async function GET(request) {
+  if (!supabase) {
+    return Response.json(
+      { success: false, error: "ยังไม่ได้ตั้งค่า Supabase สำหรับบันทึกใบจอง" },
+      { status: 500 }
+    );
+  }
+
+  try {
+    const requestUrl = new URL(request.url);
+    const brandId = normalizeBrand(
+      requestUrl.searchParams.get("brandId") || requestUrl.searchParams.get("brand")
+    );
+
+    if (!brandId) {
+      return Response.json(
+        { success: false, error: "ไม่พบแบรนด์ของใบจอง" },
+        { status: 400 }
+      );
+    }
+
+    const bangkokNow = getBangkokNow();
+    const nextBooking = await getNextBookingNumberFromDatabase(
+      brandId,
+      bangkokNow.date
+    );
+
+    return Response.json({
+      success: true,
+      bookingNumber: nextBooking.bookingNumber,
+      sequence: nextBooking.sequence,
+      bookingDate: bangkokNow.bookingDate,
+      today: bangkokNow.today,
+    });
+  } catch (error) {
+    console.error("Cannot preview booking number", error?.message || error);
+
+    return Response.json(
+      {
+        success: false,
+        error: error?.message || "โหลดเลขใบจองถัดไปไม่สำเร็จ",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request) {
   const blockedCrossSite = rejectCrossSiteRequest(request);
   if (blockedCrossSite) return blockedCrossSite;
@@ -300,9 +316,6 @@ export async function POST(request) {
   try {
     const payload = await request.json();
     const brandId = normalizeBrand(payload?.brandId);
-    const action = sanitizeText(payload?.action, 40);
-    const reservationKey = sanitizeText(payload?.reservationKey, 180);
-    const customerRequestId = sanitizeText(payload?.customerRequestId, 120);
     const booking = payload?.booking && typeof payload.booking === "object"
       ? payload.booking
       : {};
@@ -312,29 +325,6 @@ export async function POST(request) {
         { success: false, error: "ไม่พบแบรนด์ของใบจอง" },
         { status: 400 }
       );
-    }
-
-    if (action === "reserveDraft" && !reservationKey && !customerRequestId) {
-      return Response.json(
-        { success: false, error: "ไม่พบรหัสสำหรับจองเลขใบจอง" },
-        { status: 400 }
-      );
-    }
-
-    if (action === "reserveDraft") {
-      const existingDraft = await findDraftByReservation({
-        brandId,
-        reservationKey,
-        customerRequestId,
-      });
-
-      if (existingDraft) {
-        return Response.json({
-          success: true,
-          booking: normalizeBookingRow(existingDraft),
-          row: existingDraft,
-        });
-      }
     }
 
     if (booking.bookingNumber) {
@@ -363,9 +353,6 @@ export async function POST(request) {
         bookingNumber,
         brandId,
         bangkokNow,
-        bookingStatus: action === "reserveDraft" ? "draft" : "active",
-        reservationKey,
-        customerRequestId,
       });
 
       const { data, error } = await supabase
@@ -388,22 +375,6 @@ export async function POST(request) {
 
       if (!isDuplicateBookingNumberError(error)) {
         break;
-      }
-
-      if (action === "reserveDraft") {
-        const existingDraft = await findDraftByReservation({
-          brandId,
-          reservationKey,
-          customerRequestId,
-        });
-
-        if (existingDraft) {
-          return Response.json({
-            success: true,
-            booking: normalizeBookingRow(existingDraft),
-            row: existingDraft,
-          });
-        }
       }
 
       blockedBookingNumbers.add(bookingNumber);
