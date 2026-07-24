@@ -172,7 +172,10 @@ export default function CustomersPage() {
 
         const normalizedCustomers = (Array.isArray(data) ? data : [])
           .map(normalizeBookingRow)
-          .filter((customer) => customer.brandId === BRAND_ID);
+          .filter(
+            (customer) =>
+              customer.brandId === BRAND_ID && customer.bookingStatus !== "draft"
+          );
 
         syncCustomers(normalizedCustomers);
       } catch (error) {

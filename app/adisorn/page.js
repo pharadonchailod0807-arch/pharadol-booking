@@ -60,6 +60,7 @@ const NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY =
 const RESET_BOOKING_SEQUENCE_ACTIVE_KEY =
   "adisorn_resetBookingSequenceActive";
 const BOOKING_DRAFT_KEY = "adisorn_bookingDraft";
+const BOOKING_RESERVATION_KEY = "adisorn_bookingReservationKey";
 const PENDING_BOOKING_PREFILL_KEY = getPendingBookingPrefillKey(BRAND_ID);
 const PAYMENT_RECEIPTS_KEY = "adisorn_paymentReceipts";
 const ARCHIVES_KEY = "adisorn_archives";
@@ -575,6 +576,8 @@ const [isSaving, setIsSaving] = useState(false);
 const [isBookingSaved, setIsBookingSaved] = useState(false);
 const [isEditingBooking, setIsEditingBooking] = useState(false);
 const [pendingCustomerRequestId, setPendingCustomerRequestId] = useState("");
+const [reservedBookingId, setReservedBookingId] = useState("");
+const [isReservingBookingNumber, setIsReservingBookingNumber] = useState(false);
 const [isExporting, setIsExporting] = useState(false);
 const [draftStatus, setDraftStatus] = useState("");
 const [isDraftReady, setIsDraftReady] = useState(false);
@@ -586,6 +589,7 @@ const emailSendLockRef = useRef(false);
 const attachmentLockRef = useRef(false);
 const bookingPdfCacheRef = useRef(null);
 const bookingPreviewPanelRef = useRef(null);
+const bookingNumberReservationLockRef = useRef("");
 
 const markFieldEdited = (fieldName) => {
   setEditedFields((currentFields) =>
@@ -1046,6 +1050,76 @@ const chooseLocationSuggestion = (suggestion) => {
 
     setSecurityMessage("PIN ไม่ถูกต้อง กรุณาลองใหม่");
   };
+
+  const getBookingReservationKey = (requestId = "") => {
+    const normalizedRequestId = normalizeTextValue(requestId);
+
+    if (normalizedRequestId) {
+      const requestKey = `${BRAND_ID}:customer-request:${normalizedRequestId}`;
+      sessionStorage.setItem(BOOKING_RESERVATION_KEY, requestKey);
+      return requestKey;
+    }
+
+    const existingKey = sessionStorage.getItem(BOOKING_RESERVATION_KEY);
+    if (existingKey) return existingKey;
+
+    const nextKey = `${BRAND_ID}:draft:${
+      window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    }`;
+    sessionStorage.setItem(BOOKING_RESERVATION_KEY, nextKey);
+    return nextKey;
+  };
+
+  const reserveDraftBookingNumber = async (requestId = "") => {
+    const reservationKey = getBookingReservationKey(requestId);
+
+    if (bookingNumberReservationLockRef.current === reservationKey) return;
+
+    bookingNumberReservationLockRef.current = reservationKey;
+    setIsReservingBookingNumber(true);
+    setDraftStatus("กำลังออกเลขใบจอง...");
+
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reserveDraft",
+          brandId: BRAND_ID,
+          reservationKey,
+          customerRequestId: requestId || "",
+          booking: {
+            customerName: normalizeTextValue(customerName),
+            phone: normalizeTextValue(phone),
+            email: normalizeEmail(email),
+            location: normalizeTextValue(location),
+            eventDate: normalizeTextValue(eventDate),
+            pendingCustomerRequestId: requestId || "",
+          },
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success || !result.booking?.bookingNumber) {
+        throw new Error(result.error || "ออกเลขใบจองไม่สำเร็จ");
+      }
+
+      const reservedBooking = result.booking;
+      setReservedBookingId(reservedBooking.supabaseId || reservedBooking.bookingId || "");
+      setLoadedBookingNumber(reservedBooking.bookingNumber);
+      setBookingDate(reservedBooking.bookingDate || bookingDate);
+      setToday(reservedBooking.today || today);
+      setLastSavedBookingNumber("");
+      setIsBookingSaved(false);
+      setDraftStatus("ออกเลขใบจองแล้ว");
+    } catch (error) {
+      bookingNumberReservationLockRef.current = "";
+      console.error("Cannot reserve booking number", error);
+      setDraftStatus(error?.message || "ออกเลขใบจองไม่สำเร็จ");
+    } finally {
+      setIsReservingBookingNumber(false);
+    }
+  };
   useEffect(() => {
     if (!isAuthorized) return;
 
@@ -1141,6 +1215,33 @@ const chooseLocationSuggestion = (suggestion) => {
 
     return () => window.clearTimeout(timer);
   }, [isAuthorized]);
+
+  useEffect(() => {
+    if (
+      !isAuthorized ||
+      !isDraftReady ||
+      isViewMode ||
+      loadedBookingNumber ||
+      isBookingSaved
+    ) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const isCreateBookingRoute =
+      window.location.pathname === ROUTES.booking && !params.has("view");
+
+    if (!isCreateBookingRoute) return;
+
+    reserveDraftBookingNumber(pendingCustomerRequestId);
+  }, [
+    isAuthorized,
+    isDraftReady,
+    isViewMode,
+    loadedBookingNumber,
+    isBookingSaved,
+    pendingCustomerRequestId,
+  ]);
 
   useEffect(() => {
     if (!isDraftReady || isViewMode || loadedBookingNumber) return;
@@ -1288,6 +1389,7 @@ const chooseLocationSuggestion = (suggestion) => {
       if (isCreateBookingRoute) {
         setEditedFields({});
         setLoadedBookingNumber("");
+        setReservedBookingId("");
 
         const bookingNumberMode =
           localStorage.getItem(BOOKING_NUMBER_MODE_KEY) || "auto";
@@ -1312,6 +1414,7 @@ const chooseLocationSuggestion = (suggestion) => {
             const bookingSlip = getNormalizedSlipFields(booking);
             setEditedFields({});
             setLoadedBookingNumber(booking.bookingNumber || "");
+            setReservedBookingId(booking.supabaseId || booking.bookingId || "");
             setIsBookingSaved(Boolean(booking.bookingNumber));
             setIsEditingBooking(false);
             setCustomBookingNumber("");
@@ -1558,7 +1661,11 @@ const renderBookingHeaderMeta = (dateValue, className = "") => (
           : "text-[10px] font-semibold text-zinc-500"
       }`}
     >
-      {hasBookingNumber ? bookingNumber : "รอออกเลขเมื่อบันทึก"}
+      {hasBookingNumber
+        ? bookingNumber
+        : isReservingBookingNumber
+          ? "กำลังออกเลขใบจอง..."
+          : "รอออกเลขเมื่อบันทึก"}
     </p>
 
     <p
@@ -2858,6 +2965,10 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
   const clearForm = ({ keepCustomer = false } = {}) => {
     localStorage.removeItem(BOOKING_DRAFT_KEY);
+    sessionStorage.removeItem(BOOKING_RESERVATION_KEY);
+    bookingNumberReservationLockRef.current = "";
+    setReservedBookingId("");
+    setIsReservingBookingNumber(false);
     setDraftStatus("");
     setEditedFields({});
     if (!keepCustomer) {
@@ -2935,6 +3046,9 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
   const duplicateBooking = () => {
     setIsBookingSaved(false);
+    sessionStorage.removeItem(BOOKING_RESERVATION_KEY);
+    bookingNumberReservationLockRef.current = "";
+    setReservedBookingId("");
     const customers = readArrayFromStorage(CUSTOMERS_KEY);
     const now = new Date();
 
@@ -3054,10 +3168,15 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       normalizePaymentTransactionSlip(transaction, currentSlip)
     );
 
-    const isNewBooking =
-      !forceUpdate && !loadedBookingNumber && !lastSavedBookingNumber;
+    const isNewBooking = !forceUpdate && !isBookingSaved;
 
-    if (isNewBooking && customBookingNumber.trim()) {
+    if (isNewBooking && !loadedBookingNumber) {
+      window.alert("กรุณารอให้ระบบออกเลขใบจองก่อนบันทึก");
+      releaseSaveLock();
+      return;
+    }
+
+    if (isNewBooking && customBookingNumber.trim() && !loadedBookingNumber) {
       window.alert(
         "ระบบออกเลขใบจองจากฐานข้อมูลเท่านั้น กรุณาปิดเลขกำหนดเองแล้วบันทึกอีกครั้ง"
       );
@@ -3065,9 +3184,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       return;
     }
 
-    let resolvedBookingNumber = isNewBooking
-      ? ""
-      : loadedBookingNumber || lastSavedBookingNumber || bookingNumber;
+    let resolvedBookingNumber =
+      loadedBookingNumber || lastSavedBookingNumber || bookingNumber;
 
     const normalizedCustomerEmail = normalizeEmail(email);
     let customer = {
@@ -3139,6 +3257,12 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         supabaseId: existingCustomer.supabaseId || "",
         bookingId: existingCustomer.bookingId || existingCustomer.supabaseId || "",
       };
+    } else if (reservedBookingId) {
+      customer = {
+        ...customer,
+        supabaseId: reservedBookingId,
+        bookingId: reservedBookingId,
+      };
     }
 
     const duplicateBookingIndex = oldData.findIndex(
@@ -3169,13 +3293,20 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     try {
       const customerIndex = existingIndex !== -1 ? existingIndex : oldData.length - 1;
       const saveBookingToDatabase = async (booking) => {
-        const isUpdate = existingIndex !== -1 || forceUpdate;
+        const isUpdate =
+          existingIndex !== -1 ||
+          forceUpdate ||
+          Boolean(reservedBookingId || booking.bookingId || loadedBookingNumber);
         const response = await fetch("/api/bookings", {
           method: isUpdate ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             brandId: BRAND_ID,
-            bookingId: existingCustomer?.supabaseId || booking.bookingId || "",
+            bookingId:
+              existingCustomer?.supabaseId ||
+              reservedBookingId ||
+              booking.bookingId ||
+              "",
             bookingNumber:
               existingCustomer?.bookingNumber ||
               savedBookingNumberFromStorage ||
@@ -3249,6 +3380,9 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       const nextSequence = getNextBookingSequence(oldData);
       if (nextSequence != null) setNextBookingSequence(nextSequence);
 
+      sessionStorage.removeItem(BOOKING_RESERVATION_KEY);
+      bookingNumberReservationLockRef.current = "";
+      setReservedBookingId(customer.bookingId || customer.supabaseId || "");
       setLastSavedBookingNumber(customer.bookingNumber);
       setLoadedBookingNumber(customer.bookingNumber);
       setIsBookingSaved(true);
@@ -4489,8 +4623,8 @@ const getBookingEmailBody = () =>
 const sendBookingEmail = async () => {
   if (isPreparingAttachment || isSendingEmail || attachmentLockRef.current) return;
 
-  if (!isBookingSaved && !loadedBookingNumber) {
-    window.alert("กรุณาบันทึกใบจองก่อนส่งอีเมล เพื่อให้ระบบออกเลขใบจองจริง");
+  if (!isBookingSaved) {
+    window.alert("กรุณาบันทึกใบจองก่อนส่งอีเมล");
     return;
   }
 

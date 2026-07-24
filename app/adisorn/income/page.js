@@ -226,7 +226,9 @@ export default function IncomePage() {
 
         const remoteArchives = (Array.isArray(data) ? data : [])
           .map(normalizeArchivedBookingRow)
-          .filter((item) => item.brandId === BRAND_ID);
+          .filter(
+            (item) => item.brandId === BRAND_ID && item.bookingStatus !== "draft"
+          );
 
         if (remoteArchives.length > 0) {
           archives = remoteArchives;

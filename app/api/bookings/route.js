@@ -24,6 +24,15 @@ const isDuplicateBookingNumberError = (error) =>
   String(error?.message || "").includes("bookings_booking_number_key") ||
   String(error?.message || "").toLowerCase().includes("duplicate key");
 
+const isDraftBooking = (row) => {
+  const bookingData = row?.booking_data || row || {};
+  return (
+    bookingData.bookingStatus === "draft" ||
+    bookingData.status === "draft" ||
+    row?.job_status === "draft"
+  );
+};
+
 const getBangkokDateParts = (date = new Date()) => {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Bangkok",
@@ -102,6 +111,35 @@ const getBookingNumberSources = async (brandId) => {
     .filter((item) => item.brandId === brandId && item.bookingNumber);
 };
 
+const findDraftByReservation = async ({ brandId, reservationKey, customerRequestId }) => {
+  const keys = [
+    reservationKey ? { field: "reservationKey", value: reservationKey } : null,
+    customerRequestId
+      ? { field: "pendingCustomerRequestId", value: customerRequestId }
+      : null,
+    customerRequestId ? { field: "customerRequestId", value: customerRequestId } : null,
+  ].filter(Boolean);
+
+  for (const key of keys) {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq(`booking_data->>${key.field}`, key.value)
+      .eq("deleted", false);
+
+    if (error) throw error;
+
+    const draft = (Array.isArray(data) ? data : []).find((row) => {
+      const rowBrand = getBookingBrand(row);
+      return rowBrand === brandId && isDraftBooking(row);
+    });
+
+    if (draft) return draft;
+  }
+
+  return null;
+};
+
 const getNextBookingNumberFromDatabase = async (
   brandId,
   date,
@@ -126,14 +164,31 @@ const getNextBookingNumberFromDatabase = async (
   };
 };
 
-const createBookingPayload = ({ booking, bookingNumber, brandId, bangkokNow }) => {
+const createBookingPayload = ({
+  booking,
+  bookingNumber,
+  brandId,
+  bangkokNow,
+  bookingStatus = "active",
+  reservationKey = "",
+  customerRequestId = "",
+} = {}) => {
   const bookingData = {
     ...booking,
     bookingNumber,
     bookingDate: bangkokNow.bookingDate,
     today: bangkokNow.today,
     brandId,
+    bookingStatus,
+    status: bookingStatus,
+    reservationKey: reservationKey || booking.reservationKey || "",
+    pendingCustomerRequestId:
+      customerRequestId ||
+      booking.pendingCustomerRequestId ||
+      booking.customerRequestId ||
+      "",
   };
+  const isDraft = bookingStatus === "draft";
 
   return {
     booking_number: bookingNumber,
@@ -143,7 +198,9 @@ const createBookingPayload = ({ booking, bookingNumber, brandId, bangkokNow }) =
     service: sanitizeText(bookingData.service, 240),
     location: sanitizeText(bookingData.location, 500),
     event_date: bookingData.eventDate || null,
-    job_status: sanitizeText(bookingData.jobStatus || "รอยืนยัน", 80),
+    job_status: isDraft
+      ? "draft"
+      : sanitizeText(bookingData.jobStatus || "รอยืนยัน", 80),
     booking_data: bookingData,
     archived: false,
     deleted: false,
@@ -159,6 +216,13 @@ const updateBookingPayload = ({ booking, existingRow, brandId }) => {
     bookingDate: booking.bookingDate || existingBooking.bookingDate || "",
     today: booking.today || existingBooking.today || "",
     brandId,
+    bookingStatus: "active",
+    status: booking.status === "draft" ? "active" : booking.status || "active",
+    reservationKey: booking.reservationKey || existingBooking.reservationKey || "",
+    pendingCustomerRequestId:
+      booking.pendingCustomerRequestId ||
+      existingBooking.pendingCustomerRequestId ||
+      "",
     supabaseId: existingBooking.supabaseId,
     bookingId: existingBooking.supabaseId,
   };
@@ -236,6 +300,9 @@ export async function POST(request) {
   try {
     const payload = await request.json();
     const brandId = normalizeBrand(payload?.brandId);
+    const action = sanitizeText(payload?.action, 40);
+    const reservationKey = sanitizeText(payload?.reservationKey, 180);
+    const customerRequestId = sanitizeText(payload?.customerRequestId, 120);
     const booking = payload?.booking && typeof payload.booking === "object"
       ? payload.booking
       : {};
@@ -245,6 +312,29 @@ export async function POST(request) {
         { success: false, error: "ไม่พบแบรนด์ของใบจอง" },
         { status: 400 }
       );
+    }
+
+    if (action === "reserveDraft" && !reservationKey && !customerRequestId) {
+      return Response.json(
+        { success: false, error: "ไม่พบรหัสสำหรับจองเลขใบจอง" },
+        { status: 400 }
+      );
+    }
+
+    if (action === "reserveDraft") {
+      const existingDraft = await findDraftByReservation({
+        brandId,
+        reservationKey,
+        customerRequestId,
+      });
+
+      if (existingDraft) {
+        return Response.json({
+          success: true,
+          booking: normalizeBookingRow(existingDraft),
+          row: existingDraft,
+        });
+      }
     }
 
     if (booking.bookingNumber) {
@@ -273,6 +363,9 @@ export async function POST(request) {
         bookingNumber,
         brandId,
         bangkokNow,
+        bookingStatus: action === "reserveDraft" ? "draft" : "active",
+        reservationKey,
+        customerRequestId,
       });
 
       const { data, error } = await supabase
@@ -295,6 +388,22 @@ export async function POST(request) {
 
       if (!isDuplicateBookingNumberError(error)) {
         break;
+      }
+
+      if (action === "reserveDraft") {
+        const existingDraft = await findDraftByReservation({
+          brandId,
+          reservationKey,
+          customerRequestId,
+        });
+
+        if (existingDraft) {
+          return Response.json({
+            success: true,
+            booking: normalizeBookingRow(existingDraft),
+            row: existingDraft,
+          });
+        }
       }
 
       blockedBookingNumbers.add(bookingNumber);

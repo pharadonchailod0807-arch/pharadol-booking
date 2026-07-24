@@ -8,3 +8,11 @@ on public.bookings (
   booking_number
 )
 where booking_number is not null and booking_number <> '';
+
+create unique index if not exists bookings_brand_reservation_key_guard_idx
+on public.bookings (
+  (coalesce(booking_data->>'brandId', booking_data->>'brand', '')),
+  (booking_data->>'reservationKey')
+)
+where booking_data->>'reservationKey' is not null
+  and booking_data->>'reservationKey' <> '';

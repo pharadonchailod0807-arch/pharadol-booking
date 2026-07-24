@@ -252,7 +252,12 @@ export default function BrandCalendarPage({ brandId }) {
 
       const remoteBookings = (Array.isArray(data) ? data : [])
         .map((row) => normalizeBookingRow(row, brandId))
-        .filter((item) => item.brandId === brandId && item.eventDate);
+        .filter(
+          (item) =>
+            item.brandId === brandId &&
+            item.bookingStatus !== "draft" &&
+            item.eventDate
+        );
 
       if (remoteBookings.length > 0) {
         setBookings(remoteBookings);
