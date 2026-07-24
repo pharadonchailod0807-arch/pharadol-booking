@@ -1529,8 +1529,6 @@ const chooseLocationSuggestion = (suggestion) => {
 
 const bookingNumber = loadedBookingNumber || lastSavedBookingNumber || "";
 const hasBookingNumber = Boolean(bookingNumber);
-const placeholderBookingNumber = "BK-00000000-0000";
-const placeholderBookingDate = "00/00/0000 00:00:00";
 const renderBookingHeaderMeta = (dateValue, className = "") => (
   <div className={`ml-auto flex w-[220px] flex-col items-end ${className}`}>
     <div className="flex h-[32px] w-full justify-end overflow-hidden">
@@ -1554,19 +1552,19 @@ const renderBookingHeaderMeta = (dateValue, className = "") => (
     </div>
 
     <p
-      className={`mt-2 h-[24px] w-full whitespace-nowrap text-right text-[16px] font-black leading-[24px] tracking-normal ${
-        hasBookingNumber ? "text-black" : "select-none text-transparent"
+      className={`mt-2 h-[24px] w-full whitespace-nowrap text-right leading-[24px] tracking-normal ${
+        hasBookingNumber
+          ? "text-[16px] font-black text-black"
+          : "text-[10px] font-semibold text-zinc-500"
       }`}
     >
-      {hasBookingNumber ? bookingNumber : placeholderBookingNumber}
+      {hasBookingNumber ? bookingNumber : "รอออกเลขเมื่อบันทึก"}
     </p>
 
     <p
-      className={`mt-1 h-[14px] w-full whitespace-nowrap text-right text-[11px] leading-[14px] ${
-        hasBookingNumber ? "text-black" : "select-none text-transparent"
-      }`}
+      className="mt-1 h-[14px] w-full whitespace-nowrap text-right text-[11px] leading-[14px] text-black"
     >
-      วันที่จอง : {hasBookingNumber ? dateValue : placeholderBookingDate}
+      วันที่จอง : {dateValue}
     </p>
   </div>
 );
