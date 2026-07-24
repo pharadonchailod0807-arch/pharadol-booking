@@ -4325,6 +4325,20 @@ const uploadBookingPdfToDrive = async (pdfAttachment) => {
   return result.file;
 };
 
+const MAX_DIRECT_GMAIL_PDF_BYTES = 3 * 1024 * 1024;
+
+const readJsonResponse = async (response) => {
+  const responseText = await response.text();
+
+  if (!responseText) return {};
+
+  try {
+    return JSON.parse(responseText);
+  } catch {
+    return { error: responseText };
+  }
+};
+
 const markBookingEmailSent = async ({ driveFile, messageId }) => {
   const sentAt = new Date().toISOString();
   const recipientEmail = normalizeEmail(email);
@@ -4783,6 +4797,14 @@ const confirmSendBookingEmail = async () => {
       setEmailSendMessage("กำลังส่งข้อมูล...");
     }
 
+    if (!driveFile?.id && emailPreview.pdfAttachment.blob?.size > MAX_DIRECT_GMAIL_PDF_BYTES) {
+      throw new Error(
+        driveUploadError
+          ? `อัปโหลด PDF ไป Google Drive ไม่สำเร็จ และไฟล์ PDF มีขนาดใหญ่เกินส่งตรงผ่านระบบ Gmail: ${driveUploadError}`
+          : "ไฟล์ PDF มีขนาดใหญ่เกินส่งตรงผ่านระบบ Gmail กรุณาลองสร้าง PDF ใหม่อีกครั้ง"
+      );
+    }
+
     const emailSendPayload = {
       brandId: BRAND_ID,
       expectedBrandId: BRAND_ID,
@@ -4793,7 +4815,8 @@ const confirmSendBookingEmail = async () => {
       to: emailPreview.to,
       subject: emailPreview.subject,
       text: finalBody,
-      pdfBase64: emailPreview.pdfAttachment.base64,
+      pdfDriveFileId: driveFile?.id || "",
+      pdfBase64: driveFile?.id ? "" : emailPreview.pdfAttachment.base64,
       filename: emailPreview.pdfAttachment.filename,
     };
 
@@ -4804,7 +4827,8 @@ const confirmSendBookingEmail = async () => {
         brand: emailSendPayload.brandId,
         customerName: emailSendPayload.customerName,
         customerEmail: emailSendPayload.customerEmail,
-        hasPdf: Boolean(emailSendPayload.pdfBase64),
+        hasPdf: Boolean(emailSendPayload.pdfDriveFileId || emailSendPayload.pdfBase64),
+        pdfSource: emailSendPayload.pdfDriveFileId ? "drive" : "direct",
       });
     }
 
@@ -4815,7 +4839,7 @@ const confirmSendBookingEmail = async () => {
       },
       body: JSON.stringify(emailSendPayload),
     });
-    const result = await response.json().catch(() => ({}));
+    const result = await readJsonResponse(response);
 
     if (!response.ok) {
       throw new Error(
@@ -4825,6 +4849,17 @@ const confirmSendBookingEmail = async () => {
         )
       );
     }
+
+    await markBookingEmailSent({
+      driveFile,
+      messageId: result?.messageId || "",
+    });
+    saveEmailHistoryRecord({
+      driveFile,
+      messageId: result?.messageId || "",
+      subject: emailPreview.subject,
+      body: finalBody,
+    });
 
     setEmailSentInfo({
       to: emailPreview.to,

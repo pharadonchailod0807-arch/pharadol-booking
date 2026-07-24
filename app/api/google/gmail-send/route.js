@@ -53,6 +53,12 @@ const normalizeEmail = (value) => {
   return "";
 };
 
+const normalizeBase64Content = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/^data:application\/pdf;base64,/i, "")
+    .replace(/\s/g, "");
+
 const estimateBase64Bytes = (value) =>
   Math.floor((String(value || "").replace(/\s/g, "").length * 3) / 4);
 
@@ -129,6 +135,25 @@ const buildRawMessage = ({
   ].join("\r\n");
 
   return toBase64Url(message);
+};
+
+const getDrivePdfAttachmentContent = async ({ drive, fileId }) => {
+  const normalizedFileId = String(fileId || "").trim();
+
+  if (!normalizedFileId) return "";
+
+  const { data } = await drive.files.get(
+    {
+      fileId: normalizedFileId,
+      alt: "media",
+      supportsAllDrives: true,
+    },
+    {
+      responseType: "arraybuffer",
+    }
+  );
+
+  return Buffer.from(data).toString("base64");
 };
 
 const getReadableGoogleError = (error, brandId) => {
@@ -208,8 +233,15 @@ export async function POST(request) {
     const attachment = {
       filename: String(payload?.filename || payload?.attachment?.filename || "")
         .trim(),
-      content: String(payload?.pdfBase64 || payload?.attachment?.content || "")
-        .trim(),
+      content: normalizeBase64Content(
+        payload?.pdfBase64 || payload?.attachment?.content
+      ),
+      driveFileId: String(
+        payload?.pdfDriveFileId ||
+          payload?.driveFileId ||
+          payload?.attachment?.driveFileId ||
+          ""
+      ).trim(),
     };
 
     if (!config) {
@@ -260,21 +292,10 @@ export async function POST(request) {
       );
     }
 
-    if (!attachment.filename || !attachment.content) {
+    if (!attachment.filename || (!attachment.content && !attachment.driveFileId)) {
       return Response.json(
         { success: false, error: "ไม่พบไฟล์ PDF สำหรับแนบอีเมล" },
         { status: 400 }
-      );
-    }
-
-    if (estimateBase64Bytes(attachment.content) > MAX_GMAIL_ATTACHMENT_BYTES) {
-      return Response.json(
-        {
-          success: false,
-          error:
-            "ไฟล์แนบมีขนาดใหญ่เกินไปสำหรับ Gmail กรุณาลดขนาดไฟล์หรือส่งลิงก์ดาวน์โหลดแทน",
-        },
-        { status: 413 }
       );
     }
 
@@ -287,6 +308,34 @@ export async function POST(request) {
       version: "v1",
       auth: oauth2Client,
     });
+    const drive = google.drive({
+      version: "v3",
+      auth: oauth2Client,
+    });
+    const attachmentContent =
+      attachment.content ||
+      (await getDrivePdfAttachmentContent({
+        drive,
+        fileId: attachment.driveFileId,
+      }));
+
+    if (!attachmentContent) {
+      return Response.json(
+        { success: false, error: "ไม่สามารถอ่านไฟล์ PDF จาก Google Drive ได้" },
+        { status: 400 }
+      );
+    }
+
+    if (estimateBase64Bytes(attachmentContent) > MAX_GMAIL_ATTACHMENT_BYTES) {
+      return Response.json(
+        {
+          success: false,
+          error:
+            "ไฟล์แนบมีขนาดใหญ่เกินไปสำหรับ Gmail กรุณาลดขนาดไฟล์หรือส่งลิงก์ดาวน์โหลดแทน",
+        },
+        { status: 413 }
+      );
+    }
 
     const raw = buildRawMessage({
       senderName: config.senderName,
@@ -295,7 +344,10 @@ export async function POST(request) {
       subject,
       text,
       html,
-      attachment,
+      attachment: {
+        filename: attachment.filename,
+        content: attachmentContent,
+      },
     });
 
     const sentMessage = await gmail.users.messages.send({
