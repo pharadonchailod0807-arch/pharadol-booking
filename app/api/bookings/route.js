@@ -64,7 +64,7 @@ const getBangkokNow = () => {
 
 const normalizeBookingRow = (row) => {
   const bookingData = row?.booking_data || {};
-  const bookingNumber = bookingData.bookingNumber || row?.booking_number || "";
+  const bookingNumber = row?.booking_number || bookingData.bookingNumber || "";
   const supabaseId = row?.id || bookingData.supabaseId || bookingData.bookingId || "";
 
   return {
@@ -105,7 +105,7 @@ const getBookingNumberSources = async (brandId) => {
       const bookingData = row?.booking_data || {};
       return {
         brandId: getBookingBrand(row),
-        bookingNumber: bookingData.bookingNumber || row?.booking_number || "",
+        bookingNumber: row?.booking_number || bookingData.bookingNumber || "",
       };
     })
     .filter((item) => item.brandId === brandId && item.bookingNumber);
