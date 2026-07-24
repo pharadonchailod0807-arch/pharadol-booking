@@ -4,11 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import {
-  formatBookingNumber,
-  getNextAvailableBookingNumber,
-  getNextBookingSequence,
-} from "@/lib/booking-number";
+import { getNextBookingSequence } from "@/lib/booking-number";
 import {
   fetchGooglePlaceSuggestions,
   getAutocompleteOptionsFromBookings,
@@ -146,11 +142,6 @@ const getPaymentDisplayStatusClass = (status) => {
 
   return "border-zinc-200 bg-zinc-50 text-zinc-600";
 };
-
-const isDuplicateBookingNumberError = (error) =>
-  error?.code === "23505" ||
-  String(error?.message || "").includes("bookings_booking_number_key") ||
-  String(error?.message || "").toLowerCase().includes("duplicate key");
 
 const getGoogleClientSecretEnvLabel = () =>
   "ADISORN_GOOGLE_CLIENT_ID, ADISORN_GOOGLE_CLIENT_SECRET และ ADISORN_GOOGLE_REFRESH_TOKEN";
@@ -1419,15 +1410,6 @@ const chooseLocationSuggestion = (suggestion) => {
           : getNextBookingSequence(customers)
       );
 
-      if (!resetSequenceActive) {
-        getNextAvailableBookingNumber({
-          brandId: BRAND_ID,
-          supabaseClient: supabase,
-        }).then(({ sequence }) => {
-          if (sequence != null) setNextBookingSequence(sequence);
-        });
-      }
-
       const localAutocompleteOptions = mergeAutocompleteOptions(
         getDefaultAutocompleteOptions(),
         getAutocompleteOptionsFromBookings(customers)
@@ -1545,22 +1527,8 @@ const chooseLocationSuggestion = (suggestion) => {
 // DATE
 // =========================
 
-const todayRaw = new Date();
-
-const generatedBookingNumber = formatBookingNumber(
-  todayRaw,
-  nextBookingSequence
-);
-
-const hasSequenceOverride =
-  typeof window !== "undefined" &&
-  Number(localStorage.getItem(NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY)) > 0;
-
-const bookingNumber = customBookingNumber.trim()
-  ? customBookingNumber.trim()
-  : hasSequenceOverride
-    ? generatedBookingNumber
-    : loadedBookingNumber || generatedBookingNumber;
+const bookingNumber =
+  loadedBookingNumber || customBookingNumber.trim() || "รอออกเลขเมื่อบันทึก";
 const documentBookingDate = bookingDate || new Date().toLocaleString("th-TH");
 const documentToday = today || new Date().toLocaleDateString("th-TH");
 
@@ -2923,14 +2891,6 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         ? savedSequenceOverride
         : getNextBookingSequence(customers)
     );
-    if (!resetSequenceActive) {
-      getNextAvailableBookingNumber({
-        brandId: BRAND_ID,
-        supabaseClient: supabase,
-      }).then(({ sequence }) => {
-        if (sequence != null) setNextBookingSequence(sequence);
-      });
-    }
     window.history.replaceState({}, "", ROUTES.booking);
   };
 
@@ -2953,15 +2913,6 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         ? savedSequenceOverride
         : getNextBookingSequence(customers, now)
     );
-    if (!resetSequenceActive) {
-      getNextAvailableBookingNumber({
-        brandId: BRAND_ID,
-        supabaseClient: supabase,
-        date: now,
-      }).then(({ sequence }) => {
-        if (sequence != null) setNextBookingSequence(sequence);
-      });
-    }
     setLoadedBookingNumber("");
     setCustomBookingNumber(
       localStorage.getItem(BOOKING_NUMBER_MODE_KEY) === "custom"
@@ -3064,40 +3015,20 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       normalizePaymentTransactionSlip(transaction, currentSlip)
     );
 
-    let resolvedBookingNumber = bookingNumber;
-    const isAutomaticNewBooking =
-      !forceUpdate && !loadedBookingNumber && !customBookingNumber.trim();
+    const isNewBooking =
+      !forceUpdate && !loadedBookingNumber && !lastSavedBookingNumber;
 
-    if (isAutomaticNewBooking) {
-      let nextAvailable;
-
-      try {
-        nextAvailable = await getNextAvailableBookingNumber({
-          brandId: BRAND_ID,
-          supabaseClient: supabase,
-          date: todayRaw,
-        });
-      } catch (error) {
-        console.error(
-          "Cannot prepare booking number",
-          getSafeErrorMessage(error)
-        );
-        window.alert("เตรียมเลขที่ใบจองไม่สำเร็จ กรุณาลองใหม่");
-        releaseSaveLock();
-        return;
-      }
-
-      if (nextAvailable.sequence == null) {
-        window.alert(
-          "เลขที่การจองถูกใช้งานครบ 0001 ถึง 9999 แล้ว กรุณาใช้เลขแบบกำหนดเอง"
-        );
-        releaseSaveLock();
-        return;
-      }
-
-      resolvedBookingNumber = nextAvailable.bookingNumber;
-      setNextBookingSequence(nextAvailable.sequence);
+    if (isNewBooking && customBookingNumber.trim()) {
+      window.alert(
+        "ระบบออกเลขใบจองจากฐานข้อมูลเท่านั้น กรุณาปิดเลขกำหนดเองแล้วบันทึกอีกครั้ง"
+      );
+      releaseSaveLock();
+      return;
     }
+
+    let resolvedBookingNumber = isNewBooking
+      ? ""
+      : loadedBookingNumber || lastSavedBookingNumber || bookingNumber;
 
     const normalizedCustomerEmail = normalizeEmail(email);
     let customer = {
@@ -3173,7 +3104,9 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
     const duplicateBookingIndex = oldData.findIndex(
       (item, index) =>
-        item.bookingNumber === resolvedBookingNumber && index !== existingIndex
+        resolvedBookingNumber &&
+        item.bookingNumber === resolvedBookingNumber &&
+        index !== existingIndex
     );
 
     if (duplicateBookingIndex !== -1) {
@@ -3196,97 +3129,58 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
     try {
       const customerIndex = existingIndex !== -1 ? existingIndex : oldData.length - 1;
-      const getBookingPayload = (booking) => ({
-        booking_number: booking.bookingNumber,
-        customer_name: booking.customerName,
-        phone: booking.phone,
-        email: booking.email,
-        service: booking.service,
-        location: booking.location,
-        event_date: booking.eventDate || null,
-        job_status: booking.jobStatus || "รอยืนยัน",
-        booking_data: booking,
-        archived: false,
-        deleted: false,
-      });
-      const saveBookingToSupabase = async (booking) => {
-        if (existingIndex !== -1 || forceUpdate) {
-          const updateQuery = supabase
-            .from("bookings")
-            .update(getBookingPayload(booking))
-            .select("id, booking_number, booking_data");
-
-          if (existingCustomer?.supabaseId) {
-            return updateQuery.eq("id", existingCustomer.supabaseId).maybeSingle();
-          }
-
-          return updateQuery.eq(
-            "booking_number",
-            existingCustomer?.bookingNumber ||
+      const saveBookingToDatabase = async (booking) => {
+        const isUpdate = existingIndex !== -1 || forceUpdate;
+        const response = await fetch("/api/bookings", {
+          method: isUpdate ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            brandId: BRAND_ID,
+            bookingId: existingCustomer?.supabaseId || booking.bookingId || "",
+            bookingNumber:
+              existingCustomer?.bookingNumber ||
               savedBookingNumberFromStorage ||
               loadedBookingNumber ||
-              booking.bookingNumber
-          ).maybeSingle();
+              booking.bookingNumber ||
+              "",
+            booking: isUpdate ? booking : { ...booking, bookingNumber: "" },
+          }),
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (!response.ok || !result.success) {
+          return {
+            data: null,
+            error: {
+              message:
+                result.error ||
+                "บันทึกใบจองไม่สำเร็จ กรุณาตรวจสอบข้อมูลแล้วลองใหม่",
+            },
+          };
         }
 
-        return supabase
-          .from("bookings")
-          .insert(getBookingPayload(booking))
-          .select("id, booking_number, booking_data")
-          .single();
-      };
-      const getAvailableBookingNumber = async () => {
-        const latestBookings = oldData.filter(
-          (_, index) => index !== customerIndex
-        );
-        const nextAvailable = await getNextAvailableBookingNumber({
-          brandId: BRAND_ID,
-          supabaseClient: supabase,
-          date: todayRaw,
-          extraItems: latestBookings,
-        });
-
-        if (nextAvailable.sequence == null) return "";
-
-        return nextAvailable.bookingNumber;
+        return { data: result.booking, error: null };
       };
 
-      let { data: savedBookingRow, error } = await saveBookingToSupabase(customer);
-      let duplicateRetryCount = 0;
-
-      while (
-        isDuplicateBookingNumberError(error) &&
-        existingIndex === -1 &&
-        !forceUpdate &&
-        duplicateRetryCount < 10
-      ) {
-        duplicateRetryCount += 1;
-        const uniqueBookingNumber = await getAvailableBookingNumber();
-
-        if (!uniqueBookingNumber) break;
-
-        customer = {
-          ...customer,
-          bookingNumber: uniqueBookingNumber,
-        };
-        oldData[customerIndex] = customer;
-        setNextBookingSequence(Number(uniqueBookingNumber.slice(-4)));
-
-        ({ data: savedBookingRow, error } = await saveBookingToSupabase(customer));
-      }
+      let { data: savedBookingRow, error } = await saveBookingToDatabase(customer);
 
       if (error) {
         console.error("Cannot save booking to Supabase", getSafeErrorMessage(error));
-        alert(`บันทึกลง Supabase ไม่สำเร็จ\n${error.message || ""}`);
+        alert(`บันทึกใบจองไม่สำเร็จ\n${error.message || ""}`);
         return;
       }
 
-      if (savedBookingRow?.id || savedBookingRow?.booking_number) {
+      const savedRowId = savedBookingRow?.supabaseId || savedBookingRow?.id || "";
+      const savedRowNumber =
+        savedBookingRow?.bookingNumber || savedBookingRow?.booking_number || "";
+
+      if (savedRowId || savedRowNumber) {
         customer = {
           ...customer,
-          supabaseId: savedBookingRow.id || customer.supabaseId || "",
-          bookingId: savedBookingRow.id || customer.bookingId || "",
-          bookingNumber: savedBookingRow.booking_number || customer.bookingNumber,
+          ...savedBookingRow,
+          supabaseId: savedRowId || customer.supabaseId || "",
+          bookingId: savedRowId || customer.bookingId || "",
+          bookingNumber: savedRowNumber || customer.bookingNumber,
         };
         oldData[customerIndex] = customer;
       }
@@ -3339,10 +3233,14 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(oldData));
         localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
 
-        const { error: calendarSaveError } = await supabase
+        const calendarUpdateQuery = supabase
           .from("bookings")
-          .update({ booking_data: customer })
-          .eq("booking_number", customer.bookingNumber);
+          .update({ booking_data: customer });
+        const { error: calendarSaveError } = await (customer.supabaseId
+          ? calendarUpdateQuery.eq("id", customer.supabaseId)
+          : calendarUpdateQuery
+              .eq("booking_number", customer.bookingNumber)
+              .eq("booking_data->>brandId", BRAND_ID));
 
         if (calendarSaveError) {
           console.error(
@@ -3368,10 +3266,14 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(oldData));
         localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
 
-        await supabase
+        const calendarErrorUpdateQuery = supabase
           .from("bookings")
-          .update({ booking_data: customer })
-          .eq("booking_number", customer.bookingNumber);
+          .update({ booking_data: customer });
+        await (customer.supabaseId
+          ? calendarErrorUpdateQuery.eq("id", customer.supabaseId)
+          : calendarErrorUpdateQuery
+              .eq("booking_number", customer.bookingNumber)
+              .eq("booking_data->>brandId", BRAND_ID));
       }
 
       if (pendingCustomerRequestId && existingIndex === -1) {
@@ -4405,18 +4307,26 @@ const markBookingEmailSent = async ({ driveFile, messageId }) => {
     localStorage.setItem(SELECTED_BOOKING_KEY, JSON.stringify(updatedSelectedBooking));
   }
 
-  await supabase
-    .from("bookings")
-    .update({
+  const emailStatusUpdatePayload = {
+    email: recipientEmail,
+    booking_data: updatedCurrentBooking || {
+      bookingNumber,
+      customerName,
       email: recipientEmail,
-      booking_data: updatedCurrentBooking || {
-        bookingNumber,
-        customerName,
-        email: recipientEmail,
-        ...emailStatus,
-      },
-    })
-    .eq("booking_number", bookingNumber);
+      ...emailStatus,
+    },
+  };
+  const emailStatusBookingId =
+    updatedCurrentBooking?.supabaseId || updatedSelectedBooking?.supabaseId || "";
+  const emailStatusUpdateQuery = supabase
+    .from("bookings")
+    .update(emailStatusUpdatePayload);
+
+  await (emailStatusBookingId
+    ? emailStatusUpdateQuery.eq("id", emailStatusBookingId)
+    : emailStatusUpdateQuery
+        .eq("booking_number", bookingNumber)
+        .eq("booking_data->>brandId", BRAND_ID));
 };
 
 const saveEmailHistoryRecord = ({ driveFile, messageId, subject, body }) => {
@@ -4531,6 +4441,11 @@ const getBookingEmailBody = () =>
 
 const sendBookingEmail = async () => {
   if (isPreparingAttachment || isSendingEmail || attachmentLockRef.current) return;
+
+  if (!isBookingSaved && !loadedBookingNumber) {
+    window.alert("กรุณาบันทึกใบจองก่อนส่งอีเมล เพื่อให้ระบบออกเลขใบจองจริง");
+    return;
+  }
 
   const customerEmail = normalizeEmail(email);
 
