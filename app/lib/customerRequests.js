@@ -26,22 +26,62 @@ export const getPendingBookingPrefillKey = (brand) =>
   `pendingBookingPrefill_${brand}`;
 
 const normalizeDateValue = (value) => {
-  if (!value) return "";
-  return String(value).slice(0, 10);
+  const normalizedValue = normalizeTextValue(value);
+  if (!normalizedValue) return "";
+  return normalizedValue.slice(0, 10);
 };
 
+export const normalizeTextValue = (value) => {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value).trim();
+  }
+
+  if (value && typeof value === "object") {
+    return String(
+      value.email ||
+        value.address ||
+        value.value ||
+        value.text ||
+        value.name ||
+        value.url ||
+        value.webViewLink ||
+        value.webContentLink ||
+        ""
+    ).trim();
+  }
+
+  return "";
+};
+
+export const normalizeEmail = (value) => normalizeTextValue(value);
+
 const getFirstValue = (...values) =>
-  values.find((value) => String(value || "").trim()) || "";
+  values.map(normalizeTextValue).find(Boolean) || "";
 
 export const normalizeCustomerRequest = (request) => ({
-  id: request?.id || "",
-  brand: request?.brand || "",
-  customerName: request?.customerName || request?.customer_name || "",
-  phone: request?.phone || "",
-  email: request?.email || "",
-  eventLocation: request?.eventLocation || request?.event_location || "",
-  eventDate: normalizeDateValue(request?.eventDate || request?.event_date),
-  note: request?.note || request?.detail || "",
+  id: normalizeTextValue(request?.id),
+  brand: normalizeTextValue(request?.brand),
+  customerName: getFirstValue(
+    request?.customerName,
+    request?.customer_name,
+    request?.name
+  ),
+  phone: getFirstValue(request?.phone, request?.customerPhone, request?.customer_phone),
+  email: normalizeEmail(
+    getFirstValue(request?.customerEmail, request?.customer_email, request?.email)
+  ),
+  eventLocation: getFirstValue(
+    request?.eventLocation,
+    request?.event_location,
+    request?.location,
+    request?.venue
+  ),
+  eventDate: normalizeDateValue(request?.eventDate || request?.event_date || request?.date),
+  note: normalizeTextValue(request?.note || request?.detail),
   slipUrl: getFirstValue(
     request?.slipImage,
     request?.slip_image,
@@ -78,11 +118,13 @@ export const normalizeCustomerRequest = (request) => ({
     request?.proofImageFileType,
     request?.proof_image_file_type
   ),
-  status: request?.status || "new",
-  source: request?.source || "customer_form",
-  createdAt: request?.createdAt || request?.created_at || new Date().toISOString(),
-  bookingId: request?.bookingId || request?.booking_id || "",
-  deletedAt: request?.deletedAt || request?.deleted_at || "",
+  status: normalizeTextValue(request?.status) || "new",
+  source: normalizeTextValue(request?.source) || "customer_form",
+  createdAt:
+    normalizeTextValue(request?.createdAt || request?.created_at) ||
+    new Date().toISOString(),
+  bookingId: normalizeTextValue(request?.bookingId || request?.booking_id),
+  deletedAt: normalizeTextValue(request?.deletedAt || request?.deleted_at),
 });
 
 export const readLocalCustomerRequests = (brand) => {
@@ -196,19 +238,28 @@ export const deleteLocalCustomerRequest = (brand, id) => {
   return nextRequests;
 };
 
-export const getCustomerRequestPrefill = (request) => ({
-  requestId: request.id,
-  sourceRequestId: request.id,
-  brand: request.brand,
-  customerName: request.customerName,
-  phone: request.phone,
-  email: request.email,
-  location: request.eventLocation,
-  eventLocation: request.eventLocation,
-  eventDate: request.eventDate,
-  note: request.note,
-  paymentNote: request.note,
-  slipImage: request.slipUrl,
-  slipFileName: request.slipFileName,
-  slipFileType: request.slipFileType,
-});
+export const getCustomerRequestPrefill = (request, fallbackBrand = "") => {
+  const normalizedRequest = normalizeCustomerRequest({
+    ...request,
+    brand: request?.brand || fallbackBrand,
+  });
+
+  return {
+    requestId: normalizedRequest.id,
+    sourceRequestId: normalizedRequest.id,
+    brand: normalizedRequest.brand || fallbackBrand,
+    customerName: normalizedRequest.customerName,
+    customerEmail: normalizedRequest.email,
+    customerPhone: normalizedRequest.phone,
+    phone: normalizedRequest.phone,
+    email: normalizedRequest.email,
+    location: normalizedRequest.eventLocation,
+    eventLocation: normalizedRequest.eventLocation,
+    eventDate: normalizedRequest.eventDate,
+    note: normalizedRequest.note,
+    paymentNote: normalizedRequest.note,
+    slipImage: normalizedRequest.slipUrl,
+    slipFileName: normalizedRequest.slipFileName,
+    slipFileType: normalizedRequest.slipFileType,
+  };
+};

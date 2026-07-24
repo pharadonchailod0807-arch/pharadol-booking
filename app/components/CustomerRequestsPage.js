@@ -208,7 +208,7 @@ export default function CustomerRequestsPage({ brand }) {
     setPendingActionIds((current) => [...current, actionKey]);
     localStorage.setItem(
       getPendingBookingPrefillKey(brand),
-      JSON.stringify(getCustomerRequestPrefill(request))
+      JSON.stringify(getCustomerRequestPrefill(request, brand))
     );
     try {
       await updateRequestStatus(request, "viewed");

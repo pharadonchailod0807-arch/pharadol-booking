@@ -21,6 +21,8 @@ import {
 } from "@/lib/booking-autocomplete";
 import {
   getPendingBookingPrefillKey,
+  normalizeEmail,
+  normalizeTextValue,
   updateLocalCustomerRequest,
 } from "@/app/lib/customerRequests";
 import {
@@ -293,7 +295,7 @@ function getDisplaySlipUrl(url = "") {
 }
 
 const getFirstFilledValue = (...values) =>
-  values.find((value) => String(value || "").trim()) || "";
+  values.map(normalizeTextValue).find(Boolean) || "";
 
 const getNormalizedSlipImage = (source = {}) =>
   getFirstFilledValue(
@@ -1001,12 +1003,14 @@ const chooseLocationSuggestion = (suggestion) => {
 
           if (prefill?.brand === BRAND_ID) {
             const prefillSlip = getNormalizedSlipFields(prefill);
-            setCustomerName(prefill.customerName || "");
-            setPhone(prefill.phone || "");
-            setEmail(prefill.email || "");
-            setLocation(prefill.location || "");
-            setEventDate(prefill.eventDate || "");
-            setPaymentNote(prefill.paymentNote || "");
+            setCustomerName(normalizeTextValue(prefill.customerName || prefill.name));
+            setPhone(normalizeTextValue(prefill.phone || prefill.customerPhone));
+            setEmail(normalizeEmail(prefill.customerEmail || prefill.email));
+            setLocation(
+              normalizeTextValue(prefill.location || prefill.eventLocation || prefill.venue)
+            );
+            setEventDate(normalizeTextValue(prefill.eventDate || prefill.date));
+            setPaymentNote(normalizeTextValue(prefill.paymentNote || prefill.note));
             setSlipImage(prefillSlip.slipImage);
             setSlipFileName(prefillSlip.slipFileName);
             setSlipFileType(prefillSlip.slipFileType);
@@ -1028,12 +1032,12 @@ const chooseLocationSuggestion = (suggestion) => {
           const draft = JSON.parse(rawDraft);
           const draftSlip = getNormalizedSlipFields(draft);
 
-          setCustomerName(draft.customerName || "");
-          setPhone(draft.phone || "");
-          setEmail(draft.email || "");
-          setService(draft.service || "");
-          setLocation(draft.location || "");
-          setEventDate(draft.eventDate || "");
+          setCustomerName(normalizeTextValue(draft.customerName));
+          setPhone(normalizeTextValue(draft.phone));
+          setEmail(normalizeEmail(draft.customerEmail || draft.email));
+          setService(normalizeTextValue(draft.service));
+          setLocation(normalizeTextValue(draft.location));
+          setEventDate(normalizeTextValue(draft.eventDate));
           setStartTime(draft.startTime || "");
           setEndTime(draft.endTime || "");
           setServiceItems(
@@ -1086,7 +1090,7 @@ const chooseLocationSuggestion = (suggestion) => {
     const hasDraftContent =
       customerName.trim() ||
       phone.trim() ||
-      email.trim() ||
+      normalizeEmail(email) ||
       service.trim() ||
       location.trim() ||
       eventDate ||
@@ -1247,12 +1251,12 @@ const chooseLocationSuggestion = (suggestion) => {
             setIsBookingSaved(Boolean(booking.bookingNumber));
             setIsEditingBooking(false);
             setCustomBookingNumber("");
-            setCustomerName(booking.customerName || "");
-            setPhone(booking.phone || "");
-            setEmail(booking.email || "");
-            setService(booking.service || "");
-            setLocation(booking.location || "");
-            setEventDate(booking.eventDate || "");
+            setCustomerName(normalizeTextValue(booking.customerName));
+            setPhone(normalizeTextValue(booking.phone));
+            setEmail(normalizeEmail(booking.customerEmail || booking.email));
+            setService(normalizeTextValue(booking.service));
+            setLocation(normalizeTextValue(booking.location));
+            setEventDate(normalizeTextValue(booking.eventDate));
             setStartTime(booking.startTime || "");
             setEndTime(booking.endTime || "");
             setServiceItems(
@@ -3057,11 +3061,12 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       setNextBookingSequence(nextAvailable.sequence);
     }
 
+    const normalizedCustomerEmail = normalizeEmail(email);
     let customer = {
       bookingNumber: resolvedBookingNumber,
-      customerName,
-      phone,
-      email,
+      customerName: normalizeTextValue(customerName),
+      phone: normalizeTextValue(phone),
+      email: normalizedCustomerEmail,
       service,
       location,
       eventDate,
@@ -3120,6 +3125,14 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     const existingCustomer =
       existingIndex !== -1 ? oldData[existingIndex] : null;
 
+    if (existingCustomer) {
+      customer = {
+        ...customer,
+        supabaseId: existingCustomer.supabaseId || "",
+        bookingId: existingCustomer.bookingId || existingCustomer.supabaseId || "",
+      };
+    }
+
     const duplicateBookingIndex = oldData.findIndex(
       (item, index) =>
         item.bookingNumber === resolvedBookingNumber && index !== existingIndex
@@ -3162,10 +3175,11 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         if (existingIndex !== -1 || forceUpdate) {
           const updateQuery = supabase
             .from("bookings")
-            .update(getBookingPayload(booking));
+            .update(getBookingPayload(booking))
+            .select("id, booking_number, booking_data");
 
           if (existingCustomer?.supabaseId) {
-            return updateQuery.eq("id", existingCustomer.supabaseId);
+            return updateQuery.eq("id", existingCustomer.supabaseId).maybeSingle();
           }
 
           return updateQuery.eq(
@@ -3174,13 +3188,13 @@ const formattedEventDate = formatThaiDateInput(eventDate);
               savedBookingNumberFromStorage ||
               loadedBookingNumber ||
               booking.bookingNumber
-          );
+          ).maybeSingle();
         }
 
         return supabase
           .from("bookings")
           .insert(getBookingPayload(booking))
-          .select()
+          .select("id, booking_number, booking_data")
           .single();
       };
       const getAvailableBookingNumber = async () => {
@@ -3199,7 +3213,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         return nextAvailable.bookingNumber;
       };
 
-      let { error } = await saveBookingToSupabase(customer);
+      let { data: savedBookingRow, error } = await saveBookingToSupabase(customer);
       let duplicateRetryCount = 0;
 
       while (
@@ -3220,13 +3234,23 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         oldData[customerIndex] = customer;
         setNextBookingSequence(Number(uniqueBookingNumber.slice(-4)));
 
-        ({ error } = await saveBookingToSupabase(customer));
+        ({ data: savedBookingRow, error } = await saveBookingToSupabase(customer));
       }
 
       if (error) {
         console.error("Cannot save booking to Supabase", getSafeErrorMessage(error));
         alert(`บันทึกลง Supabase ไม่สำเร็จ\n${error.message || ""}`);
         return;
+      }
+
+      if (savedBookingRow?.id || savedBookingRow?.booking_number) {
+        customer = {
+          ...customer,
+          supabaseId: savedBookingRow.id || customer.supabaseId || "",
+          bookingId: savedBookingRow.id || customer.bookingId || "",
+          bookingNumber: savedBookingRow.booking_number || customer.bookingNumber,
+        };
+        oldData[customerIndex] = customer;
       }
 
       try {
@@ -4303,11 +4327,12 @@ const uploadBookingPdfToDrive = async (pdfAttachment) => {
 
 const markBookingEmailSent = async ({ driveFile, messageId }) => {
   const sentAt = new Date().toISOString();
+  const recipientEmail = normalizeEmail(email);
   const emailStatus = {
     emailSent: true,
     emailSentAt: sentAt,
     emailMessageId: messageId || "",
-    emailRecipient: email.trim(),
+    emailRecipient: recipientEmail,
     pdfDriveFileId: driveFile?.id || "",
     pdfDriveLink: driveFile?.webViewLink || "",
   };
@@ -4331,11 +4356,11 @@ const markBookingEmailSent = async ({ driveFile, messageId }) => {
   await supabase
     .from("bookings")
     .update({
-      email: email.trim(),
+      email: recipientEmail,
       booking_data: updatedCurrentBooking || {
         bookingNumber,
         customerName,
-        email: email.trim(),
+        email: recipientEmail,
         ...emailStatus,
       },
     })
@@ -4350,7 +4375,7 @@ const saveEmailHistoryRecord = ({ driveFile, messageId, subject, body }) => {
     brandId: BRAND_ID,
     bookingNumber,
     customerName,
-    recipient: email.trim(),
+    recipient: normalizeEmail(email),
     subject,
     body,
     sentAt: new Date().toISOString(),
@@ -4437,7 +4462,7 @@ const getBookingEmailBody = () =>
 const sendBookingEmail = async () => {
   if (isPreparingAttachment || isSendingEmail || attachmentLockRef.current) return;
 
-  const customerEmail = email.trim();
+  const customerEmail = normalizeEmail(email);
 
   if (!customerEmail) {
     window.alert("กรุณากรอกอีเมลลูกค้าก่อนส่งใบจอง");
@@ -4735,6 +4760,11 @@ const confirmSendBookingEmail = async () => {
     const finalBody = emailPreview.body;
     let driveFile = null;
     let driveUploadError = "";
+    const currentBooking = readObjectFromStorage(CURRENT_BOOKING_KEY);
+
+    if (!emailPreview.pdfAttachment?.base64 || !emailPreview.pdfAttachment?.filename) {
+      throw new Error("ไม่พบไฟล์ PDF สำหรับแนบอีเมล กรุณาสร้าง PDF ใหม่อีกครั้ง");
+    }
 
     try {
       driveFile = await uploadBookingPdfToDrive(emailPreview.pdfAttachment);
@@ -4753,20 +4783,37 @@ const confirmSendBookingEmail = async () => {
       setEmailSendMessage("กำลังส่งข้อมูล...");
     }
 
+    const emailSendPayload = {
+      brandId: BRAND_ID,
+      expectedBrandId: BRAND_ID,
+      bookingId: currentBooking?.bookingId || currentBooking?.supabaseId || "",
+      bookingNumber,
+      customerName: normalizeTextValue(customerName),
+      customerEmail: emailPreview.to,
+      to: emailPreview.to,
+      subject: emailPreview.subject,
+      text: finalBody,
+      pdfBase64: emailPreview.pdfAttachment.base64,
+      filename: emailPreview.pdfAttachment.filename,
+    };
+
+    if (process.env.NODE_ENV !== "production") {
+      console.log("EMAIL SEND PAYLOAD", {
+        bookingId: emailSendPayload.bookingId,
+        bookingNumber: emailSendPayload.bookingNumber,
+        brand: emailSendPayload.brandId,
+        customerName: emailSendPayload.customerName,
+        customerEmail: emailSendPayload.customerEmail,
+        hasPdf: Boolean(emailSendPayload.pdfBase64),
+      });
+    }
+
     const response = await fetch("/api/google/gmail-send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        brandId: BRAND_ID,
-        expectedBrandId: BRAND_ID,
-        to: emailPreview.to,
-        subject: emailPreview.subject,
-        text: finalBody,
-        pdfBase64: emailPreview.pdfAttachment.base64,
-        filename: emailPreview.pdfAttachment.filename,
-      }),
+      body: JSON.stringify(emailSendPayload),
     });
     const result = await response.json().catch(() => ({}));
 

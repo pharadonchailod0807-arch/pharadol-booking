@@ -41,6 +41,18 @@ const GOOGLE_CREDENTIAL_ENV_NAMES = {
 const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 const MAX_GMAIL_ATTACHMENT_BYTES = 24 * 1024 * 1024;
 
+const normalizeEmail = (value) => {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (value && typeof value === "object") {
+    return String(value.email || value.address || value.value || "").trim();
+  }
+
+  return "";
+};
+
 const estimateBase64Bytes = (value) =>
   Math.floor((String(value || "").replace(/\s/g, "").length * 3) / 4);
 
@@ -189,7 +201,7 @@ export async function POST(request) {
     brandId = normalizeBrand(payload?.brandId || payload?.brand);
     const expectedBrandId = normalizeBrand(payload?.expectedBrandId || brandId);
     const config = BRAND_CONFIG[brandId] || null;
-    const to = String(payload?.to || "").trim();
+    const to = normalizeEmail(payload?.to || payload?.customerEmail || payload?.email);
     const subject = String(payload?.subject || "").trim();
     const text = String(payload?.text || payload?.body || "").trim();
     const html = String(payload?.html || "").trim();
