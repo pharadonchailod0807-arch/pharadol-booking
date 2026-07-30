@@ -589,6 +589,7 @@ const attachmentLockRef = useRef(false);
 const bookingPdfCacheRef = useRef(null);
 const bookingPreviewPanelRef = useRef(null);
 const previewBookingNumberRequestRef = useRef("");
+const bookingPrefillConsumedRef = useRef(false);
 
 const markFieldEdited = (fieldName) => {
   setEditedFields((currentFields) =>
@@ -1105,18 +1106,42 @@ const chooseLocationSuggestion = (suggestion) => {
 
           if (prefill?.brand === BRAND_ID) {
             const prefillSlip = getNormalizedSlipFields(prefill);
+            const prefillService = getFirstFilledValue(
+              prefill.service,
+              prefill.jobType,
+              prefill.eventType,
+              prefill.type
+            );
+            const prefillNote = getFirstFilledValue(
+              prefill.paymentNote,
+              prefill.note,
+              prefill.additionalDetails,
+              prefill.details,
+              prefill.detail
+            );
+            const prefillCalendarColor = getFirstFilledValue(
+              prefill.calendarColor,
+              prefill.eventColor
+            );
+            bookingPrefillConsumedRef.current = true;
             setCustomerName(normalizeTextValue(prefill.customerName || prefill.name));
             setPhone(normalizeTextValue(prefill.phone || prefill.customerPhone));
             setEmail(normalizeEmail(prefill.customerEmail || prefill.email));
+            setService(prefillService);
             setLocation(
               normalizeTextValue(prefill.location || prefill.eventLocation || prefill.venue)
             );
-            setEventDate(normalizeTextValue(prefill.eventDate || prefill.date));
-            setPaymentNote(normalizeTextValue(prefill.paymentNote || prefill.note));
+            setEventDate(
+              normalizeTextValue(prefill.eventDate || prefill.bookingDate || prefill.date)
+            );
+            setCalendarColor(prefillCalendarColor || DEFAULT_CALENDAR_COLOR);
+            setPaymentNote(prefillNote);
             setSlipImage(prefillSlip.slipImage);
             setSlipFileName(prefillSlip.slipFileName);
             setSlipFileType(prefillSlip.slipFileType);
-            setPendingCustomerRequestId(prefill.requestId || "");
+            setPendingCustomerRequestId(
+              normalizeTextValue(prefill.requestId || prefill.sourceRequestId)
+            );
             localStorage.removeItem(PENDING_BOOKING_PREFILL_KEY);
             localStorage.removeItem(BOOKING_DRAFT_KEY);
             setDraftStatus("เติมข้อมูลจากคำขอลูกค้าแล้ว");
@@ -2934,6 +2959,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
   const clearForm = ({ keepCustomer = false } = {}) => {
     localStorage.removeItem(BOOKING_DRAFT_KEY);
+    bookingPrefillConsumedRef.current = false;
     previewBookingNumberRequestRef.current = "";
     setPreviewBookingNumber("");
     setIsLoadingPreviewBookingNumber(false);

@@ -81,7 +81,27 @@ export const normalizeCustomerRequest = (request) => ({
     request?.venue
   ),
   eventDate: normalizeDateValue(request?.eventDate || request?.event_date || request?.date),
-  note: normalizeTextValue(request?.note || request?.detail),
+  jobType: getFirstValue(
+    request?.jobType,
+    request?.job_type,
+    request?.eventType,
+    request?.event_type,
+    request?.service,
+    request?.type
+  ),
+  note: getFirstValue(
+    request?.note,
+    request?.detail,
+    request?.details,
+    request?.additionalDetails,
+    request?.additional_details
+  ),
+  calendarColor: getFirstValue(
+    request?.calendarColor,
+    request?.calendar_color,
+    request?.eventColor,
+    request?.event_color
+  ),
   slipUrl: getFirstValue(
     request?.slipImage,
     request?.slip_image,
@@ -253,12 +273,24 @@ export const getCustomerRequestPrefill = (request, fallbackBrand = "") => {
     customerPhone: normalizedRequest.phone,
     phone: normalizedRequest.phone,
     email: normalizedRequest.email,
+    jobType: normalizedRequest.jobType,
+    eventType: normalizedRequest.jobType,
+    service: normalizedRequest.jobType,
     location: normalizedRequest.eventLocation,
     eventLocation: normalizedRequest.eventLocation,
+    venue: normalizedRequest.eventLocation,
     eventDate: normalizedRequest.eventDate,
+    bookingDate: normalizedRequest.eventDate,
     note: normalizedRequest.note,
+    details: normalizedRequest.note,
+    additionalDetails: normalizedRequest.note,
     paymentNote: normalizedRequest.note,
+    calendarColor: normalizedRequest.calendarColor,
+    eventColor: normalizedRequest.calendarColor,
     slipImage: normalizedRequest.slipUrl,
+    slipUrl: normalizedRequest.slipUrl,
+    paymentSlip: normalizedRequest.slipUrl,
+    slipPreview: normalizedRequest.slipUrl,
     slipFileName: normalizedRequest.slipFileName,
     slipFileType: normalizedRequest.slipFileType,
   };
