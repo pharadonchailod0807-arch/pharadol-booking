@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const ADMIN_USERS_KEY = "central_admin_users";
@@ -97,17 +96,6 @@ const providerConfig = [
     label: "เข้าสู่ระบบด้วย SMS",
     icon: "SMS",
     enabled: process.env.NEXT_PUBLIC_SMS_LOGIN_ENABLED === "true",
-  },
-];
-
-const managedBrands = [
-  {
-    name: "PHARADOL PRODUCTION",
-    src: "/pharadol-logo.png",
-  },
-  {
-    name: "ADISORN WEDDING STUDIO",
-    src: "/adisorn-logo.png",
   },
 ];
 
@@ -353,43 +341,6 @@ export default function LoginPage() {
             </button>
           </header>
 
-          <div className="mt-4 lg:hidden">
-            <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-3">
-              <div className="flex min-h-[88px] flex-col items-center justify-center rounded-[18px] border border-white/12 bg-white/[0.08] px-3 py-3 text-center text-white shadow-[0_16px_44px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-                <div className="relative h-11 w-11 overflow-hidden rounded-xl bg-white">
-                  <Image
-                    src={managedBrands[0].src}
-                    alt={managedBrands[0].name}
-                    fill
-                    sizes="44px"
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-                <p className="mt-2 text-[10px] font-bold leading-4 text-white/78">
-                  {managedBrands[0].name}
-                </p>
-              </div>
-              <div className="flex items-center justify-center text-white/36">
-                <span className="h-12 w-px bg-white/18" />
-              </div>
-              <div className="flex min-h-[88px] flex-col items-center justify-center rounded-[18px] border border-white/12 bg-white/[0.08] px-3 py-3 text-center text-white shadow-[0_16px_44px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-                <div className="relative h-11 w-11 overflow-hidden rounded-xl bg-white">
-                  <Image
-                    src={managedBrands[1].src}
-                    alt={managedBrands[1].name}
-                    fill
-                    sizes="44px"
-                    className="object-contain"
-                  />
-                </div>
-                <p className="mt-2 text-[10px] font-bold leading-4 text-white/78">
-                  {managedBrands[1].name}
-                </p>
-              </div>
-            </div>
-          </div>
-
           <aside className="brand-panel hidden text-white lg:block">
             <div className="rounded-[28px] border border-white/14 bg-[#141B25]/95 p-8 shadow-[0_34px_120px_rgba(0,0,0,0.32)] backdrop-blur-2xl xl:p-10">
               <div className="inline-flex items-center gap-3 rounded-full border border-[#C9A86A]/38 bg-[#C9A86A]/14 px-4 py-2 text-sm font-bold text-[#F0D69A]">
@@ -404,45 +355,7 @@ export default function LoginPage() {
                 ระบบกลางสำหรับจัดการใบจอง ข้อมูลลูกค้า ปฏิทินงาน และการทำงานของทีม
               </p>
 
-              <div className="mt-8">
-                <p className="text-sm font-bold text-[#C2CAD6]">MANAGED BRANDS</p>
-                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-stretch gap-4">
-                  <div className="flex min-h-[156px] flex-col items-center justify-center rounded-[22px] border border-white/14 bg-white/[0.09] px-5 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]">
-                    <div className="relative h-20 w-20 overflow-hidden rounded-[18px] bg-white shadow-[0_14px_32px_rgba(0,0,0,0.18)]">
-                      <Image
-                        src={managedBrands[0].src}
-                        alt={managedBrands[0].name}
-                        fill
-                        sizes="80px"
-                        className="object-contain"
-                        priority
-                      />
-                    </div>
-                    <p className="mt-4 text-sm font-black leading-5 text-[#F4F0E8]">
-                      {managedBrands[0].name}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center">
-                    <span className="h-[104px] w-px bg-white/22" />
-                  </div>
-                  <div className="flex min-h-[156px] flex-col items-center justify-center rounded-[22px] border border-white/14 bg-white/[0.09] px-5 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]">
-                    <div className="relative h-20 w-20 overflow-hidden rounded-[18px] bg-white shadow-[0_14px_32px_rgba(0,0,0,0.18)]">
-                      <Image
-                        src={managedBrands[1].src}
-                        alt={managedBrands[1].name}
-                        fill
-                        sizes="80px"
-                        className="object-contain"
-                      />
-                    </div>
-                    <p className="mt-4 text-sm font-black leading-5 text-[#F4F0E8]">
-                      {managedBrands[1].name}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-7 grid grid-cols-3 gap-3">
+              <div className="mt-8 grid grid-cols-3 gap-3">
                 {systemHighlights.map((item) => (
                   <div
                     key={item}
@@ -479,7 +392,7 @@ export default function LoginPage() {
                 เข้าสู่ระบบ
               </h2>
               <p className="mt-2 text-sm font-medium leading-6 text-zinc-500">
-                เข้าสู่ระบบเพื่อจัดการงานของ Pharadol Production และ Adisorn Wedding Studio
+                เข้าสู่ระบบเพื่อจัดการใบจอง ข้อมูลลูกค้า และปฏิทินงาน
               </p>
             </div>
 
