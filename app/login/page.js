@@ -6,6 +6,13 @@ const ADMIN_USERS_KEY = "central_admin_users";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
 const MAX_LOGIN_USERNAME_HISTORY = 8;
 const GENERAL_LOGIN_ERROR = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+const GOOGLE_LOGIN_ENABLED =
+  process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "true";
+const GOOGLE_PROVIDER = {
+  key: "google",
+  label: "ดำเนินการต่อด้วยบัญชี Google",
+  href: "/api/auth/google",
+};
 
 const normalizeUsernameHistory = (value) => {
   const items = Array.isArray(value) ? value : [];
@@ -310,14 +317,7 @@ export default function LoginPage() {
         setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
       }
 
-      fetch("/api/auth/providers", { cache: "no-store" })
-        .then((response) => response.json())
-        .then((result) => {
-          setEnabledProviders(Array.isArray(result?.providers) ? result.providers : []);
-        })
-        .catch(() => {
-          setEnabledProviders([]);
-        });
+      setEnabledProviders(GOOGLE_LOGIN_ENABLED ? [GOOGLE_PROVIDER] : []);
 
       if (oauthStatus === "success") {
         fetch("/api/auth/session", { cache: "no-store" })
