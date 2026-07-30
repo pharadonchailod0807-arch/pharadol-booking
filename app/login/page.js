@@ -134,9 +134,12 @@ function EyeIcon({ crossed = false }) {
 }
 
 const systemHighlights = [
-  "จัดการใบจอง",
-  "จัดการข้อมูลลูกค้า",
-  "จัดการปฏิทินงาน",
+  { key: "booking", label: "จัดการใบจอง" },
+  { key: "customers", label: "จัดการข้อมูลลูกค้า" },
+  { key: "calendar", label: "จัดการปฏิทินงาน" },
+  { key: "reports", label: "รายงานและรายได้" },
+  { key: "documents", label: "ส่งอีเมลและเอกสาร" },
+  { key: "cloud", label: "จัดเก็บไฟล์บนคลาวด์" },
 ];
 
 function SystemIcon() {
@@ -174,6 +177,78 @@ function CheckIcon() {
   );
 }
 
+function FeatureIcon({ type }) {
+  const sharedProps = {
+    "aria-hidden": true,
+    viewBox: "0 0 24 24",
+    className: "h-5 w-5",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "1.8",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+  };
+
+  if (type === "customers") {
+    return (
+      <svg {...sharedProps}>
+        <path d="M16 11a4 4 0 1 0-8 0" />
+        <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+        <path d="M18.5 8.5a2.5 2.5 0 0 1 0 5" />
+      </svg>
+    );
+  }
+
+  if (type === "calendar") {
+    return (
+      <svg {...sharedProps}>
+        <rect x="4" y="5" width="16" height="15" rx="3" />
+        <path d="M8 3v4M16 3v4M4 10h16M8 14h3M13 14h3M8 17h2" />
+      </svg>
+    );
+  }
+
+  if (type === "reports") {
+    return (
+      <svg {...sharedProps}>
+        <path d="M5 19V5" />
+        <path d="M5 19h15" />
+        <path d="M9 16v-5" />
+        <path d="M13 16V8" />
+        <path d="M17 16v-3" />
+      </svg>
+    );
+  }
+
+  if (type === "documents") {
+    return (
+      <svg {...sharedProps}>
+        <path d="M5 7.5h14" />
+        <path d="m5 7.5 7 5 7-5" />
+        <rect x="4" y="6" width="16" height="12" rx="3" />
+      </svg>
+    );
+  }
+
+  if (type === "cloud") {
+    return (
+      <svg {...sharedProps}>
+        <path d="M17.5 18H8a4 4 0 0 1-.8-7.92 5.5 5.5 0 0 1 10.42-1.85A4.5 4.5 0 0 1 17.5 18Z" />
+        <path d="M12 12v4" />
+        <path d="m9.5 14.5 2.5-2.5 2.5 2.5" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...sharedProps}>
+      <path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2Z" />
+      <path d="M9 9h6" />
+      <path d="M9 13h4" />
+    </svg>
+  );
+}
+
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -186,6 +261,7 @@ export default function LoginPage() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [redirectTo, setRedirectTo] = useState("");
   const [enabledProviders, setEnabledProviders] = useState([]);
+  const [pendingProvider, setPendingProvider] = useState("");
   const submitLockRef = useRef(false);
 
   const completeClientSession = useCallback(
@@ -337,7 +413,8 @@ export default function LoginPage() {
   };
 
   const handleProviderLogin = (provider) => {
-    if (!provider.href) return;
+    if (!provider.href || pendingProvider) return;
+    setPendingProvider(provider.key);
     const url = new URL(provider.href, window.location.origin);
     if (redirectTo) url.searchParams.set("next", redirectTo);
     window.location.assign(url.toString());
@@ -353,7 +430,7 @@ export default function LoginPage() {
   return (
     <main className="login-bg min-h-screen overflow-x-hidden bg-[#090D14] text-[#15171B]">
       <div className="login-gradient min-h-screen px-5 pb-[max(22px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))] sm:px-8 lg:flex lg:items-center lg:justify-center lg:px-10 lg:py-8">
-        <section className="login-shell mx-auto flex min-h-[calc(100vh-44px)] w-full max-w-[1160px] flex-col lg:min-h-[680px] lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-10 xl:gap-14">
+        <section className="login-shell mx-auto flex min-h-[calc(100vh-44px)] w-full max-w-[1160px] flex-col lg:min-h-[660px] lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-8 xl:gap-12">
           <header className="flex min-h-[46px] items-center justify-between text-white lg:hidden">
             <button
               type="button"
@@ -380,38 +457,47 @@ export default function LoginPage() {
             </button>
           </header>
 
-          <aside className="brand-panel hidden text-white lg:block">
-            <div className="rounded-[28px] border border-white/14 bg-[#141B25]/95 p-8 shadow-[0_34px_120px_rgba(0,0,0,0.32)] backdrop-blur-2xl xl:p-10">
+          <aside className="system-panel hidden text-white lg:block">
+            <div className="rounded-[28px] border border-white/14 bg-[#141B25]/95 p-7 shadow-[0_34px_120px_rgba(0,0,0,0.32)] backdrop-blur-2xl xl:p-9">
               <div className="inline-flex items-center gap-3 rounded-full border border-[#C9A86A]/38 bg-[#C9A86A]/14 px-4 py-2 text-sm font-bold text-[#F0D69A]">
                 <SystemIcon />
                 ระบบกลางสำหรับทีมสตูดิโอ
               </div>
 
-              <h2 className="mt-8 max-w-[560px] text-[46px] font-black leading-[1.04] text-[#F8F4EC] [text-shadow:0_10px_34px_rgba(0,0,0,0.38)] xl:text-[54px]">
-                STUDIO BOOKING MANAGEMENT
+              <h2 className="mt-7 max-w-[560px] text-[44px] font-black leading-[1.04] text-[#F8F4EC] [text-shadow:0_10px_34px_rgba(0,0,0,0.38)] xl:text-[52px]">
+                STUDIO BOOKING
+                <span className="block">MANAGEMENT</span>
               </h2>
-              <p className="mt-5 max-w-[560px] text-lg font-medium leading-8 text-[#D9DEE7]">
+              <p className="mt-4 max-w-[560px] text-[17px] font-medium leading-8 text-[#D9DEE7]">
                 ระบบกลางสำหรับจัดการใบจอง ข้อมูลลูกค้า ปฏิทินงาน และการทำงานของทีม
               </p>
 
-              <div className="mt-8 grid grid-cols-3 gap-3">
+              <div className="mt-7 grid grid-cols-2 gap-3">
                 {systemHighlights.map((item) => (
                   <div
-                    key={item}
-                    className="rounded-2xl border border-white/12 bg-[#0D1621] px-4 py-3 text-sm font-bold text-[#DDE3EC]"
+                    key={item.key}
+                    className="flex min-h-[66px] items-center gap-3 rounded-2xl border border-white/12 bg-[#0D1621] px-4 py-3 text-sm font-bold text-[#DDE3EC]"
                   >
-                    {item}
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#C9A86A]/22 bg-[#C9A86A]/10 text-[#E1C58D]">
+                      <FeatureIcon type={item.key} />
+                    </span>
+                    <span>{item.label}</span>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-7 flex items-start gap-3 rounded-[22px] border border-[#C9A86A]/24 bg-[#C9A86A]/12 px-5 py-4 text-sm font-semibold leading-6 text-[#DDE3EC]">
+              <div className="mt-6 flex items-start gap-3 rounded-[22px] border border-[#C9A86A]/24 bg-[#C9A86A]/12 px-5 py-4 text-sm font-semibold leading-6 text-[#DDE3EC]">
                 <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#C9A86A]/18 text-[#E1C58D]">
                   <CheckIcon />
                 </span>
-                <p>
-                  ระบบนี้สำหรับผู้ได้รับอนุญาตเท่านั้น และข้อมูลการเข้าสู่ระบบได้รับการปกป้องอย่างปลอดภัย
-                </p>
+                <div>
+                  <p className="text-xs font-black tracking-[0.18em] text-[#E1C58D]">
+                    SECURE WORKSPACE
+                  </p>
+                  <p className="mt-1">
+                    ระบบนี้สำหรับผู้ได้รับอนุญาตเท่านั้น การเข้าสู่ระบบและข้อมูลของผู้ใช้งานได้รับการปกป้องอย่างปลอดภัย
+                  </p>
+                </div>
               </div>
             </div>
           </aside>
@@ -570,13 +656,15 @@ export default function LoginPage() {
                     <button
                       key={provider.key}
                       type="button"
+                      disabled={Boolean(pendingProvider)}
+                      aria-busy={pendingProvider === provider.key}
                       onClick={() => handleProviderLogin(provider)}
-                      className="relative flex h-[54px] w-full items-center justify-center rounded-2xl border border-[#DDD7CC] bg-white px-4 text-sm font-black text-[#15171B] transition hover:border-[#B99458] hover:bg-[#F8F4EC] focus:outline-none focus:ring-4 focus:ring-[#B99458]/16"
+                      className="relative flex h-[54px] w-full items-center justify-center rounded-2xl border border-[#DDD7CC] bg-white px-4 text-sm font-black text-[#15171B] transition hover:border-[#B99458] hover:bg-[#F8F4EC] active:scale-[0.99] focus:outline-none focus:ring-4 focus:ring-[#B99458]/16 disabled:cursor-not-allowed disabled:opacity-65 disabled:hover:border-[#DDD7CC] disabled:hover:bg-white"
                     >
                       <span className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-[#1B2230]">
                         <ProviderIcon provider={provider.key} />
                       </span>
-                      {provider.label}
+                      {pendingProvider === provider.key ? "กำลังเชื่อมต่อ..." : provider.label}
                     </button>
                   ))}
                 </div>
