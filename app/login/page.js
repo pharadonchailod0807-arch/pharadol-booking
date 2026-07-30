@@ -646,7 +646,7 @@ export default function LoginPage() {
                 <div className="flex items-center gap-3">
                   <span className="h-px flex-1 bg-zinc-200" />
                   <span className="text-xs font-bold text-zinc-400">
-                    หรือเข้าสู่ระบบด้วย
+                    หรือ
                   </span>
                   <span className="h-px flex-1 bg-zinc-200" />
                 </div>
