@@ -100,6 +100,58 @@ const providerConfig = [
   },
 ];
 
+const managedBrands = [
+  {
+    name: "PHARADOL PRODUCTION",
+    src: "/pharadol-logo.png",
+  },
+  {
+    name: "ADISORN WEDDING STUDIO",
+    src: "/adisorn-logo.png",
+  },
+];
+
+const systemHighlights = [
+  "จัดการใบจอง",
+  "จัดการข้อมูลลูกค้า",
+  "จัดการปฏิทินงาน",
+];
+
+function SystemIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="4" y="5" width="16" height="15" rx="3" />
+      <path d="M8 3v4M16 3v4M4 10h16M8 14h3M13 14h3M8 17h2" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m5 12 4 4L19 6" />
+    </svg>
+  );
+}
+
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -272,10 +324,10 @@ export default function LoginPage() {
     process.env.NEXT_PUBLIC_PASSWORD_RESET_ENABLED === "true";
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#07120f] text-[#10231C]">
-      <div className="min-h-screen bg-[linear-gradient(135deg,#07120f_0%,#123528_52%,#07120f_100%)] px-5 pb-[max(24px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] sm:px-8 lg:flex lg:items-center lg:justify-center lg:px-10 lg:py-10">
-        <section className="mx-auto flex min-h-[calc(100vh-48px)] w-full max-w-[1140px] flex-col lg:min-h-[680px] lg:flex-row lg:items-center lg:justify-between lg:gap-12">
-          <header className="flex min-h-[48px] items-center justify-between text-white lg:hidden">
+    <main className="login-bg min-h-screen overflow-x-hidden bg-[#090D14] text-[#15171B]">
+      <div className="login-gradient min-h-screen px-5 pb-[max(22px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))] sm:px-8 lg:flex lg:items-center lg:justify-center lg:px-10 lg:py-8">
+        <section className="login-shell mx-auto flex min-h-[calc(100vh-44px)] w-full max-w-[1160px] flex-col lg:min-h-[680px] lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-10 xl:gap-14">
+          <header className="flex min-h-[46px] items-center justify-between text-white lg:hidden">
             <button
               type="button"
               onClick={() => window.history.back()}
@@ -285,7 +337,12 @@ export default function LoginPage() {
             >
               ‹
             </button>
-            <h1 className="text-lg font-bold">เข้าสู่ระบบ</h1>
+            <h1 className="text-center text-[15px] font-black leading-tight">
+              STUDIO BOOKING
+              <span className="block text-xs font-semibold text-white/62">
+                MANAGEMENT
+              </span>
+            </h1>
             <button
               type="button"
               aria-label="ช่วยเหลือ"
@@ -296,58 +353,139 @@ export default function LoginPage() {
             </button>
           </header>
 
-          <div className="hidden max-w-[480px] text-white lg:block">
-            <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-white/15 bg-white/10">
-                <Image
-                  src="/customer-form/pharadol-logo-transparent.png"
-                  alt="Pharadol Production"
-                  width={120}
-                  height={48}
-                  className="h-auto w-12"
-                  priority
-                />
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#CDAE77]">
-                  Pharadol Production
+          <div className="mt-4 lg:hidden">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-3">
+              <div className="flex min-h-[88px] flex-col items-center justify-center rounded-[18px] border border-white/12 bg-white/[0.08] px-3 py-3 text-center text-white shadow-[0_16px_44px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+                <div className="relative h-11 w-11 overflow-hidden rounded-xl bg-white">
+                  <Image
+                    src={managedBrands[0].src}
+                    alt={managedBrands[0].name}
+                    fill
+                    sizes="44px"
+                    className="object-contain"
+                    priority
+                  />
+                </div>
+                <p className="mt-2 text-[10px] font-bold leading-4 text-white/78">
+                  {managedBrands[0].name}
                 </p>
-                <h2 className="mt-1 text-3xl font-black">
-                  Studio Booking Management
-                </h2>
+              </div>
+              <div className="flex items-center justify-center text-white/36">
+                <span className="h-12 w-px bg-white/18" />
+              </div>
+              <div className="flex min-h-[88px] flex-col items-center justify-center rounded-[18px] border border-white/12 bg-white/[0.08] px-3 py-3 text-center text-white shadow-[0_16px_44px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+                <div className="relative h-11 w-11 overflow-hidden rounded-xl bg-white">
+                  <Image
+                    src={managedBrands[1].src}
+                    alt={managedBrands[1].name}
+                    fill
+                    sizes="44px"
+                    className="object-contain"
+                  />
+                </div>
+                <p className="mt-2 text-[10px] font-bold leading-4 text-white/78">
+                  {managedBrands[1].name}
+                </p>
               </div>
             </div>
-            <p className="mt-7 max-w-[430px] text-lg font-medium leading-8 text-white/72">
-              พื้นที่ทำงานสำหรับจัดการใบจอง ข้อมูลลูกค้า และการทำงานของทีมอย่างปลอดภัย
-            </p>
           </div>
+
+          <aside className="brand-panel hidden text-white lg:block">
+            <div className="rounded-[28px] border border-white/14 bg-[#141B25]/95 p-8 shadow-[0_34px_120px_rgba(0,0,0,0.32)] backdrop-blur-2xl xl:p-10">
+              <div className="inline-flex items-center gap-3 rounded-full border border-[#C9A86A]/38 bg-[#C9A86A]/14 px-4 py-2 text-sm font-bold text-[#F0D69A]">
+                <SystemIcon />
+                ระบบกลางสำหรับทีมสตูดิโอ
+              </div>
+
+              <h2 className="mt-8 max-w-[560px] text-[46px] font-black leading-[1.04] text-[#F8F4EC] [text-shadow:0_10px_34px_rgba(0,0,0,0.38)] xl:text-[54px]">
+                STUDIO BOOKING MANAGEMENT
+              </h2>
+              <p className="mt-5 max-w-[560px] text-lg font-medium leading-8 text-[#D9DEE7]">
+                ระบบกลางสำหรับจัดการใบจอง ข้อมูลลูกค้า ปฏิทินงาน และการทำงานของทีม
+              </p>
+
+              <div className="mt-8">
+                <p className="text-sm font-bold text-[#C2CAD6]">MANAGED BRANDS</p>
+                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-stretch gap-4">
+                  <div className="flex min-h-[156px] flex-col items-center justify-center rounded-[22px] border border-white/14 bg-white/[0.09] px-5 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]">
+                    <div className="relative h-20 w-20 overflow-hidden rounded-[18px] bg-white shadow-[0_14px_32px_rgba(0,0,0,0.18)]">
+                      <Image
+                        src={managedBrands[0].src}
+                        alt={managedBrands[0].name}
+                        fill
+                        sizes="80px"
+                        className="object-contain"
+                        priority
+                      />
+                    </div>
+                    <p className="mt-4 text-sm font-black leading-5 text-[#F4F0E8]">
+                      {managedBrands[0].name}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <span className="h-[104px] w-px bg-white/22" />
+                  </div>
+                  <div className="flex min-h-[156px] flex-col items-center justify-center rounded-[22px] border border-white/14 bg-white/[0.09] px-5 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.10)]">
+                    <div className="relative h-20 w-20 overflow-hidden rounded-[18px] bg-white shadow-[0_14px_32px_rgba(0,0,0,0.18)]">
+                      <Image
+                        src={managedBrands[1].src}
+                        alt={managedBrands[1].name}
+                        fill
+                        sizes="80px"
+                        className="object-contain"
+                      />
+                    </div>
+                    <p className="mt-4 text-sm font-black leading-5 text-[#F4F0E8]">
+                      {managedBrands[1].name}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-7 grid grid-cols-3 gap-3">
+                {systemHighlights.map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl border border-white/12 bg-[#0D1621] px-4 py-3 text-sm font-bold text-[#DDE3EC]"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-7 flex items-start gap-3 rounded-[22px] border border-[#C9A86A]/24 bg-[#C9A86A]/12 px-5 py-4 text-sm font-semibold leading-6 text-[#DDE3EC]">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#C9A86A]/18 text-[#E1C58D]">
+                  <CheckIcon />
+                </span>
+                <p>
+                  ระบบนี้สำหรับผู้ได้รับอนุญาตเท่านั้น และข้อมูลการเข้าสู่ระบบได้รับการปกป้องอย่างปลอดภัย
+                </p>
+              </div>
+            </div>
+          </aside>
 
           <form
             onSubmit={handleLogin}
-            className="mx-auto mt-5 w-full max-w-[500px] rounded-lg border border-white/70 bg-white px-5 py-6 shadow-[0_28px_90px_rgba(0,0,0,0.32)] sm:px-8 sm:py-8 lg:mt-0 lg:max-w-[500px]"
+            className="login-card mx-auto mt-5 w-full max-w-[500px] rounded-[26px] border border-white/80 bg-[#FBFAF7] px-5 py-6 shadow-[0_30px_90px_rgba(0,0,0,0.30),0_1px_0_rgba(255,255,255,0.88)_inset] sm:px-8 sm:py-8 lg:mt-0 lg:max-w-[486px] xl:px-9 xl:py-9"
           >
             <div className="text-center">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-lg border border-[#E8DED0] bg-[#F8F4EC]">
-                <Image
-                  src="/customer-form/pharadol-logo-transparent.png"
-                  alt="Pharadol Production"
-                  width={150}
-                  height={60}
-                  className="h-auto w-16"
-                  priority
-                />
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] border border-[#E1D5C2] bg-[linear-gradient(145deg,#FFFFFF,#EFE8DB)] text-lg font-black text-[#1B2230] shadow-[0_16px_34px_rgba(27,34,48,0.12)]">
+                SBM
               </div>
+              <p className="mt-4 text-sm font-black text-[#A88953]">
+                STUDIO BOOKING MANAGEMENT
+              </p>
               <h2 className="mt-5 text-[28px] font-black leading-tight text-[#10231C]">
                 เข้าสู่ระบบ
               </h2>
               <p className="mt-2 text-sm font-medium leading-6 text-zinc-500">
-                เข้าสู่ระบบจัดการใบจองและข้อมูลลูกค้า
+                เข้าสู่ระบบเพื่อจัดการงานของ Pharadol Production และ Adisorn Wedding Studio
               </p>
             </div>
 
             {isHelpOpen && (
-              <div className="mt-5 rounded-lg border border-[#D9E3DC] bg-[#F5F9F6] px-4 py-3 text-sm font-medium leading-6 text-[#315245]">
-                กรุณาติดต่อผู้ดูแลระบบของ Pharadol Production หากต้องการรีเซ็ตรหัสผ่านหรือขอสิทธิ์เข้าใช้งาน
+              <div className="mt-5 rounded-2xl border border-[#DAD2C2] bg-[#F4F0E8] px-4 py-3 text-sm font-medium leading-6 text-[#4A4235]">
+                กรุณาติดต่อผู้ดูแลระบบ หากต้องการรีเซ็ตรหัสผ่านหรือขอสิทธิ์เข้าใช้งาน
               </div>
             )}
 
@@ -377,12 +515,12 @@ export default function LoginPage() {
                   autoComplete="username"
                   autoCapitalize="none"
                   autoCorrect="off"
-                  className="h-[54px] w-full rounded-lg border border-zinc-200 bg-white px-4 text-base font-semibold text-[#10231C] outline-none transition placeholder:text-zinc-400 focus:border-[#0F3D31] focus:shadow-[0_0_0_4px_rgba(15,61,49,0.12)]"
+                  className="h-[54px] w-full rounded-2xl border border-[#DDD7CC] bg-white px-4 text-base font-semibold text-[#15171B] outline-none transition placeholder:text-zinc-400 focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)]"
                   aria-describedby={error ? "login-error" : undefined}
                 />
 
                 {isUsernameHistoryOpen && visibleUsernameHistory.length > 0 && (
-                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1.5 text-left shadow-[0_18px_45px_rgba(15,23,42,0.14)]">
+                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-[#DDD7CC] bg-white p-1.5 text-left shadow-[0_18px_45px_rgba(15,23,42,0.14)]">
                     {visibleUsernameHistory.map((item) => (
                       <button
                         key={item}
@@ -393,7 +531,7 @@ export default function LoginPage() {
                           setIsUsernameHistoryOpen(false);
                           setError("");
                         }}
-                        className="block w-full rounded-md px-4 py-2.5 text-left text-sm font-semibold text-zinc-700 transition hover:bg-[#F5F9F6] focus:bg-[#F5F9F6] focus:outline-none"
+                        className="block w-full rounded-xl px-4 py-2.5 text-left text-sm font-semibold text-zinc-700 transition hover:bg-[#F5F1E9] focus:bg-[#F5F1E9] focus:outline-none"
                       >
                         {item}
                       </button>
@@ -430,14 +568,14 @@ export default function LoginPage() {
                       setError("");
                     }}
                     autoComplete="current-password"
-                    className="h-[54px] w-full rounded-lg border border-zinc-200 bg-white px-4 pr-14 text-base font-semibold text-[#10231C] outline-none transition placeholder:text-zinc-400 focus:border-[#0F3D31] focus:shadow-[0_0_0_4px_rgba(15,61,49,0.12)]"
+                    className="h-[54px] w-full rounded-2xl border border-[#DDD7CC] bg-white px-4 pr-14 text-base font-semibold text-[#15171B] outline-none transition placeholder:text-zinc-400 focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)]"
                     aria-describedby={error ? "login-error" : undefined}
                   />
                   <button
                     type="button"
                     aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
                     onClick={() => setShowPassword((current) => !current)}
-                    className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
+                    className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
                   >
                     <EyeIcon crossed={showPassword} />
                   </button>
@@ -449,7 +587,7 @@ export default function LoginPage() {
                   id="login-error"
                   role="alert"
                   aria-live="assertive"
-                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-bold text-red-700"
+                  className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-bold text-red-700"
                 >
                   {error}
                 </p>
@@ -459,7 +597,7 @@ export default function LoginPage() {
                 type="submit"
                 disabled={isSubmitting}
                 aria-busy={isSubmitting}
-                className="flex h-[54px] w-full items-center justify-center rounded-lg bg-[#0F3D31] px-5 text-base font-black text-white shadow-[0_14px_28px_rgba(15,61,49,0.22)] transition hover:bg-[#082E25] focus:outline-none focus:ring-4 focus:ring-[#0F3D31]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-[56px] w-full items-center justify-center rounded-2xl bg-[#151B26] px-5 text-base font-black text-white shadow-[0_14px_26px_rgba(21,27,38,0.22)] transition hover:-translate-y-0.5 hover:bg-[#0C111B] hover:shadow-[0_18px_34px_rgba(21,27,38,0.26)] active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#B99458]/22 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60"
               >
                 {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
               </button>
@@ -469,8 +607,8 @@ export default function LoginPage() {
               <div className="mt-7">
                 <div className="flex items-center gap-3">
                   <span className="h-px flex-1 bg-zinc-200" />
-                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
-                    หรือ
+                  <span className="text-xs font-bold text-zinc-400">
+                    หรือเข้าสู่ระบบด้วย
                   </span>
                   <span className="h-px flex-1 bg-zinc-200" />
                 </div>
@@ -481,9 +619,9 @@ export default function LoginPage() {
                       key={provider.key}
                       type="button"
                       onClick={() => handleProviderLogin(provider)}
-                      className="relative flex h-[52px] w-full items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-black text-[#10231C] transition hover:border-[#0F3D31] hover:bg-[#F5F9F6] focus:outline-none focus:ring-4 focus:ring-[#0F3D31]/12"
+                      className="relative flex h-[54px] w-full items-center justify-center rounded-2xl border border-[#DDD7CC] bg-white px-4 text-sm font-black text-[#15171B] transition hover:border-[#B99458] hover:bg-[#F8F4EC] focus:outline-none focus:ring-4 focus:ring-[#B99458]/16"
                     >
-                      <span className="absolute left-4 flex h-8 min-w-8 items-center justify-center rounded-full border border-zinc-200 px-2 text-xs font-black text-[#0F3D31]">
+                      <span className="absolute left-4 flex h-8 min-w-8 items-center justify-center rounded-full border border-zinc-200 px-2 text-xs font-black text-[#1B2230]">
                         {provider.icon}
                       </span>
                       {provider.label}
@@ -493,9 +631,68 @@ export default function LoginPage() {
               </div>
             )}
 
+            <div className="mt-6 border-t border-[#E7E0D4] pt-5 text-center text-xs font-semibold leading-5 text-zinc-500">
+              <p>ระบบนี้สำหรับผู้ได้รับอนุญาตเท่านั้น</p>
+              <p>ข้อมูลการเข้าสู่ระบบได้รับการปกป้องอย่างปลอดภัย</p>
+            </div>
           </form>
         </section>
       </div>
+
+      <style jsx>{`
+        .login-gradient {
+          background:
+            linear-gradient(115deg, rgba(11, 19, 31, 0.96) 0%, rgba(18, 23, 31, 0.92) 46%, rgba(13, 32, 35, 0.94) 100%),
+            linear-gradient(42deg, rgba(196, 162, 93, 0.18), rgba(74, 44, 72, 0.13) 46%, rgba(22, 84, 70, 0.16));
+          background-size: 130% 130%, 120% 120%;
+          animation: loginGradient 18s ease-in-out infinite alternate;
+        }
+
+        .brand-panel {
+          animation: loginSlideUp 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        .login-card {
+          animation: loginFadeIn 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        @keyframes loginGradient {
+          from {
+            background-position: 0% 50%, 0% 50%;
+          }
+          to {
+            background-position: 100% 50%, 100% 50%;
+          }
+        }
+
+        @keyframes loginSlideUp {
+          from {
+            transform: translateY(14px);
+          }
+          to {
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes loginFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px) scale(0.99);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .login-gradient,
+          .brand-panel,
+          .login-card {
+            animation: none;
+          }
+        }
+      `}</style>
     </main>
   );
 }
