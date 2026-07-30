@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const ADMIN_USERS_KEY = "central_admin_users";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
@@ -40,6 +40,80 @@ const getSafeRedirectPath = (value, fallback = "") => {
   }
 };
 
+function ProviderIcon({ provider }) {
+  if (provider === "google") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+        <path
+          fill="#4285F4"
+          d="M21.6 12.23c0-.78-.07-1.53-.2-2.23H12v4.22h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.23c1.89-1.74 2.99-4.31 2.99-7.52Z"
+        />
+        <path
+          fill="#34A853"
+          d="M12 22c2.7 0 4.96-.9 6.61-2.25l-3.23-2.51c-.9.6-2.04.95-3.38.95-2.6 0-4.81-1.76-5.6-4.12H3.06v2.6A9.99 9.99 0 0 0 12 22Z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M6.4 14.07A6.02 6.02 0 0 1 6.09 12c0-.72.11-1.42.31-2.07v-2.6H3.06A9.99 9.99 0 0 0 2 12c0 1.61.39 3.14 1.06 4.67l3.34-2.6Z"
+        />
+        <path
+          fill="#EA4335"
+          d="M12 5.81c1.47 0 2.79.51 3.83 1.51l2.86-2.86C16.96 2.85 14.7 2 12 2a9.99 9.99 0 0 0-8.94 5.33l3.34 2.6C7.19 7.57 9.4 5.81 12 5.81Z"
+        />
+      </svg>
+    );
+  }
+
+  if (provider === "apple") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 fill-current">
+        <path d="M16.37 12.2c-.03-2.16 1.76-3.21 1.84-3.26-1.01-1.48-2.58-1.68-3.12-1.7-1.33-.14-2.59.78-3.26.78-.68 0-1.7-.76-2.8-.74-1.44.02-2.77.84-3.51 2.13-1.5 2.6-.38 6.45 1.08 8.56.72 1.03 1.57 2.2 2.69 2.15 1.08-.04 1.49-.69 2.8-.69 1.3 0 1.68.69 2.82.67 1.17-.02 1.91-1.05 2.62-2.09.83-1.2 1.17-2.37 1.18-2.43-.03-.01-2.31-.88-2.34-3.38Zm-2.15-6.36c.59-.72.99-1.72.88-2.72-.85.03-1.89.57-2.5 1.29-.55.64-1.03 1.67-.9 2.65.95.08 1.92-.48 2.52-1.22Z" />
+      </svg>
+    );
+  }
+
+  if (provider === "line") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+        <rect width="22" height="16" x="1" y="4" fill="#06C755" rx="8" />
+        <path
+          fill="#fff"
+          d="M6.3 9h1.3v4H10v1.1H6.3V9Zm4.4 0H12v5.1h-1.3V9Zm2.3 0h1.2l2.1 2.9V9h1.2v5.1h-1.1l-2.2-3v3H13V9Z"
+        />
+      </svg>
+    );
+  }
+
+  if (provider === "facebook") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5">
+        <circle cx="12" cy="12" r="10" fill="#1877F2" />
+        <path
+          fill="#fff"
+          d="M14.77 14.9l.44-2.9h-2.78v-1.88c0-.79.39-1.57 1.64-1.57h1.27V6.08S14.19 5.89 13.1 5.89c-2.28 0-3.77 1.38-3.77 3.88V12H6.8v2.9h2.53v7.01a10.06 10.06 0 0 0 3.1 0V14.9h2.34Z"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3a5 5 0 0 0-5 5v2" />
+      <rect x="5" y="10" width="14" height="11" rx="2" />
+      <path d="M12 14v3" />
+    </svg>
+  );
+}
+
 function EyeIcon({ crossed = false }) {
   return (
     <svg
@@ -58,46 +132,6 @@ function EyeIcon({ crossed = false }) {
     </svg>
   );
 }
-
-const providerConfig = [
-  {
-    key: "google",
-    label: "เข้าสู่ระบบด้วย Google",
-    icon: "G",
-    enabled: process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "true",
-    href: "/api/auth/google",
-  },
-  {
-    key: "passkey",
-    label: "เข้าสู่ระบบด้วย Passkey",
-    icon: "⌘",
-    enabled: process.env.NEXT_PUBLIC_PASSKEY_LOGIN_ENABLED === "true",
-  },
-  {
-    key: "line",
-    label: "เข้าสู่ระบบด้วย LINE",
-    icon: "L",
-    enabled: process.env.NEXT_PUBLIC_LINE_LOGIN_ENABLED === "true",
-  },
-  {
-    key: "apple",
-    label: "เข้าสู่ระบบด้วย Apple",
-    icon: "",
-    enabled: process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED === "true",
-  },
-  {
-    key: "facebook",
-    label: "เข้าสู่ระบบด้วย Facebook",
-    icon: "f",
-    enabled: process.env.NEXT_PUBLIC_FACEBOOK_LOGIN_ENABLED === "true",
-  },
-  {
-    key: "sms",
-    label: "เข้าสู่ระบบด้วย SMS",
-    icon: "SMS",
-    enabled: process.env.NEXT_PUBLIC_SMS_LOGIN_ENABLED === "true",
-  },
-];
 
 const systemHighlights = [
   "จัดการใบจอง",
@@ -151,12 +185,8 @@ export default function LoginPage() {
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [redirectTo, setRedirectTo] = useState("");
+  const [enabledProviders, setEnabledProviders] = useState([]);
   const submitLockRef = useRef(false);
-
-  const enabledProviders = useMemo(
-    () => providerConfig.filter((provider) => provider.enabled && provider.href),
-    []
-  );
 
   const completeClientSession = useCallback(
     ({ user, activeBrand, users, redirectTo: nextPath }) => {
@@ -203,6 +233,15 @@ export default function LoginPage() {
       } else if (oauthError) {
         setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
       }
+
+      fetch("/api/auth/providers", { cache: "no-store" })
+        .then((response) => response.json())
+        .then((result) => {
+          setEnabledProviders(Array.isArray(result?.providers) ? result.providers : []);
+        })
+        .catch(() => {
+          setEnabledProviders([]);
+        });
 
       if (oauthStatus === "success") {
         fetch("/api/auth/session", { cache: "no-store" })
@@ -534,8 +573,8 @@ export default function LoginPage() {
                       onClick={() => handleProviderLogin(provider)}
                       className="relative flex h-[54px] w-full items-center justify-center rounded-2xl border border-[#DDD7CC] bg-white px-4 text-sm font-black text-[#15171B] transition hover:border-[#B99458] hover:bg-[#F8F4EC] focus:outline-none focus:ring-4 focus:ring-[#B99458]/16"
                     >
-                      <span className="absolute left-4 flex h-8 min-w-8 items-center justify-center rounded-full border border-zinc-200 px-2 text-xs font-black text-[#1B2230]">
-                        {provider.icon}
+                      <span className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-[#1B2230]">
+                        <ProviderIcon provider={provider.key} />
                       </span>
                       {provider.label}
                     </button>
