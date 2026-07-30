@@ -1,186 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const ADMIN_USERS_KEY = "central_admin_users";
-const ADMIN_USER_OVERRIDES_KEY = "central_admin_user_overrides";
-const ADMIN_USERS_TABLE = "admin_users";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
-const DEFAULT_LOGIN_USERNAME_OPTIONS = [];
 const MAX_LOGIN_USERNAME_HISTORY = 8;
-const ADMIN_USERNAME_ALIASES = ["admin", "super admin"];
-
-const DEFAULT_ACCOUNTS = [
-  {
-    id: "admin-1",
-    name: "ผู้ดูแลระบบ",
-    username: "Admin",
-    password: "1234",
-    role: "ADMIN",
-    brands: ["adisorn", "pharadol"],
-    active: true,
-  },
-  {
-    id: "pharadol-1",
-    name: "PHARADOL PRODUCTION",
-    username: "pharadol",
-    password: "1234",
-    role: "STAFF",
-    brands: ["pharadol"],
-    active: true,
-  },
-  {
-    id: "adisorn-1",
-    name: "Adisorn Wedding Studio",
-    username: "adisorn",
-    password: "1234",
-    role: "STAFF",
-    brands: ["adisorn"],
-    active: true,
-  },
-];
-
-const userToRow = (user) => ({
-  id: user.id,
-  name: user.name,
-  username: user.username,
-  password: user.password,
-  role: user.role,
-  brands: Array.isArray(user.brands) ? user.brands : [],
-  active: user.active !== false,
-  updated_at: new Date().toISOString(),
-});
-
-const rowToUser = (row) => ({
-  id: row.id,
-  name: row.name,
-  username: row.username,
-  password: row.password,
-  role: row.role,
-  brands: Array.isArray(row.brands) ? row.brands : [],
-  active: row.active !== false,
-});
-
-const clearUserOverrides = () => {
-  localStorage.removeItem(ADMIN_USER_OVERRIDES_KEY);
-};
-
-const normalizeAccounts = (value, { applyOverrides = true } = {}) => {
-  const savedAccounts = Array.isArray(value) ? value : [];
-  const savedOverrides = applyOverrides
-    ? (() => {
-        try {
-          const overrides = JSON.parse(
-            localStorage.getItem(ADMIN_USER_OVERRIDES_KEY) || "{}"
-          );
-
-          return overrides && typeof overrides === "object" ? overrides : {};
-        } catch (error) {
-          console.error("Cannot read admin user overrides", error);
-          return {};
-        }
-      })()
-    : {};
-  const source = [...savedAccounts];
-
-  DEFAULT_ACCOUNTS.forEach((defaultAccount) => {
-    const existingIndex = source.findIndex(
-      (user) =>
-        user.id === defaultAccount.id ||
-        String(user.username || "").trim().toLowerCase() ===
-          String(defaultAccount.username || "").trim().toLowerCase()
-    );
-
-    if (existingIndex === -1) {
-      source.push(defaultAccount);
-      return;
-    }
-
-    const existingAccount = source[existingIndex];
-    const override = savedOverrides[defaultAccount.id] || {};
-
-    source[existingIndex] = {
-      ...defaultAccount,
-      ...existingAccount,
-      ...override,
-      id: defaultAccount.id,
-      username:
-        override.username ||
-        (defaultAccount.id === "admin-1" &&
-        String(existingAccount.username || "").trim().toLowerCase() ===
-          "super admin"
-          ? "Admin"
-          : existingAccount.username || defaultAccount.username),
-      role: defaultAccount.role,
-      brands: defaultAccount.brands,
-      active:
-        typeof override.active === "boolean"
-          ? override.active
-          : typeof existingAccount.active === "boolean"
-            ? existingAccount.active
-            : true,
-    };
-  });
-
-  Object.entries(savedOverrides).forEach(([id, override]) => {
-    if (!override || typeof override !== "object") return;
-
-    const existingIndex = source.findIndex((user) => user.id === id);
-
-    if (existingIndex !== -1) {
-      source[existingIndex] = {
-        ...source[existingIndex],
-        ...override,
-        id,
-        active:
-          typeof override.active === "boolean"
-            ? override.active
-            : source[existingIndex].active,
-      };
-      return;
-    }
-
-    if (id === "admin-1") {
-      source.push({
-        ...DEFAULT_ACCOUNTS[0],
-        ...override,
-        id,
-        role: "ADMIN",
-        brands: ["adisorn", "pharadol"],
-        active:
-          typeof override.active === "boolean" ? override.active : true,
-      });
-    }
-  });
-
-  return source.map((user) => ({
-    ...user,
-    role: user.role === "super_admin" ? "ADMIN" : user.role,
-    active:
-      typeof user.active === "boolean"
-        ? user.active
-        : typeof user.isActive === "boolean"
-          ? user.isActive
-          : true,
-    brands:
-      user.role === "ADMIN" || user.role === "super_admin"
-        ? ["adisorn", "pharadol"]
-        : Array.isArray(user.brands)
-          ? user.brands
-              .map((brand) => (brand === "pharadon" ? "pharadol" : brand))
-              .filter((brand) => ["adisorn", "pharadol"].includes(brand))
-          : user.brandId
-            ? [user.brandId === "pharadon" ? "pharadol" : user.brandId].filter(
-                (brand) => ["adisorn", "pharadol"].includes(brand)
-              )
-            : [],
-  }));
-};
-
-const saveUsersLocally = (users) => {
-  localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(users));
-};
+const GENERAL_LOGIN_ERROR = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
 
 const normalizeUsernameHistory = (value) => {
   const items = Array.isArray(value) ? value : [];
@@ -197,306 +23,479 @@ const normalizeUsernameHistory = (value) => {
     normalizedItems.push(username);
   });
 
-  DEFAULT_LOGIN_USERNAME_OPTIONS.forEach((username) => {
-    const key = username.toLowerCase();
-
-    if (seen.has(key)) return;
-
-    seen.add(key);
-    normalizedItems.push(username);
-  });
-
   return normalizedItems.slice(0, MAX_LOGIN_USERNAME_HISTORY);
 };
 
-const syncUsersToSupabase = async (users) => {
-  const { error } = await supabase
-    .from(ADMIN_USERS_TABLE)
-    .upsert(users.map(userToRow), { onConflict: "id" });
-
-  if (error) {
-    console.error("Cannot sync admin users to Supabase", error);
+const getSafeRedirectPath = (value, fallback = "") => {
+  const rawValue = String(value || "").trim();
+  if (!rawValue || !rawValue.startsWith("/") || rawValue.startsWith("//")) {
+    return fallback;
   }
-};
-
-const loadUsers = async () => {
-  const savedUsers = JSON.parse(localStorage.getItem(ADMIN_USERS_KEY) || "null");
-  const localUsers = normalizeAccounts(savedUsers);
-  saveUsersLocally(localUsers);
 
   try {
-    const { data, error } = await supabase
-      .from(ADMIN_USERS_TABLE)
-      .select("*")
-      .order("username", { ascending: true });
-
-    if (error) throw error;
-
-    const remoteUsers = Array.isArray(data) ? data.map(rowToUser) : [];
-
-    if (remoteUsers.length > 0) {
-      const normalizedRemoteUsers = normalizeAccounts(remoteUsers, {
-        applyOverrides: false,
-      });
-      clearUserOverrides();
-      saveUsersLocally(normalizedRemoteUsers);
-      return normalizedRemoteUsers;
-    }
-
-    await syncUsersToSupabase(localUsers);
-  } catch (error) {
-    console.error("Cannot load admin users from Supabase", error);
+    const parsed = new URL(rawValue, window.location.origin);
+    if (parsed.origin !== window.location.origin) return fallback;
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return fallback;
   }
-
-  return localUsers;
 };
 
+function EyeIcon({ crossed = false }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+      {crossed && <path d="m4 4 16 16" />}
+    </svg>
+  );
+}
+
+const providerConfig = [
+  {
+    key: "google",
+    label: "เข้าสู่ระบบด้วย Google",
+    icon: "G",
+    enabled: process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "true",
+    href: "/api/auth/google",
+  },
+  {
+    key: "passkey",
+    label: "เข้าสู่ระบบด้วย Passkey",
+    icon: "⌘",
+    enabled: process.env.NEXT_PUBLIC_PASSKEY_LOGIN_ENABLED === "true",
+  },
+  {
+    key: "line",
+    label: "เข้าสู่ระบบด้วย LINE",
+    icon: "L",
+    enabled: process.env.NEXT_PUBLIC_LINE_LOGIN_ENABLED === "true",
+  },
+  {
+    key: "apple",
+    label: "เข้าสู่ระบบด้วย Apple",
+    icon: "",
+    enabled: process.env.NEXT_PUBLIC_APPLE_LOGIN_ENABLED === "true",
+  },
+  {
+    key: "facebook",
+    label: "เข้าสู่ระบบด้วย Facebook",
+    icon: "f",
+    enabled: process.env.NEXT_PUBLIC_FACEBOOK_LOGIN_ENABLED === "true",
+  },
+  {
+    key: "sms",
+    label: "เข้าสู่ระบบด้วย SMS",
+    icon: "SMS",
+    enabled: process.env.NEXT_PUBLIC_SMS_LOGIN_ENABLED === "true",
+  },
+];
+
 export default function LoginPage() {
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usernameHistory, setUsernameHistory] = useState([]);
   const [isUsernameHistoryOpen, setIsUsernameHistoryOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [redirectTo, setRedirectTo] = useState("");
+  const submitLockRef = useRef(false);
+
+  const enabledProviders = useMemo(
+    () => providerConfig.filter((provider) => provider.enabled && provider.href),
+    []
+  );
+
+  const completeClientSession = useCallback(
+    ({ user, activeBrand, users, redirectTo: nextPath }) => {
+      if (Array.isArray(users)) {
+        localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(users));
+      }
+
+      sessionStorage.clear();
+      sessionStorage.setItem("loggedIn", "true");
+      sessionStorage.setItem("currentUser", JSON.stringify(user));
+      sessionStorage.setItem("lastActivity", String(Date.now()));
+      sessionStorage.setItem("activeBrand", activeBrand);
+      window.location.replace(
+        getSafeRedirectPath(
+          nextPath,
+          activeBrand === "admin" ? "/admin" : `/${activeBrand}/welcome`
+        )
+      );
+    },
+    []
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const nextPath = getSafeRedirectPath(params.get("next"), "");
+      const oauthStatus = params.get("oauth");
+      const oauthError = params.get("error");
+
+      setRedirectTo(nextPath);
+      setHasPreviousPage(window.history.length > 1 && document.referrer !== "");
+
       try {
         const savedHistory = JSON.parse(
           localStorage.getItem(LOGIN_USERNAME_HISTORY_KEY) || "[]"
         );
-        const nextHistory = normalizeUsernameHistory(savedHistory);
+        setUsernameHistory(normalizeUsernameHistory(savedHistory));
+      } catch {
+        setUsernameHistory([]);
+      }
 
-        setUsernameHistory(nextHistory);
-      } catch (error) {
-        console.error("Cannot load login username history", error);
+      if (oauthError === "oauth_not_allowed") {
+        setError("บัญชีนี้ไม่ได้รับอนุญาตให้เข้าใช้งานระบบ");
+      } else if (oauthError) {
+        setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
+      }
+
+      if (oauthStatus === "success") {
+        fetch("/api/auth/session", { cache: "no-store" })
+          .then((response) => response.json())
+          .then((result) => {
+            if (!result?.success || !result.user) {
+              throw new Error("Cannot restore OAuth session");
+            }
+
+            completeClientSession({
+              user: result.user,
+              activeBrand: result.activeBrand,
+              users: result.users,
+              redirectTo: nextPath || result.redirectTo,
+            });
+          })
+          .catch(() => {
+            setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
+          });
+      } else {
+        const loggedIn = sessionStorage.getItem("loggedIn") === "true";
+        const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+        const activeBrand = sessionStorage.getItem("activeBrand");
+
+        if (loggedIn && currentUser && activeBrand) {
+          const fallback =
+            currentUser.role === "ADMIN"
+              ? "/admin"
+              : `/${activeBrand === "admin" ? "pharadol" : activeBrand}/welcome`;
+          window.location.replace(nextPath || fallback);
+        }
       }
     }, 0);
 
-    try {
-      loadUsers();
-    } catch (error) {
-      console.error("Cannot initialize login users", error);
-      localStorage.setItem(
-        ADMIN_USERS_KEY,
-        JSON.stringify(DEFAULT_ACCOUNTS)
-      );
-    }
-
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [completeClientSession]);
+
+  const saveUsernameHistory = (value) => {
+    const savedUsername = String(value || "").trim();
+    if (!savedUsername) return;
+
+    const nextHistory = normalizeUsernameHistory([
+      savedUsername,
+      ...usernameHistory.filter(
+        (item) => item.toLowerCase() !== savedUsername.toLowerCase()
+      ),
+    ]);
+
+    localStorage.setItem(LOGIN_USERNAME_HISTORY_KEY, JSON.stringify(nextHistory));
+    setUsernameHistory(nextHistory);
+  };
 
   const handleLogin = async (event) => {
     event.preventDefault();
+
+    if (submitLockRef.current || isSubmitting) return;
+
     setError("");
-    setIsSubmitting(true);
 
-    const normalizedUsername = username.trim().toLowerCase();
-    const normalizedPassword = password;
+    const normalizedIdentifier = identifier.trim();
 
-    if (!normalizedUsername || !normalizedPassword) {
-      setError("กรุณากรอก Username และ Password");
-      setIsSubmitting(false);
+    if (!normalizedIdentifier || !password) {
+      setError(GENERAL_LOGIN_ERROR);
       return;
     }
 
+    submitLockRef.current = true;
+    setIsSubmitting(true);
+
     try {
-      const users = await loadUsers();
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: normalizedIdentifier,
+          password,
+          redirectTo,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
 
-      const account = users.find(
-        (user) =>
-          (String(user.username || "").trim().toLowerCase() ===
-            normalizedUsername ||
-            (user.id === "admin-1" &&
-              ADMIN_USERNAME_ALIASES.includes(normalizedUsername))) &&
-          String(user.password || "") === normalizedPassword &&
-          user.active === true
-      );
-
-      if (!account) {
-        setError("Username หรือ Password ไม่ถูกต้อง หรือบัญชีถูกระงับ");
-        setIsSubmitting(false);
-        return;
+      if (!response.ok || !result?.success || !result.user) {
+        throw new Error(result?.error || GENERAL_LOGIN_ERROR);
       }
 
-      const allowedBrands = Array.isArray(account.brands)
-        ? account.brands
-            .map((brand) => (brand === "pharadon" ? "pharadol" : brand))
-            .filter((brand) => ["adisorn", "pharadol"].includes(brand))
-        : [];
-
-      const sessionUser = {
-        id: account.id,
-        name: account.name,
-        username: account.username,
-        role: account.role,
-        brands: allowedBrands,
-        active: account.active,
-        loggedInAt: new Date().toISOString(),
-      };
-
-      const savedUsername = String(account.username || "").trim();
-      const nextUsernameHistory = normalizeUsernameHistory([
-        savedUsername,
-        ...usernameHistory.filter(
-          (item) => item.toLowerCase() !== savedUsername.toLowerCase()
-        ),
-      ]);
-
-      localStorage.setItem(
-        LOGIN_USERNAME_HISTORY_KEY,
-        JSON.stringify(nextUsernameHistory)
-      );
-      setUsernameHistory(nextUsernameHistory);
-
-      sessionStorage.clear();
-      sessionStorage.setItem("loggedIn", "true");
-      sessionStorage.setItem("currentUser", JSON.stringify(sessionUser));
-      sessionStorage.setItem("lastActivity", String(Date.now()));
-
-      if (account.role === "ADMIN") {
-        sessionStorage.setItem("activeBrand", "admin");
-        window.location.replace("/admin");
-        return;
-      }
-
-      if (allowedBrands.length !== 1) {
-        sessionStorage.clear();
-        setError("บัญชีนี้ต้องได้รับสิทธิ์เพียงหนึ่งแบรนด์เท่านั้น");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const activeBrand = allowedBrands[0];
-      sessionStorage.setItem("activeBrand", activeBrand);
-      window.location.replace(`/${activeBrand}/welcome`);
-    } catch (error) {
-      console.error("Login failed", error);
-      sessionStorage.clear();
-      setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่");
+      saveUsernameHistory(result.user.username || normalizedIdentifier);
+      completeClientSession(result);
+    } catch (loginError) {
+      setError(loginError?.message || GENERAL_LOGIN_ERROR);
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   };
 
-  const usernameSearch = username.trim().toLowerCase();
-  const visibleUsernameHistory = [];
+  const handleProviderLogin = (provider) => {
+    if (!provider.href) return;
+    const url = new URL(provider.href, window.location.origin);
+    if (redirectTo) url.searchParams.set("next", redirectTo);
+    window.location.assign(url.toString());
+  };
+
+  const usernameSearch = identifier.trim().toLowerCase();
+  const visibleUsernameHistory = usernameHistory.filter((item) =>
+    item.toLowerCase().includes(usernameSearch)
+  );
+  const passwordResetEnabled =
+    process.env.NEXT_PUBLIC_PASSWORD_RESET_ENABLED === "true";
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070b12] px-4 py-8 text-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(14,165,233,0.2),transparent_32%),radial-gradient(circle_at_82%_16%,rgba(99,102,241,0.16),transparent_30%),linear-gradient(135deg,#07111d_0%,#111827_48%,#020617_100%)]" />
-        <div className="absolute inset-0 opacity-[0.045] [background-image:linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] [background-size:52px_52px]" />
-        <div className="absolute inset-x-0 bottom-0 h-64 bg-[linear-gradient(180deg,transparent,rgba(2,6,23,0.9))]" />
-      </div>
+    <main className="min-h-screen overflow-x-hidden bg-[#07120f] text-[#10231C]">
+      <div className="min-h-screen bg-[linear-gradient(135deg,#07120f_0%,#123528_52%,#07120f_100%)] px-5 pb-[max(24px,env(safe-area-inset-bottom))] pt-[max(18px,env(safe-area-inset-top))] sm:px-8 lg:flex lg:items-center lg:justify-center lg:px-10 lg:py-10">
+        <section className="mx-auto flex min-h-[calc(100vh-48px)] w-full max-w-[1140px] flex-col lg:min-h-[680px] lg:flex-row lg:items-center lg:justify-between lg:gap-12">
+          <header className="flex min-h-[48px] items-center justify-between text-white lg:hidden">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              disabled={!hasPreviousPage}
+              aria-label="ย้อนกลับ"
+              className="flex h-11 w-11 items-center justify-center rounded-full text-2xl font-semibold text-white transition hover:bg-white/10 disabled:invisible"
+            >
+              ‹
+            </button>
+            <h1 className="text-lg font-bold">เข้าสู่ระบบ</h1>
+            <button
+              type="button"
+              aria-label="ช่วยเหลือ"
+              onClick={() => setIsHelpOpen((current) => !current)}
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-base font-black text-white transition hover:bg-white/10"
+            >
+              ?
+            </button>
+          </header>
 
-      <form
-        onSubmit={handleLogin}
-        className="login-card relative z-10 w-full max-w-[480px] overflow-visible rounded-[28px] border border-white/12 bg-white/[0.075] px-6 py-8 text-center shadow-[0_28px_80px_rgba(0,0,0,0.52)] backdrop-blur-2xl sm:px-9 sm:py-9"
-      >
-        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.62),transparent)]" />
-        <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent_48%,rgba(255,255,255,0.035))]" />
+          <div className="hidden max-w-[480px] text-white lg:block">
+            <div className="flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-white/15 bg-white/10">
+                <Image
+                  src="/customer-form/pharadol-logo-transparent.png"
+                  alt="Pharadol Production"
+                  width={120}
+                  height={48}
+                  className="h-auto w-12"
+                  priority
+                />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#CDAE77]">
+                  Pharadol Production
+                </p>
+                <h2 className="mt-1 text-3xl font-black">
+                  Studio Booking Management
+                </h2>
+              </div>
+            </div>
+            <p className="mt-7 max-w-[430px] text-lg font-medium leading-8 text-white/72">
+              พื้นที่ทำงานสำหรับจัดการใบจอง ข้อมูลลูกค้า และการทำงานของทีมอย่างปลอดภัย
+            </p>
+          </div>
 
-        <div className="relative">
-          <p className="text-[10px] font-bold uppercase tracking-[0.34em] text-white/45">
-            Secure Workspace
-          </p>
-          <h1 className="mt-4 text-[30px] font-black uppercase leading-[0.98] text-white sm:text-[42px]">
-            STUDIO BOOKING
-            <span className="block">MANAGEMENT</span>
-          </h1>
-        </div>
+          <form
+            onSubmit={handleLogin}
+            className="mx-auto mt-5 w-full max-w-[500px] rounded-lg border border-white/70 bg-white px-5 py-6 shadow-[0_28px_90px_rgba(0,0,0,0.32)] sm:px-8 sm:py-8 lg:mt-0 lg:max-w-[500px]"
+          >
+            <div className="text-center">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-lg border border-[#E8DED0] bg-[#F8F4EC]">
+                <Image
+                  src="/customer-form/pharadol-logo-transparent.png"
+                  alt="Pharadol Production"
+                  width={150}
+                  height={60}
+                  className="h-auto w-16"
+                  priority
+                />
+              </div>
+              <h2 className="mt-5 text-[28px] font-black leading-tight text-[#10231C]">
+                เข้าสู่ระบบ
+              </h2>
+              <p className="mt-2 text-sm font-medium leading-6 text-zinc-500">
+                เข้าสู่ระบบจัดการใบจองและข้อมูลลูกค้า
+              </p>
+            </div>
 
-        <p className="relative mx-auto mt-3 max-w-[340px] text-sm font-medium leading-6 text-white/58">
-          เข้าสู่พื้นที่ทำงานที่ได้รับอนุญาต
-        </p>
-
-        <div className="relative mx-auto mt-8 max-w-[380px] space-y-4">
-          <div className="relative">
-            <label className="mb-2 block text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-white/48">
-              Username
-            </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(event) => {
-                setUsername(event.target.value);
-                setIsUsernameHistoryOpen(true);
-                setError("");
-              }}
-              onFocus={() => setIsUsernameHistoryOpen(true)}
-              onBlur={() => {
-                window.setTimeout(() => setIsUsernameHistoryOpen(false), 120);
-              }}
-              placeholder="Username"
-              autoComplete="off"
-              autoFocus
-              className="h-[52px] w-full rounded-2xl border border-white/14 bg-white/[0.09] px-4 text-base font-semibold text-white outline-none transition placeholder:text-white/34 focus:border-white/70 focus:bg-white/[0.13] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.1)]"
-            />
-
-            {isUsernameHistoryOpen && visibleUsernameHistory.length > 0 && (
-              <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-2xl border border-white/14 bg-[#111827]/90 p-1.5 text-left shadow-[0_18px_45px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
-                {visibleUsernameHistory.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      setUsername(item);
-                      setIsUsernameHistoryOpen(false);
-                      setError("");
-                    }}
-                    className="block w-full rounded-[14px] px-4 py-2.5 text-left text-sm font-semibold text-white/88 transition hover:bg-white/10 hover:text-white focus:bg-white/10 focus:text-white focus:outline-none"
-                  >
-                    {item}
-                  </button>
-                ))}
+            {isHelpOpen && (
+              <div className="mt-5 rounded-lg border border-[#D9E3DC] bg-[#F5F9F6] px-4 py-3 text-sm font-medium leading-6 text-[#315245]">
+                กรุณาติดต่อผู้ดูแลระบบของ Pharadol Production หากต้องการรีเซ็ตรหัสผ่านหรือขอสิทธิ์เข้าใช้งาน
               </div>
             )}
-          </div>
 
-          <div>
-            <label className="mb-2 block text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-white/48">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value);
-                setError("");
-              }}
-              placeholder="Password"
-              autoComplete="current-password"
-              className="h-[52px] w-full rounded-2xl border border-white/14 bg-white/[0.09] px-4 text-base font-semibold text-white outline-none transition placeholder:text-white/34 focus:border-white/70 focus:bg-white/[0.13] focus:shadow-[0_0_0_4px_rgba(255,255,255,0.1)]"
-            />
-          </div>
+            <div className="mt-7 space-y-4">
+              <div className="relative">
+                <label
+                  htmlFor="login-identifier"
+                  className="mb-2 block text-sm font-bold text-[#10231C]"
+                >
+                  ชื่อผู้ใช้ อีเมล หรือเบอร์โทรศัพท์
+                </label>
+                <input
+                  id="login-identifier"
+                  name="username"
+                  type="text"
+                  inputMode="email"
+                  value={identifier}
+                  onChange={(event) => {
+                    setIdentifier(event.target.value);
+                    setIsUsernameHistoryOpen(true);
+                    setError("");
+                  }}
+                  onFocus={() => setIsUsernameHistoryOpen(true)}
+                  onBlur={() => {
+                    window.setTimeout(() => setIsUsernameHistoryOpen(false), 120);
+                  }}
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  className="h-[54px] w-full rounded-lg border border-zinc-200 bg-white px-4 text-base font-semibold text-[#10231C] outline-none transition placeholder:text-zinc-400 focus:border-[#0F3D31] focus:shadow-[0_0_0_4px_rgba(15,61,49,0.12)]"
+                  aria-describedby={error ? "login-error" : undefined}
+                />
 
-          {error && (
-            <p className="rounded-2xl border border-[#ff453a]/25 bg-[#ff453a]/10 px-4 py-3 text-center text-sm font-semibold text-[#ffb4ae]">
-              {error}
-            </p>
-          )}
+                {isUsernameHistoryOpen && visibleUsernameHistory.length > 0 && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-20 overflow-hidden rounded-lg border border-zinc-200 bg-white p-1.5 text-left shadow-[0_18px_45px_rgba(15,23,42,0.14)]">
+                    {visibleUsernameHistory.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                          setIdentifier(item);
+                          setIsUsernameHistoryOpen(false);
+                          setError("");
+                        }}
+                        className="block w-full rounded-md px-4 py-2.5 text-left text-sm font-semibold text-zinc-700 transition hover:bg-[#F5F9F6] focus:bg-[#F5F9F6] focus:outline-none"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="group relative inline-flex h-[52px] w-full items-center justify-center overflow-hidden rounded-2xl bg-white px-5 text-base font-black text-[#111827] shadow-[0_16px_38px_rgba(0,0,0,0.3)] transition duration-300 hover:-translate-y-0.5 hover:bg-zinc-100 hover:shadow-[0_20px_46px_rgba(0,0,0,0.4)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <span className="absolute inset-x-4 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.65),transparent)]" />
-            {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
-          </button>
-        </div>
-      </form>
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <label
+                    htmlFor="login-password"
+                    className="block text-sm font-bold text-[#10231C]"
+                  >
+                    รหัสผ่าน
+                  </label>
+                  {passwordResetEnabled && (
+                    <a
+                      href="/login/reset-password"
+                      className="text-sm font-bold text-[#0F6B52] underline-offset-4 hover:underline"
+                    >
+                      ลืมรหัสผ่าน?
+                    </a>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    id="login-password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      setError("");
+                    }}
+                    autoComplete="current-password"
+                    className="h-[54px] w-full rounded-lg border border-zinc-200 bg-white px-4 pr-14 text-base font-semibold text-[#10231C] outline-none transition placeholder:text-zinc-400 focus:border-[#0F3D31] focus:shadow-[0_0_0_4px_rgba(15,61,49,0.12)]"
+                    aria-describedby={error ? "login-error" : undefined}
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
+                  >
+                    <EyeIcon crossed={showPassword} />
+                  </button>
+                </div>
+              </div>
 
-      <style jsx>{`
-        .login-card {
-          animation: cardIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-        @keyframes cardIn {
-          from { opacity: 0; transform: translateY(24px) scale(0.97); }
-          to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
+              {error && (
+                <p
+                  id="login-error"
+                  role="alert"
+                  aria-live="assertive"
+                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-bold text-red-700"
+                >
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
+                className="flex h-[54px] w-full items-center justify-center rounded-lg bg-[#0F3D31] px-5 text-base font-black text-white shadow-[0_14px_28px_rgba(15,61,49,0.22)] transition hover:bg-[#082E25] focus:outline-none focus:ring-4 focus:ring-[#0F3D31]/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+              </button>
+            </div>
+
+            {enabledProviders.length > 0 && (
+              <div className="mt-7">
+                <div className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-zinc-200" />
+                  <span className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
+                    หรือ
+                  </span>
+                  <span className="h-px flex-1 bg-zinc-200" />
+                </div>
+
+                <div className="mt-4 grid gap-3">
+                  {enabledProviders.map((provider) => (
+                    <button
+                      key={provider.key}
+                      type="button"
+                      onClick={() => handleProviderLogin(provider)}
+                      className="relative flex h-[52px] w-full items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-black text-[#10231C] transition hover:border-[#0F3D31] hover:bg-[#F5F9F6] focus:outline-none focus:ring-4 focus:ring-[#0F3D31]/12"
+                    >
+                      <span className="absolute left-4 flex h-8 min-w-8 items-center justify-center rounded-full border border-zinc-200 px-2 text-xs font-black text-[#0F3D31]">
+                        {provider.icon}
+                      </span>
+                      {provider.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </form>
+        </section>
+      </div>
     </main>
   );
 }
