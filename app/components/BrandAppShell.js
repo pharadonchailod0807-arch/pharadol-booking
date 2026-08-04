@@ -8,15 +8,19 @@ import { getBrandTheme } from "@/app/lib/brandThemes";
 import {
   CUSTOMER_REQUESTS_EVENT,
 } from "@/app/lib/customerRequests";
+import { safeGetObject } from "@/app/lib/safeStorage";
 import {
   emptySidebarCounts,
   getBrandSidebarCounts,
+  getRemoteBrandSidebarCounts,
   installSidebarCountsStorageBridge,
   isBrandStorageKey,
   SIDEBAR_COUNTS_EVENT,
 } from "@/app/lib/sidebarCounts";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const SIDEBAR_REMOTE_CACHE_TTL_MS = 30 * 1000;
+const sidebarRemoteCountsCache = new Map();
 
 const isAdminRole = (role) => role === "ADMIN" || role === "super_admin";
 
@@ -288,13 +292,47 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
 
   useEffect(() => {
     installSidebarCountsStorageBridge();
+    let allowTimer = 0;
 
     let refreshFrame = 0;
+    let disposed = false;
+    let refreshRequestId = 0;
 
-    const loadShellState = () => {
-      const savedUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-      setCurrentUser(savedUser);
-      setCounts(getBrandSidebarCounts(brandId));
+    const loadShellState = async () => {
+      const requestId = ++refreshRequestId;
+      const savedUser = safeGetObject("currentUser", {
+        storage: "session",
+        maxBytes: 64 * 1024,
+      });
+      const fallbackCounts = getBrandSidebarCounts(brandId);
+
+      if (!disposed) {
+        setCurrentUser(savedUser);
+        setCounts(fallbackCounts);
+      }
+
+      try {
+        const cachedCounts = sidebarRemoteCountsCache.get(brandId);
+        const cacheIsFresh =
+          cachedCounts && Date.now() - cachedCounts.cachedAt < SIDEBAR_REMOTE_CACHE_TTL_MS;
+        const remoteCounts = cacheIsFresh
+          ? cachedCounts.counts
+          : await getRemoteBrandSidebarCounts(brandId);
+        if (!cacheIsFresh) {
+          sidebarRemoteCountsCache.set(brandId, {
+            counts: remoteCounts,
+            cachedAt: Date.now(),
+          });
+        }
+        if (!disposed && requestId === refreshRequestId) {
+          setCounts(remoteCounts);
+        }
+      } catch (error) {
+        console.error("Cannot load sidebar counts from Supabase", error);
+        if (!disposed && requestId === refreshRequestId) {
+          setCounts(fallbackCounts);
+        }
+      }
     };
 
     const queueRefresh = () => {
@@ -321,6 +359,7 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
     window.addEventListener(CUSTOMER_REQUESTS_EVENT, handleCustomerRequestsEvent);
 
     return () => {
+      disposed = true;
       if (refreshFrame) window.cancelAnimationFrame(refreshFrame);
       window.removeEventListener(SIDEBAR_COUNTS_EVENT, handleSidebarCountsEvent);
       window.removeEventListener("storage", handleStorage);
@@ -337,6 +376,21 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
   const logout = () => {
     sessionStorage.clear();
     window.location.replace("/login");
+  };
+
+  const handleMenuNavigate = (event, item) => {
+    if (item.title === "ระบบสร้างใบจอง") {
+      event?.preventDefault();
+      localStorage.removeItem(`${brandId}_selectedBooking`);
+      localStorage.removeItem(`${brandId}_currentBooking`);
+      localStorage.removeItem(`${brandId}_bookingDraft`);
+      localStorage.removeItem(`pendingBookingPrefill_${brandId}`);
+      onNavigate?.();
+      window.location.assign(item.href);
+      return;
+    }
+
+    onNavigate?.();
   };
 
   return (
@@ -378,7 +432,7 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
               key={item.href}
               href={item.href}
               prefetch={false}
-              onClick={onNavigate}
+              onClick={(event) => handleMenuNavigate(event, item)}
               className="relative flex min-h-[54px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[14px] font-bold transition hover:bg-white/10"
               style={{
                 backgroundColor: active ? theme.sidebarActiveBg : "transparent",
@@ -490,9 +544,10 @@ export default function BrandAppShell({ brandId, children }) {
 
     try {
       const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-      const currentUser = JSON.parse(
-        sessionStorage.getItem("currentUser") || "null"
-      );
+      const currentUser = safeGetObject("currentUser", {
+        storage: "session",
+        maxBytes: 64 * 1024,
+      });
       const activeBrand = sessionStorage.getItem("activeBrand");
       const lastActivity = Number(
         sessionStorage.getItem("lastActivity") || Date.now()
@@ -521,10 +576,16 @@ export default function BrandAppShell({ brandId, children }) {
       }
 
       sessionStorage.setItem("lastActivity", String(Date.now()));
-      setIsAllowed(true);
+      allowTimer = window.setTimeout(() => {
+        setIsAllowed(true);
+      }, 0);
     } catch {
       denyAccess();
     }
+
+    return () => {
+      if (allowTimer) window.clearTimeout(allowTimer);
+    };
   }, [brandId, pathname]);
 
   if (!isAllowed) {

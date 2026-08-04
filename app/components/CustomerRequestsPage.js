@@ -11,8 +11,11 @@ import {
   readLocalCustomerRequests,
   updateLocalCustomerRequest,
   deleteLocalCustomerRequest,
+  fetchCustomerRequests,
+  writeLocalCustomerRequests,
 } from "@/app/lib/customerRequests";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
+import { safeGetObject } from "@/app/lib/safeStorage";
 
 const BRAND_NAMES = {
   pharadol: "PHARADOL PRODUCTION",
@@ -62,6 +65,9 @@ export default function CustomerRequestsPage({ brand }) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [requestPage, setRequestPage] = useState(0);
+  const [hasMoreRequests, setHasMoreRequests] = useState(false);
   const [pendingActionIds, setPendingActionIds] = useState([]);
   const formLink = CUSTOMER_FORM_LINKS[brand];
 
@@ -74,7 +80,10 @@ export default function CustomerRequestsPage({ brand }) {
     const verifyAccess = () => {
       try {
         const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-        const savedUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
+        const savedUser = safeGetObject("currentUser", {
+          storage: "session",
+          maxBytes: 64 * 1024,
+        });
         const activeBrand = sessionStorage.getItem("activeBrand");
         const normalizedBrands = Array.isArray(savedUser?.brands)
           ? savedUser.brands.map((item) => (item === "pharadon" ? "pharadol" : item))
@@ -123,8 +132,11 @@ export default function CustomerRequestsPage({ brand }) {
         forceRemote,
         signal: controller.signal,
       });
+      if (controller.signal.aborted) return;
       setRequests(result.requests);
       setError(result.error ? result.error.message : "");
+      setRequestPage(result.page || 0);
+      setHasMoreRequests(Boolean(result.hasMore));
       setIsLoading(false);
     };
 
@@ -138,13 +150,50 @@ export default function CustomerRequestsPage({ brand }) {
   const refreshRequests = async () => {
     if (isRefreshing) return;
 
+    const controller = new AbortController();
     setIsRefreshing(true);
     try {
-      const result = await loadCustomerRequests(brand, { forceRemote: true });
+      const result = await loadCustomerRequests(brand, {
+        forceRemote: true,
+        signal: controller.signal,
+      });
       setRequests(result.requests);
       setError(result.error ? result.error.message : "");
+      setRequestPage(result.page || 0);
+      setHasMoreRequests(Boolean(result.hasMore));
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const loadMoreRequests = async () => {
+    if (isLoadingMore || !hasMoreRequests) return;
+
+    setIsLoadingMore(true);
+    try {
+      const nextPage = requestPage + 1;
+      const result = await fetchCustomerRequests(brand, {
+        cache: "no-store",
+        page: nextPage,
+      });
+      const nextRequests = [
+        ...requests,
+        ...result.requests.filter(
+          (request) => !requests.some((item) => item.id === request.id)
+        ),
+      ];
+      setRequests(nextRequests);
+      writeLocalCustomerRequests(brand, nextRequests, {
+        markSynced: true,
+        notify: false,
+      });
+      setRequestPage(result.page);
+      setHasMoreRequests(result.hasMore);
+      setError("");
+    } catch (loadError) {
+      setError(loadError?.message || "โหลดคำขอเพิ่มไม่สำเร็จ");
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
@@ -349,8 +398,9 @@ export default function CustomerRequestsPage({ brand }) {
             ยังไม่มีคำขอจากลูกค้า
           </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2 xl:gap-5">
-            {requests.map((request) => {
+          <>
+            <div className="grid gap-4 lg:grid-cols-2 xl:gap-5">
+              {requests.map((request) => {
               const isOpening = pendingActionIds.includes(`${request.id}:open`);
               const isUpdating = pendingActionIds.includes(`${request.id}:status`);
               const isDeleting = pendingActionIds.includes(`${request.id}:delete`);
@@ -536,8 +586,21 @@ export default function CustomerRequestsPage({ brand }) {
                 </div>
               </article>
               );
-            })}
-          </div>
+              })}
+            </div>
+            {hasMoreRequests && (
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={loadMoreRequests}
+                  disabled={isLoadingMore}
+                  className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-bold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  {isLoadingMore ? "กำลังโหลด..." : "โหลดเพิ่ม"}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
     </main>

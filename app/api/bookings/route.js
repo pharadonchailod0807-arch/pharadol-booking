@@ -6,12 +6,15 @@ import {
   rejectCrossSiteRequest,
   sanitizeText,
 } from "@/lib/security";
-import { formatBookingNumber, getNextBookingSequence } from "@/lib/booking-number";
+import { calculateDashboardCounts } from "@/app/lib/dashboardCounts";
+import { formatBookingNumber, getBookingSequence } from "@/lib/booking-number";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_CREATE_RETRIES = 20;
+const DEFAULT_LIST_PAGE_SIZE = 30;
+const MAX_LIST_PAGE_SIZE = 50;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -82,6 +85,49 @@ const normalizeBookingRow = (row) => {
   };
 };
 
+const normalizeBookingSummary = (row) => {
+  const booking = normalizeBookingRow(row);
+  const bookingData = row?.booking_data || {};
+  const slipImage =
+    bookingData.slipImage ||
+    bookingData.slipUrl ||
+    bookingData.paymentSlipUrl ||
+    "";
+
+  return {
+    supabaseId: booking.supabaseId,
+    bookingId: booking.bookingId,
+    bookingNumber: booking.bookingNumber,
+    brandId: getBookingBrand(row),
+    customerName: booking.customerName,
+    phone: booking.phone,
+    email: booking.email,
+    service: booking.service,
+    location: booking.location,
+    eventDate: booking.eventDate,
+    startTime: bookingData.startTime || "",
+    endTime: bookingData.endTime || "",
+    formattedEventDate: bookingData.formattedEventDate || "",
+    jobStatus: booking.jobStatus,
+    status: booking.status || booking.jobStatus,
+    bookingStatus:
+      bookingData.bookingStatus || bookingData.status || row?.job_status || "",
+    archived: row?.archived === true || bookingData.archived === true,
+    deleted: row?.deleted === true || bookingData.deleted === true,
+    finalPrice: Number(bookingData.finalPrice || 0),
+    totalPaid: Number(bookingData.totalPaid ?? bookingData.paymentAmount ?? 0),
+    remainingPayment: Number(bookingData.remainingPayment || 0),
+    paymentProgress: bookingData.paymentProgress || "",
+    googleCalendarEventId: bookingData.googleCalendarEventId || "",
+    googleCalendarSyncStatus: bookingData.googleCalendarSyncStatus || "",
+    googleCalendarSyncError: bookingData.googleCalendarSyncError || "",
+    calendarColor: bookingData.calendarColor || "",
+    createdAt: row?.created_at || bookingData.createdAt || "",
+    updatedAt: row?.updated_at || bookingData.updatedAt || "",
+    hasSlip: Boolean(slipImage),
+  };
+};
+
 const getBookingBrand = (row) => {
   const bookingData = row?.booking_data || row || {};
   return normalizeBrand(
@@ -93,10 +139,39 @@ const getBookingBrand = (row) => {
   );
 };
 
+const getBookingStatusFilter = (status) => {
+  if (status === "archived") return { archived: true, deleted: false };
+  if (status === "trash") return { deleted: true };
+  return { archived: false, deleted: false };
+};
+
+const parseListPageSize = (value) => {
+  const pageSize = Number(value || DEFAULT_LIST_PAGE_SIZE);
+  if (!Number.isFinite(pageSize)) return DEFAULT_LIST_PAGE_SIZE;
+  return Math.min(Math.max(Math.floor(pageSize), 1), MAX_LIST_PAGE_SIZE);
+};
+
+const parseListPage = (value) => {
+  const page = Number(value || 0);
+  if (!Number.isFinite(page)) return 0;
+  return Math.max(Math.floor(page), 0);
+};
+
+const getBookingCreatedAtTime = (item) => {
+  const createdAt =
+    item?.createdAt ||
+    item?.created_at ||
+    item?.bookingData?.createdAt ||
+    item?.bookingData?.created_at ||
+    "";
+  const time = createdAt ? new Date(createdAt).getTime() : 0;
+  return Number.isFinite(time) ? time : 0;
+};
+
 const getBookingNumberSources = async (brandId) => {
   const { data, error } = await supabase
     .from("bookings")
-    .select("booking_number, booking_data, deleted, archived, job_status");
+    .select("booking_number, booking_data, deleted, archived, job_status, created_at");
 
   if (error) throw error;
 
@@ -107,9 +182,39 @@ const getBookingNumberSources = async (brandId) => {
       return {
         brandId: getBookingBrand(row),
         bookingNumber: row?.booking_number || bookingData.bookingNumber || "",
+        createdAt: row?.created_at || bookingData.createdAt || "",
       };
     })
     .filter((item) => item.brandId === brandId && item.bookingNumber);
+};
+
+const getNextBookingSequenceFromLatestCreated = (
+  sources = [],
+  date,
+  blockedBookingNumbers = new Set()
+) => {
+  const latestSource = sources.reduce((latest, item) => {
+    const sequence = getBookingSequence(item?.bookingNumber);
+    if (sequence == null) return latest;
+
+    const createdAtTime = getBookingCreatedAtTime(item);
+    if (!latest || createdAtTime > latest.createdAtTime) {
+      return { sequence, createdAtTime };
+    }
+
+    return latest;
+  }, null);
+
+  let sequence = (latestSource?.sequence || 0) + 1;
+
+  while (
+    sequence <= 9999 &&
+    blockedBookingNumbers.has(formatBookingNumber(date, sequence))
+  ) {
+    sequence += 1;
+  }
+
+  return sequence <= 9999 ? sequence : null;
 };
 
 const getNextBookingNumberFromDatabase = async (
@@ -117,14 +222,12 @@ const getNextBookingNumberFromDatabase = async (
   date,
   blockedBookingNumbers = new Set()
 ) => {
-  const sources = [
-    ...(await getBookingNumberSources(brandId)),
-    ...Array.from(blockedBookingNumbers).map((bookingNumber) => ({
-      brandId,
-      bookingNumber,
-    })),
-  ];
-  const sequence = getNextBookingSequence(sources);
+  const sources = await getBookingNumberSources(brandId);
+  const sequence = getNextBookingSequenceFromLatestCreated(
+    sources,
+    date,
+    blockedBookingNumbers
+  );
 
   if (sequence == null) {
     throw new Error("เลขที่ใบจองของแบรนด์นี้ถูกใช้งานครบ 0001 ถึง 9999 แล้ว");
@@ -257,6 +360,7 @@ export async function GET(request) {
 
   try {
     const requestUrl = new URL(request.url);
+    const mode = requestUrl.searchParams.get("mode") || "preview";
     const brandId = normalizeBrand(
       requestUrl.searchParams.get("brandId") || requestUrl.searchParams.get("brand")
     );
@@ -265,6 +369,139 @@ export async function GET(request) {
       return Response.json(
         { success: false, error: "ไม่พบแบรนด์ของใบจอง" },
         { status: 400 }
+      );
+    }
+
+    if (mode === "detail") {
+      const bookingId = sanitizeText(requestUrl.searchParams.get("id"), 120);
+      const bookingNumber = sanitizeText(
+        requestUrl.searchParams.get("bookingNumber"),
+        120
+      );
+
+      if (!bookingId && !bookingNumber) {
+        return Response.json(
+          { success: false, error: "ไม่พบใบจองที่ต้องการเปิด" },
+          { status: 400 }
+        );
+      }
+
+      let query = supabase.from("bookings").select("*").limit(20);
+      query = bookingId ? query.eq("id", bookingId) : query.eq("booking_number", bookingNumber);
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const row = (Array.isArray(data) ? data : []).find(
+        (item) => getBookingBrand(item) === brandId
+      );
+
+      if (!row) {
+        return Response.json(
+          { success: false, error: "ไม่พบใบจองในฐานข้อมูล" },
+          { status: 404 }
+        );
+      }
+
+      return Response.json(
+        { success: true, booking: normalizeBookingRow(row), row },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    if (mode === "list") {
+      const page = parseListPage(requestUrl.searchParams.get("page"));
+      const pageSize = parseListPageSize(requestUrl.searchParams.get("pageSize"));
+      const status = requestUrl.searchParams.get("status") || "active";
+      const { archived, deleted } = getBookingStatusFilter(status);
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, error, count } = await supabase
+        .from("bookings")
+        .select(
+          "id, booking_number, booking_data, customer_name, phone, email, service, location, event_date, job_status, archived, deleted, created_at, updated_at",
+          { count: "exact" }
+        )
+        .eq("archived", archived)
+        .eq("deleted", deleted)
+        .order(status === "calendar" ? "event_date" : "booking_number", {
+          ascending: status === "calendar",
+        })
+        .range(from, to);
+
+      if (error) throw error;
+
+      const bookings = (Array.isArray(data) ? data : [])
+        .map(normalizeBookingSummary)
+        .filter(
+          (booking) =>
+            booking.brandId === brandId &&
+            booking.bookingStatus !== "draft" &&
+            (status !== "calendar" || booking.eventDate)
+        );
+
+      return Response.json(
+        {
+          success: true,
+          bookings,
+          page,
+          pageSize,
+          total: Number(count || bookings.length),
+          hasMore: count == null ? bookings.length === pageSize : to + 1 < count,
+        },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    if (mode === "counts") {
+      const { data, error } = await supabase
+        .from("bookings")
+        .select(
+          "id, booking_number, booking_data, customer_name, phone, email, service, location, event_date, job_status, archived, deleted, created_at, updated_at"
+        )
+        .order("booking_number", { ascending: false });
+
+      if (error) throw error;
+
+      const bookings = (Array.isArray(data) ? data : [])
+        .map(normalizeBookingSummary)
+        .filter((booking) => booking.brandId === brandId);
+      const activeCustomers = bookings.filter(
+        (booking) =>
+          !booking.archived &&
+          !booking.deleted &&
+          booking.bookingStatus !== "draft"
+      );
+      const archiveItems = bookings.filter(
+        (booking) =>
+          booking.archived &&
+          !booking.deleted &&
+          booking.bookingStatus !== "draft"
+      );
+      const trashItems = bookings.filter((booking) => booking.deleted);
+      const hasBookingDraft = bookings.some(
+        (booking) => !booking.deleted && booking.bookingStatus === "draft"
+      );
+
+      const counts = calculateDashboardCounts({
+        brandId,
+        customers: activeCustomers,
+        archiveItems,
+        trashItems,
+        hasBookingDraft,
+      });
+
+      return Response.json(
+        {
+          success: true,
+          counts: {
+            ...counts,
+            calendarJobs: activeCustomers.filter((booking) => booking.eventDate)
+              .length,
+          },
+        },
+        { headers: { "Cache-Control": "no-store" } }
       );
     }
 

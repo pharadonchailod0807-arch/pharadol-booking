@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { safeGetArray } from "@/app/lib/safeStorage";
 
 const EVENT_TYPES = [
   ["Wedding", "wedding"],
@@ -355,40 +356,49 @@ export default function GoogleUploadPage() {
   const draftKey = `${brand}_customer_delivery_drafts`;
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const requestedBrand =
-      params.get("brand") === "adisorn" ? "adisorn" : "pharadol";
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const requestedBrand =
+        params.get("brand") === "adisorn" ? "adisorn" : "pharadol";
 
-    setBrand(requestedBrand);
-    setReady(true);
+      setBrand(requestedBrand);
+      setReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     if (!ready) return;
 
-    try {
-      const savedDrafts = JSON.parse(localStorage.getItem(draftKey) || "[]");
-      setDrafts(Array.isArray(savedDrafts) ? savedDrafts : []);
-    } catch {
-      setDrafts([]);
-    }
+    const timer = window.setTimeout(() => {
+      setDrafts(safeGetArray(draftKey));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [ready, draftKey]);
 
   useEffect(() => {
     const choices = DELIVERY_TYPES[form.mediaType] || [];
 
-    if (!choices.includes(form.deliveryType)) {
+    if (choices.includes(form.deliveryType)) return undefined;
+
+    const timer = window.setTimeout(() => {
       setForm((current) => ({
         ...current,
         deliveryType: choices[0] || "",
       }));
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [form.mediaType, form.deliveryType]);
 
   useEffect(() => {
     if (!working || !uploadStats.startedAt) {
-      setUploadElapsedSeconds(0);
-      return undefined;
+      const resetTimer = window.setTimeout(() => {
+        setUploadElapsedSeconds(0);
+      }, 0);
+      return () => window.clearTimeout(resetTimer);
     }
 
     const updateElapsed = () => {

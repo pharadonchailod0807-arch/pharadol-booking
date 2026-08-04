@@ -3,6 +3,7 @@ import {
   emptyDashboardCounts,
 } from "@/app/lib/dashboardCounts";
 import { readLocalCustomerRequests } from "@/app/lib/customerRequests";
+import { safeGetArray } from "@/app/lib/safeStorage";
 
 export const SIDEBAR_COUNTS_EVENT = "booking-data-updated";
 
@@ -35,13 +36,7 @@ const READ_NOTIFICATION_STATUSES = new Set([
 
 const safeReadArray = (key) => {
   if (typeof window === "undefined") return [];
-
-  try {
-    const value = JSON.parse(window.localStorage.getItem(key) || "[]");
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
+  return safeGetArray(key);
 };
 
 const safeGetItem = (key) => {
@@ -56,7 +51,7 @@ const safeGetItem = (key) => {
 
 const belongsToBrand = (item, brandId) => {
   const itemBrand = String(item?.brandId || item?.brand || "").trim();
-  return !itemBrand || itemBrand === brandId;
+  return itemBrand === brandId;
 };
 
 const isDeletedRecord = (item) => {
@@ -165,6 +160,47 @@ export const getBrandSidebarCounts = (brandId) => {
     ...baseCounts,
     trashItems: trashItems.length + mailTrashItems.length,
     calendarJobs: customers.filter((customer) => customer?.eventDate).length,
+    customerRequests: countActiveCustomerRequests(brandId),
+    notificationsCount:
+      notificationsCount > 0 ? notificationsCount : baseCounts.upcoming7Days,
+    reportsCount: 0,
+  };
+};
+
+export const getRemoteBrandSidebarCounts = async (brandId) => {
+  const response = await fetch(`/api/bookings?mode=counts&brand=${brandId}`, {
+    cache: "no-store",
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.error || "โหลดตัวเลขเมนูไม่สำเร็จ");
+  }
+
+  const remoteCounts = result.counts || emptyDashboardCounts;
+  const trashItems = Number(remoteCounts.trashItems || 0);
+  const emailHistory = dedupeRecords(
+    safeReadArray(`${brandId}_email_history`),
+    brandId,
+    "email-history"
+  );
+  const mailTrashItems = dedupeRecords(
+    safeReadArray(`${brandId}_mail_trash`),
+    brandId,
+    "mail-trash"
+  );
+  const emailCounts = calculateDashboardCounts({ brandId, emailHistory });
+  const baseCounts = {
+    ...emptyDashboardCounts,
+    ...remoteCounts,
+    emailAttention: emailCounts.emailAttention,
+  };
+  const notificationsCount = countUnreadNotifications(brandId);
+
+  return {
+    ...baseCounts,
+    trashItems: trashItems + mailTrashItems.length,
+    calendarJobs: remoteCounts.calendarJobs || 0,
     customerRequests: countActiveCustomerRequests(brandId),
     notificationsCount:
       notificationsCount > 0 ? notificationsCount : baseCounts.upcoming7Days,

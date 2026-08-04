@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 import { syncBookingGoogleCalendar } from "@/app/lib/googleCalendarClient";
+import { safeGetArray, safeGetObject, safeSetJson } from "@/app/lib/safeStorage";
 
 const BRAND_ID = "pharadol";
 const CUSTOMERS_KEY = `${BRAND_ID}_customers`;
@@ -13,6 +14,7 @@ const CURRENT_BOOKING_KEY = `${BRAND_ID}_currentBooking`;
 const ARCHIVES_KEY = `${BRAND_ID}_archives`;
 const TRASH_KEY = `${BRAND_ID}_trash`;
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const BOOKING_LIST_PAGE_SIZE = 30;
 
 const ROUTES = {
   booking: "/pharadol",
@@ -46,24 +48,73 @@ export default function CustomersPage() {
     }
   };
 
-  const normalizeBookingRow = (row) => {
-    const bookingData = row?.booking_data || {};
+  const normalizeBookingRow = useCallback((row) => {
+    const bookingData = row?.booking_data || row || {};
 
     return {
       ...bookingData,
-      supabaseId: row.id,
-      brandId: bookingData.brandId || "",
-      bookingNumber: bookingData.bookingNumber || row.booking_number || "",
-      customerName: bookingData.customerName || row.customer_name || "",
+      supabaseId: row.id || row.supabaseId || "",
+      brandId: bookingData.brandId || row.brandId || row.brand || "",
+      bookingNumber: bookingData.bookingNumber || row.booking_number || row.bookingNumber || "",
+      customerName: bookingData.customerName || row.customer_name || row.customerName || "",
       phone: bookingData.phone || row.phone || "",
       email: bookingData.email || row.email || "",
       service: bookingData.service || row.service || "",
       location: bookingData.location || row.location || "",
-      eventDate: bookingData.eventDate || row.event_date || "",
+      eventDate: bookingData.eventDate || row.event_date || row.eventDate || "",
       jobStatus: row.job_status || bookingData.jobStatus || "รอยืนยัน",
       status: row.job_status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
     };
-  };
+  }, []);
+
+  const fetchBookingListPage = useCallback(async (page = 0) => {
+    const params = new URLSearchParams({
+      mode: "list",
+      brand: BRAND_ID,
+      status: "active",
+      page: String(page),
+      pageSize: String(BOOKING_LIST_PAGE_SIZE),
+    });
+    const response = await fetch(`/api/bookings?${params.toString()}`, {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "โหลดข้อมูลลูกค้าไม่สำเร็จ");
+    }
+
+    return {
+      bookings: Array.isArray(result.bookings)
+        ? result.bookings.map(normalizeBookingRow)
+        : [],
+      page: Number(result.page || 0),
+      hasMore: Boolean(result.hasMore),
+    };
+  }, [normalizeBookingRow]);
+
+  const fetchFullBooking = useCallback(async (customer) => {
+    const params = new URLSearchParams({
+      mode: "detail",
+      brand: BRAND_ID,
+    });
+    if (customer?.supabaseId) {
+      params.set("id", customer.supabaseId);
+    } else {
+      params.set("bookingNumber", customer?.bookingNumber || "");
+    }
+
+    const response = await fetch(`/api/bookings?${params.toString()}`, {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success || !result.booking) {
+      throw new Error(result.error || "โหลดรายละเอียดใบจองไม่สำเร็จ");
+    }
+
+    return normalizeBookingRow(result.booking);
+  }, [normalizeBookingRow]);
 
   const getBookingData = (customer, updates = {}) => {
     const { supabaseId, ...bookingData } = customer;
@@ -76,9 +127,12 @@ export default function CustomersPage() {
   const [sortDirection, setSortDirection] = useState("desc");
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [selectedBookingNumbers, setSelectedBookingNumbers] = useState([]);
+  const [listPage, setListPage] = useState(0);
+  const [hasMoreCustomers, setHasMoreCustomers] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const syncCustomers = useCallback((nextCustomers) => {
-    localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(nextCustomers));
+    safeSetJson(CUSTOMERS_KEY, nextCustomers);
     setCustomers(nextCustomers);
   }, []);
 
@@ -86,9 +140,10 @@ export default function CustomersPage() {
     const verifyAccess = () => {
       try {
         const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-        const currentUser = JSON.parse(
-          sessionStorage.getItem("currentUser") || "null"
-        );
+        const currentUser = safeGetObject("currentUser", {
+          storage: "session",
+          maxBytes: 64 * 1024,
+        });
         const activeBrand = sessionStorage.getItem("activeBrand");
         const normalizedBrands = Array.isArray(currentUser?.brands)
           ? currentUser.brands.map((brand) =>
@@ -161,29 +216,13 @@ export default function CustomersPage() {
 
     const loadCustomers = async () => {
       try {
-        const { data, error } = await supabase
-          .from("bookings")
-          .select("*")
-          .eq("archived", false)
-          .eq("deleted", false)
-          .order("booking_number", { ascending: false });
-
-        if (error) throw error;
-
-        const normalizedCustomers = (Array.isArray(data) ? data : [])
-          .map(normalizeBookingRow)
-          .filter(
-            (customer) =>
-              customer.brandId === BRAND_ID && customer.bookingStatus !== "draft"
-          );
-
-        syncCustomers(normalizedCustomers);
+        const result = await fetchBookingListPage(0);
+        syncCustomers(result.bookings);
+        setListPage(result.page);
+        setHasMoreCustomers(result.hasMore);
       } catch (error) {
         console.error("Cannot load customer data", error);
-        const savedCustomers = JSON.parse(
-          localStorage.getItem(CUSTOMERS_KEY) || "[]"
-        );
-        setCustomers(Array.isArray(savedCustomers) ? savedCustomers : []);
+        setCustomers(safeGetArray(CUSTOMERS_KEY).slice(0, BOOKING_LIST_PAGE_SIZE));
       }
     };
 
@@ -221,7 +260,33 @@ export default function CustomersPage() {
       document.removeEventListener("visibilitychange", handlePageVisible);
       supabase.removeChannel(bookingsChannel);
     };
-  }, [isAuthorized, syncCustomers]);
+  }, [fetchBookingListPage, isAuthorized, syncCustomers]);
+
+  const loadMoreCustomers = async () => {
+    if (isLoadingMore || !hasMoreCustomers) return;
+
+    setIsLoadingMore(true);
+    try {
+      const result = await fetchBookingListPage(listPage + 1);
+      const nextCustomers = [
+        ...customers,
+        ...result.bookings.filter(
+          (booking) =>
+            !customers.some(
+              (customer) => customer.bookingNumber === booking.bookingNumber
+            )
+        ),
+      ];
+      syncCustomers(nextCustomers);
+      setListPage(result.page);
+      setHasMoreCustomers(result.hasMore);
+    } catch (error) {
+      console.error("Cannot load more customers", error);
+      alert(error?.message || "โหลดข้อมูลเพิ่มไม่สำเร็จ");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const filteredCustomers = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -317,16 +382,19 @@ export default function CustomersPage() {
     if (!confirmed) return;
 
     try {
-      const savedArchives = JSON.parse(
-        localStorage.getItem(ARCHIVES_KEY) || "[]"
-      );
+      const savedArchives = safeGetArray(ARCHIVES_KEY);
       const currentCustomers = customers;
       const archiveItems = Array.isArray(savedArchives) ? savedArchives : [];
       const selectedSet = new Set(selectedBookingNumbers);
       const archivedAt = new Date().toISOString();
-      const selectedCustomers = currentCustomers
-        .filter((customer) => selectedSet.has(customer.bookingNumber))
-        .map((customer) => ({ ...customer, archivedAt }));
+      const selectedCustomers = await Promise.all(
+        currentCustomers
+          .filter((customer) => selectedSet.has(customer.bookingNumber))
+          .map(async (customer) => ({
+            ...(await fetchFullBooking(customer).catch(() => customer)),
+            archivedAt,
+          }))
+      );
       const updatedCustomers = currentCustomers.filter(
         (customer) => !selectedSet.has(customer.bookingNumber)
       );
@@ -351,10 +419,7 @@ export default function CustomersPage() {
       }
 
       syncCustomers(updatedCustomers);
-      localStorage.setItem(
-        ARCHIVES_KEY,
-        JSON.stringify([...selectedCustomers, ...archiveItems])
-      );
+      safeSetJson(ARCHIVES_KEY, [...selectedCustomers, ...archiveItems]);
       setSelectedBookingNumbers([]);
       window.alert(`จัดเก็บข้อมูลแล้ว ${selectedCustomers.length} รายการ`);
     } catch (error) {
@@ -373,19 +438,21 @@ export default function CustomersPage() {
     if (!confirmed) return;
 
     try {
-      const savedTrash = JSON.parse(localStorage.getItem(TRASH_KEY) || "[]");
+      const savedTrash = safeGetArray(TRASH_KEY);
       const currentCustomers = customers;
       const trashItems = Array.isArray(savedTrash) ? savedTrash : [];
       const selectedSet = new Set(selectedBookingNumbers);
       const deletedAt = new Date();
-      const selectedCustomers = currentCustomers
-        .filter((customer) => selectedSet.has(customer.bookingNumber))
-        .map((customer) => ({
-          ...customer,
-          deletedFrom: "customers",
-          deletedAt: deletedAt.toISOString(),
-          deletedDate: deletedAt.toLocaleString("th-TH"),
-        }));
+      const selectedCustomers = await Promise.all(
+        currentCustomers
+          .filter((customer) => selectedSet.has(customer.bookingNumber))
+          .map(async (customer) => ({
+            ...(await fetchFullBooking(customer).catch(() => customer)),
+            deletedFrom: "customers",
+            deletedAt: deletedAt.toISOString(),
+            deletedDate: deletedAt.toLocaleString("th-TH"),
+          }))
+      );
       const updatedCustomers = currentCustomers.filter(
         (customer) => !selectedSet.has(customer.bookingNumber)
       );
@@ -414,10 +481,7 @@ export default function CustomersPage() {
       }
 
       syncCustomers(updatedCustomers);
-      localStorage.setItem(
-        TRASH_KEY,
-        JSON.stringify([...selectedCustomers, ...trashItems])
-      );
+      safeSetJson(TRASH_KEY, [...selectedCustomers, ...trashItems]);
       const calendarResults = await Promise.all(
         selectedCustomers.map(syncTrashCalendarEvent)
       );
@@ -435,9 +499,13 @@ export default function CustomersPage() {
   };
 
   const openBooking = (customer) => {
-    localStorage.setItem(SELECTED_BOOKING_KEY, JSON.stringify(customer));
-    localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
-    router.push(ROUTES.bookingView, { scroll: false });
+    fetchFullBooking(customer)
+      .catch(() => customer)
+      .then((booking) => {
+        safeSetJson(SELECTED_BOOKING_KEY, booking);
+        safeSetJson(CURRENT_BOOKING_KEY, booking);
+        router.push(ROUTES.bookingView, { scroll: false });
+      });
   };
 
   const moveToArchive = async (customer) => {
@@ -447,16 +515,15 @@ export default function CustomersPage() {
 
     if (!confirmed) return;
 
-    const archivedItems = JSON.parse(
-      localStorage.getItem(ARCHIVES_KEY) || "[]"
-    );
+    const archivedItems = safeGetArray(ARCHIVES_KEY);
+    const fullCustomer = await fetchFullBooking(customer).catch(() => customer);
 
     const updatedCustomers = customers.filter(
       (item) => item.bookingNumber !== customer.bookingNumber
     );
 
     const archiveRecord = {
-      ...customer,
+      ...fullCustomer,
       archivedAt: new Date().toISOString(),
     };
 
@@ -479,10 +546,7 @@ export default function CustomersPage() {
     }
 
     syncCustomers(updatedCustomers);
-    localStorage.setItem(
-      ARCHIVES_KEY,
-      JSON.stringify([archiveRecord, ...archivedItems])
-    );
+    safeSetJson(ARCHIVES_KEY, [archiveRecord, ...archivedItems]);
 
     alert("จัดเก็บข้อมูลเรียบร้อย");
   };
@@ -495,9 +559,8 @@ export default function CustomersPage() {
     if (!confirmed) return;
 
     try {
-      const savedTrash = JSON.parse(
-        localStorage.getItem(TRASH_KEY) || "[]"
-      );
+      const savedTrash = safeGetArray(TRASH_KEY);
+      const fullCustomer = await fetchFullBooking(customer).catch(() => customer);
 
       const trashItems = Array.isArray(savedTrash)
         ? savedTrash
@@ -509,7 +572,7 @@ export default function CustomersPage() {
 
       const deletedAt = new Date();
       const trashRecord = {
-        ...customer,
+        ...fullCustomer,
         deletedFrom: "customers",
         deletedAt: deletedAt.toISOString(),
         deletedDate: deletedAt.toLocaleString("th-TH"),
@@ -537,7 +600,7 @@ export default function CustomersPage() {
         }
       }
 
-      localStorage.setItem(TRASH_KEY, JSON.stringify(updatedTrash));
+      safeSetJson(TRASH_KEY, updatedTrash);
       syncCustomers(updatedCustomers);
       const calendarError = await syncTrashCalendarEvent(trashRecord);
       alert(
@@ -569,11 +632,13 @@ export default function CustomersPage() {
           updatedCustomers.find(
             (item) => item.bookingNumber === customer.bookingNumber
           ) || customer;
+        const fullCustomer = await fetchFullBooking(customer).catch(() => updatedCustomer);
+        const bookingPayload = { ...fullCustomer, ...updatedCustomer };
         const { error } = await supabase
           .from("bookings")
           .update({
             job_status: newStatus,
-            booking_data: getBookingData(updatedCustomer),
+            booking_data: getBookingData(bookingPayload),
           })
           .eq("id", customer.supabaseId);
 
@@ -973,6 +1038,18 @@ export default function CustomersPage() {
             )}
           </div>
         </div>
+        {hasMoreCustomers && (
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              onClick={loadMoreCustomers}
+              disabled={isLoadingMore}
+              className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-bold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+            >
+              {isLoadingMore ? "กำลังโหลด..." : "โหลดเพิ่ม"}
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );

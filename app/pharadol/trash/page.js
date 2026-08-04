@@ -268,7 +268,7 @@ export default function TrashPage() {
       }
     };
 
-    loadCustomerRequestTrash();
+    const loadTimer = window.setTimeout(loadCustomerRequestTrash, 0);
 
     window.addEventListener("focus", loadCustomerRequestTrash);
     window.addEventListener("pageshow", loadCustomerRequestTrash);
@@ -292,6 +292,7 @@ export default function TrashPage() {
         "visibilitychange",
         handleCustomerRequestPageVisible
       );
+      window.clearTimeout(loadTimer);
     };
   }, [isAuthorized]);
 

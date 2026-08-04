@@ -1,5 +1,7 @@
 "use client";
 
+import { safeGetArray, safeGetJson, safeSetJson } from "@/app/lib/safeStorage";
+
 export const CUSTOMER_REQUEST_STATUSES = {
   new: "ใหม่",
   viewed: "เปิดดูแล้ว",
@@ -15,6 +17,7 @@ export const CUSTOMER_FORM_LINKS = {
 
 export const CUSTOMER_REQUESTS_EVENT = "customer-requests-updated";
 export const CUSTOMER_REQUESTS_CACHE_TTL_MS = 15 * 60 * 1000;
+export const CUSTOMER_REQUESTS_PAGE_SIZE = 30;
 
 export const getCustomerRequestsStorageKey = (brand) =>
   `${brand}_customer_requests`;
@@ -148,33 +151,22 @@ export const normalizeCustomerRequest = (request) => ({
 });
 
 export const readLocalCustomerRequests = (brand) => {
-  try {
-    const parsed = JSON.parse(
-      localStorage.getItem(getCustomerRequestsStorageKey(brand)) || "[]"
-    );
-    return Array.isArray(parsed)
-      ? parsed.map(normalizeCustomerRequest).filter((item) => item.brand === brand)
-      : [];
-  } catch {
-    return [];
-  }
+  const parsed = safeGetArray(getCustomerRequestsStorageKey(brand));
+  return parsed.map(normalizeCustomerRequest).filter((item) => item.brand === brand);
 };
 
 const readCustomerRequestsCacheTime = (brand) => {
-  try {
-    const parsed = JSON.parse(
-      localStorage.getItem(getCustomerRequestsCacheKey(brand)) || "null"
-    );
-    return Number(parsed?.syncedAt || 0);
-  } catch {
-    return 0;
-  }
+  const parsed = safeGetJson(getCustomerRequestsCacheKey(brand), null, {
+    maxBytes: 4096,
+  });
+  return Number(parsed?.syncedAt || 0);
 };
 
 const writeCustomerRequestsCacheTime = (brand) => {
-  localStorage.setItem(
+  safeSetJson(
     getCustomerRequestsCacheKey(brand),
-    JSON.stringify({ syncedAt: Date.now() })
+    { syncedAt: Date.now() },
+    { maxBytes: 4096 }
   );
 };
 
@@ -183,9 +175,9 @@ export const writeLocalCustomerRequests = (
   requests,
   { notify = true, markSynced = false } = {}
 ) => {
-  localStorage.setItem(
+  safeSetJson(
     getCustomerRequestsStorageKey(brand),
-    JSON.stringify(requests.map(normalizeCustomerRequest))
+    requests.map(normalizeCustomerRequest)
   );
   if (markSynced) writeCustomerRequestsCacheTime(brand);
   if (notify) window.dispatchEvent(new Event(CUSTOMER_REQUESTS_EVENT));
@@ -193,9 +185,14 @@ export const writeLocalCustomerRequests = (
 
 export const fetchCustomerRequests = async (
   brand,
-  { signal, cache = "default" } = {}
+  { signal, cache = "default", page = 0, pageSize = CUSTOMER_REQUESTS_PAGE_SIZE } = {}
 ) => {
-  const response = await fetch(`/api/customer-requests?brand=${brand}`, {
+  const params = new URLSearchParams({
+    brand,
+    page: String(page),
+    pageSize: String(pageSize),
+  });
+  const response = await fetch(`/api/customer-requests?${params.toString()}`, {
     cache,
     signal,
   });
@@ -205,9 +202,15 @@ export const fetchCustomerRequests = async (
     throw new Error(result.error || "โหลดคำขอจากลูกค้าไม่สำเร็จ");
   }
 
-  return Array.isArray(result.requests)
-    ? result.requests.map(normalizeCustomerRequest)
-    : [];
+  return {
+    requests: Array.isArray(result.requests)
+      ? result.requests.map(normalizeCustomerRequest)
+      : [],
+    page: Number(result.page || page),
+    pageSize: Number(result.pageSize || pageSize),
+    total: Number(result.total || 0),
+    hasMore: Boolean(result.hasMore),
+  };
 };
 
 export const loadCustomerRequests = async (
@@ -223,15 +226,16 @@ export const loadCustomerRequests = async (
   }
 
   try {
-    const remoteRequests = await fetchCustomerRequests(brand, {
+    const remoteResult = await fetchCustomerRequests(brand, {
       cache: forceRemote ? "reload" : "default",
       signal,
     });
+    const remoteRequests = remoteResult.requests;
     writeLocalCustomerRequests(brand, remoteRequests, {
       markSynced: true,
       notify: false,
     });
-    return { requests: remoteRequests, source: "remote" };
+    return { ...remoteResult, requests: remoteRequests, source: "remote" };
   } catch (error) {
     return { requests: localRequests, source: "local", error };
   }

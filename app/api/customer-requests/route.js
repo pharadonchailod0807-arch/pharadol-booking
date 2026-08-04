@@ -19,6 +19,8 @@ const VALID_STATUSES = new Set([
   "converted",
   "created_booking",
 ]);
+const DEFAULT_PAGE_SIZE = 30;
+const MAX_PAGE_SIZE = 50;
 
 const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 const SAFE_FILE_TYPES = new Set([
@@ -62,6 +64,18 @@ const getReadableError = (error) => {
   return message || "ทำรายการไม่สำเร็จ";
 };
 
+const parsePage = (value) => {
+  const page = Number(value || 0);
+  return Number.isFinite(page) ? Math.max(Math.floor(page), 0) : 0;
+};
+
+const parsePageSize = (value) => {
+  const pageSize = Number(value || DEFAULT_PAGE_SIZE);
+  return Number.isFinite(pageSize)
+    ? Math.min(Math.max(Math.floor(pageSize), 1), MAX_PAGE_SIZE)
+    : DEFAULT_PAGE_SIZE;
+};
+
 export async function GET(request) {
   const blockedNavigation = rejectDocumentNavigation(request);
   if (blockedNavigation) return blockedNavigation;
@@ -69,6 +83,10 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const brand = normalizeBrand(searchParams.get("brand"));
   const trashMode = searchParams.get("trash") === "1";
+  const page = parsePage(searchParams.get("page"));
+  const pageSize = parsePageSize(searchParams.get("pageSize"));
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
 
   if (!VALID_BRANDS.has(brand)) {
     return Response.json(
@@ -79,16 +97,18 @@ export async function GET(request) {
 
   let query = supabase
     .from("customer_requests")
-    .select("*")
+    .select("*", { count: "exact" })
     .eq("brand", brand);
 
   query = trashMode
     ? query.not("deleted_at", "is", null)
     : query.is("deleted_at", null);
 
-  const { data, error } = await query.order("created_at", {
-    ascending: false,
-  });
+  const { data, error, count } = await query
+    .order("created_at", {
+      ascending: false,
+    })
+    .range(from, to);
 
   if (error) {
     return Response.json(
@@ -101,6 +121,10 @@ export async function GET(request) {
     {
       success: true,
       requests: Array.isArray(data) ? data.map(normalizeRequest) : [],
+      page,
+      pageSize,
+      total: Number(count || 0),
+      hasMore: count == null ? Array.isArray(data) && data.length === pageSize : to + 1 < count,
     },
     {
       headers: {

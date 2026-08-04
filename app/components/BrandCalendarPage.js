@@ -67,12 +67,12 @@ const CALENDAR_SURFACE = {
   grid: "rgba(15, 23, 42, 0.08)",
   outside: "#F8FAFC",
   sunday: "#FFFAFA",
-  eventDay: "#EFF6FF",
-  eventDayBorder: "#BFDBFE",
-  selected: "#2563EB",
-  event: "#2563EB",
-  eventHover: "#1D4ED8",
-  eventShadow: "rgba(37, 99, 235, 0.18)",
+  eventDay: "#FFF1EF",
+  eventDayBorder: "#FDB8AE",
+  selected: "#F4511E",
+  event: "#F4511E",
+  eventHover: "#D84315",
+  eventShadow: "rgba(244, 81, 30, 0.2)",
   sundayText: "#DC2626",
   slateText: "#0F172A",
   mutedSlate: "#94A3B8",
@@ -912,7 +912,7 @@ export default function BrandCalendarPage({ brandId }) {
                             }}
                             className="hidden w-full rounded-full px-2 py-0.5 text-center text-[10px] font-black transition hover:-translate-y-0.5 sm:block"
                             style={{
-                              backgroundColor: "#DBEAFE",
+                              backgroundColor: "#FFE4E0",
                               color: CALENDAR_SURFACE.event,
                             }}
                           >

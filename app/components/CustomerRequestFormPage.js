@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useState } from "react";
 import Image from "next/image";
 
@@ -280,7 +282,7 @@ const handleSubmit = async (event) => {
         : "border-zinc-200 bg-white"
     }`;
 
-  const FieldError = ({ field }) =>
+  const renderFieldError = (field) =>
     fieldErrors[field] ? (
       <span className="text-xs font-semibold text-red-600">
         {fieldErrors[field]}
@@ -354,7 +356,7 @@ const handleSubmit = async (event) => {
     link.remove();
   };
 
-  const StepIndicator = () => (
+  const renderStepIndicator = () => (
     <div className="mb-5 grid grid-cols-2 gap-2 rounded-[20px] border border-zinc-200 bg-zinc-50 p-2">
       {[
         ["1", "ข้อมูลการจอง"],
@@ -388,7 +390,7 @@ const handleSubmit = async (event) => {
     </div>
   );
 
-  const PaymentQrCard = () => (
+  const renderPaymentQrCard = () => (
     <div className="mx-auto w-full max-w-[760px] overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:rounded-[32px]">
       <div
         className="grid h-auto min-h-[106px] grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-[18px] py-[14px] sm:min-h-[110px] sm:gap-4 sm:px-[28px] sm:py-[16px]"
@@ -463,6 +465,10 @@ const handleSubmit = async (event) => {
             <img
               src={config.paymentQr}
               alt={`QR Code สำหรับโอนจอง ${config.name}`}
+              width="500"
+              height="500"
+              loading="lazy"
+              decoding="async"
               className="block h-auto w-full max-w-[225px] object-contain sm:max-w-[500px]"
               onError={() => setQrImageAvailable(false)}
             />
@@ -670,7 +676,7 @@ const handleSubmit = async (event) => {
               : "rounded-[26px] border border-zinc-200 bg-white p-5 shadow-sm sm:p-7"
           }
         >
-          <StepIndicator />
+          {renderStepIndicator()}
 
           {step === 1 ? (
             <>
@@ -682,7 +688,7 @@ const handleSubmit = async (event) => {
                     onChange={(event) => updateField("customerName", event.target.value)}
                     className={inputClass("customerName")}
                   />
-                  <FieldError field="customerName" />
+                  {renderFieldError("customerName")}
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-zinc-700">
                   เบอร์โทร *
@@ -691,7 +697,7 @@ const handleSubmit = async (event) => {
                     onChange={(event) => updateField("phone", event.target.value)}
                     className={inputClass("phone")}
                   />
-                  <FieldError field="phone" />
+                  {renderFieldError("phone")}
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-zinc-700">
                   อีเมล
@@ -701,7 +707,7 @@ const handleSubmit = async (event) => {
                     onChange={(event) => updateField("email", event.target.value)}
                     className={inputClass("email")}
                   />
-                  <FieldError field="email" />
+                  {renderFieldError("email")}
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-zinc-700">
                   สถานที่จัดงาน *
@@ -710,7 +716,7 @@ const handleSubmit = async (event) => {
                     onChange={(event) => updateField("eventLocation", event.target.value)}
                     className={inputClass("eventLocation")}
                   />
-                  <FieldError field="eventLocation" />
+                  {renderFieldError("eventLocation")}
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-zinc-700">
                   วันงาน *
@@ -720,7 +726,7 @@ const handleSubmit = async (event) => {
                     onChange={(event) => updateField("eventDate", event.target.value)}
                     className={inputClass("eventDate")}
                   />
-                  <FieldError field="eventDate" />
+                  {renderFieldError("eventDate")}
                 </label>
                 <label className="grid gap-2 text-sm font-semibold text-zinc-700">
                   รายละเอียดเพิ่มเติม
@@ -746,7 +752,7 @@ const handleSubmit = async (event) => {
           ) : (
             <>
               <div className="grid gap-3 sm:gap-4">
-                <PaymentQrCard />
+                {renderPaymentQrCard()}
 
                 <label
                   htmlFor={slipInputId}

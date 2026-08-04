@@ -1,10 +1,16 @@
 "use client";
 
+/* eslint-disable @next/next/no-img-element */
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { getNextBookingSequence } from "@/lib/booking-number";
+import {
+  formatBookingNumber,
+  getBookingSequence,
+  getNextBookingSequence,
+} from "@/lib/booking-number";
 import {
   fetchGooglePlaceSuggestions,
   getAutocompleteOptionsFromBookings,
@@ -21,6 +27,7 @@ import {
   normalizeTextValue,
   updateLocalCustomerRequest,
 } from "@/app/lib/customerRequests";
+import { safeGetArray, safeGetObject, safeSetJson } from "@/app/lib/safeStorage";
 import {
   applyGoogleCalendarSyncResult,
   markGoogleCalendarSyncError,
@@ -55,6 +62,7 @@ const CUSTOM_BOOKING_NUMBER_KEY = "pharadol_customBookingNumber";
 const BOOKING_NUMBER_MODE_KEY = "pharadol_bookingNumberMode";
 const BOOKING_NUMBER_UPDATED_EVENT = "pharadol:booking-number-updated";
 const BOOKING_NUMBER_CHANNEL = "pharadol-booking-number";
+const PREVIEW_BOOKING_NUMBER_KEY = "pharadol_previewBookingNumber";
 const NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY =
   "pharadol_nextBookingSequenceOverride";
 const RESET_BOOKING_SEQUENCE_ACTIVE_KEY =
@@ -65,8 +73,13 @@ const PAYMENT_RECEIPTS_KEY = "pharadol_paymentReceipts";
 const ARCHIVES_KEY = "pharadol_archives";
 const SECURITY_PIN_KEY = "pharadol_securityPin";
 const SECURITY_UNLOCKED_KEY = "pharadol_securityUnlocked";
+const BOOKING_DRAFT_TYPE = "new-booking";
 const AUTO_LOCK_MINUTES = 15;
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const MAX_STORAGE_BYTES = 2 * 1024 * 1024;
+const TRAVEL_SERVICE_NAME = "ค่าเดินทาง";
+const ACCOMMODATION_SERVICE_NAME = "ค่าที่พัก";
+const CUSTOM_ROOM_QUANTITY_VALUE = "other";
 const DEFAULT_CALENDAR_COLOR = "#111827";
 const CALENDAR_COLOR_OPTIONS = [
   { label: "ฟ้า", value: "#3B82F6" },
@@ -81,39 +94,126 @@ const CALENDAR_COLOR_OPTIONS = [
 
 const readArrayFromStorage = (...keys) => {
   for (const key of keys) {
-    try {
-      const rawValue = localStorage.getItem(key);
-      if (!rawValue) continue;
-
-      const parsedValue = JSON.parse(rawValue);
-      if (Array.isArray(parsedValue)) return parsedValue;
-    } catch (error) {
-      console.error(
-        `Cannot read localStorage key: ${key}`,
-        error?.message || "parse failed"
-      );
-    }
+    const parsedValue = safeGetArray(key, { maxBytes: MAX_STORAGE_BYTES });
+    if (parsedValue.length > 0) return parsedValue;
   }
 
   return [];
 };
 
-const readObjectFromStorage = (key) => {
-  try {
-    const rawValue = localStorage.getItem(key);
-    if (!rawValue) return null;
-    const parsedValue = JSON.parse(rawValue);
-    return parsedValue && typeof parsedValue === "object" && !Array.isArray(parsedValue)
-      ? parsedValue
-      : null;
-  } catch (error) {
-    console.error(
-      `Cannot read localStorage object: ${key}`,
-      error?.message || "parse failed"
-    );
-    return null;
-  }
+const readStoredBooking = (key) => {
+  if (typeof window === "undefined") return null;
+
+  return safeGetObject(key, { maxBytes: MAX_STORAGE_BYTES });
 };
+
+const getStoredBookingTime = (booking) => {
+  const rawDate =
+    booking?.createdAt ||
+    booking?.created_at ||
+    booking?.savedAt ||
+    booking?.bookingDate ||
+    "";
+  if (!rawDate) return 0;
+
+  const thaiDateMatch = String(rawDate).match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/
+  );
+  if (thaiDateMatch) {
+    const [, day, month, year, hour = "0", minute = "0", second = "0"] =
+      thaiDateMatch;
+    const normalizedYear = Number(year) > 2400 ? Number(year) - 543 : Number(year);
+    const time = new Date(
+      normalizedYear,
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second)
+    ).getTime();
+    return Number.isFinite(time) ? time : 0;
+  }
+
+  const time = new Date(rawDate).getTime();
+  return Number.isFinite(time) ? time : 0;
+};
+
+const getImmediatePreviewBookingNumber = () => {
+  if (typeof window === "undefined") return "";
+
+  const currentOrSelectedBooking =
+    readStoredBooking(CURRENT_BOOKING_KEY) || readStoredBooking(SELECTED_BOOKING_KEY);
+  const currentSequence = getBookingSequence(currentOrSelectedBooking?.bookingNumber);
+
+  if (currentSequence != null && currentSequence < 9999) {
+    return formatBookingNumber(new Date(), currentSequence + 1);
+  }
+
+  const localBookings = readArrayFromStorage(CUSTOMERS_KEY)
+    .filter((booking) => {
+      const bookingBrand = normalizeTextValue(booking?.brandId || booking?.brand || "");
+      const bookingStatus = normalizeTextValue(
+        booking?.bookingStatus || booking?.status || booking?.jobStatus || ""
+      );
+      return (!bookingBrand || bookingBrand === BRAND_ID) && bookingStatus !== "draft";
+    })
+    .map((booking) => ({
+      sequence: getBookingSequence(booking?.bookingNumber),
+      time: getStoredBookingTime(booking),
+    }))
+    .filter((booking) => booking.sequence != null);
+
+  const latestLocalBooking = localBookings.reduce((latest, booking) => {
+    if (!latest || booking.time > latest.time) return booking;
+    return latest;
+  }, null);
+
+  if (latestLocalBooking?.sequence != null && latestLocalBooking.sequence < 9999) {
+    return formatBookingNumber(new Date(), latestLocalBooking.sequence + 1);
+  }
+
+  const cachedPreview = localStorage.getItem(PREVIEW_BOOKING_NUMBER_KEY);
+  if (cachedPreview) return cachedPreview;
+
+  return "";
+};
+
+const readObjectFromStorage = (key) => {
+  return safeGetObject(key, { maxBytes: MAX_STORAGE_BYTES });
+};
+
+const stripLargeStoragePayload = (booking = {}) => {
+  const stripSlip = (item = {}) => {
+    const slipImage = String(item?.slipImage || "");
+    if (!slipImage.startsWith("data:") || slipImage.length < 120_000) return item;
+
+    const { slipImage: _slipImage, slipUrl: _slipUrl, ...rest } = item;
+    return {
+      ...rest,
+      hasStoredSlip: true,
+      slipFileName: item.slipFileName || "",
+      slipFileType: item.slipFileType || "",
+    };
+  };
+
+  const sanitized = stripSlip(booking);
+  return {
+    ...sanitized,
+    paymentTransactions: Array.isArray(sanitized.paymentTransactions)
+      ? sanitized.paymentTransactions.map(stripSlip)
+      : sanitized.paymentTransactions,
+  };
+};
+
+const writeBookingListStorage = (key, bookings) =>
+  safeSetJson(key, bookings.map(stripLargeStoragePayload), {
+    maxBytes: MAX_STORAGE_BYTES,
+  });
+
+const writeBookingStorage = (key, booking) =>
+  safeSetJson(key, stripLargeStoragePayload(booking), {
+    maxBytes: MAX_STORAGE_BYTES,
+  });
 
 const getSafeErrorMessage = (error, fallback = "unknown error") =>
   error?.message || error?.error || fallback;
@@ -494,7 +594,8 @@ const regularServiceOptions = [
   "Video Guestbook",
   "Photo Booth",
   "โดรน",
-  "ค่าเดินทาง/ที่พัก",
+  TRAVEL_SERVICE_NAME,
+  ACCOMMODATION_SERVICE_NAME,
 ];
 
 const packageServiceOptions = [
@@ -534,12 +635,41 @@ const personnelServices = [
   "ผู้ช่วยช่างภาพ",
 ];
 
+const isPackageServiceName = (serviceName) =>
+  packageServiceOptions.includes(serviceName);
+
+const isTravelServiceName = (serviceName) =>
+  serviceName === TRAVEL_SERVICE_NAME;
+
+const isAccommodationServiceName = (serviceName) =>
+  serviceName === ACCOMMODATION_SERVICE_NAME;
+
+const getQuantityUnitLabel = (serviceName, fallbackUnit = "") => {
+  if (personnelServices.includes(serviceName)) return "คน";
+  if (isAccommodationServiceName(serviceName)) return "ห้อง";
+  return fallbackUnit;
+};
+
+const usesUnitPricing = (serviceName) =>
+  Boolean(getQuantityUnitLabel(serviceName));
+
+const getServiceQuantityLabel = (item) => {
+  const unitLabel = getQuantityUnitLabel(item.name, item.unitLabel || "");
+
+  if (unitLabel) return `${item.quantity || 1} ${unitLabel}`;
+  if (isPackageServiceName(item.name)) return "1 แพ็กเกจ";
+  return "1 รายการ";
+};
+
 const [serviceItems, setServiceItems] = useState([]);
 const [showServiceModal, setShowServiceModal] = useState(false);
 const [selectedServiceName, setSelectedServiceName] = useState("");
 const [selectedServiceType, setSelectedServiceType] = useState("service");
 const [selectedServicePrice, setSelectedServicePrice] = useState("");
 const [selectedServiceQuantity, setSelectedServiceQuantity] = useState("1");
+const [selectedTravelDetail, setSelectedTravelDetail] = useState("");
+const [selectedRoomQuantity, setSelectedRoomQuantity] = useState("1");
+const [selectedCustomRoomQuantity, setSelectedCustomRoomQuantity] = useState("");
 const [discountPercent, setDiscountPercent] = useState("");
 const [discountAmount, setDiscountAmount] = useState("");
 
@@ -592,7 +722,9 @@ const [isSaving, setIsSaving] = useState(false);
 const [isBookingSaved, setIsBookingSaved] = useState(false);
 const [isEditingBooking, setIsEditingBooking] = useState(false);
 const [pendingCustomerRequestId, setPendingCustomerRequestId] = useState("");
-const [previewBookingNumber, setPreviewBookingNumber] = useState("");
+const [previewBookingNumber, setPreviewBookingNumber] = useState(
+  getImmediatePreviewBookingNumber
+);
 const [isLoadingPreviewBookingNumber, setIsLoadingPreviewBookingNumber] = useState(false);
 const [isExporting, setIsExporting] = useState(false);
 const [draftStatus, setDraftStatus] = useState("");
@@ -751,13 +883,14 @@ const chooseLocationSuggestion = (suggestion) => {
     const verifyAccess = () => {
       try {
         const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-        const currentUser = JSON.parse(
-          sessionStorage.getItem("currentUser") || "null"
-        );
+        const currentUser = safeGetObject("currentUser", {
+          storage: "session",
+          maxBytes: 64 * 1024,
+        });
         const activeBrand = sessionStorage.getItem("activeBrand");
-        const users = JSON.parse(
-          localStorage.getItem("central_admin_users") || "[]"
-        );
+        const users = safeGetArray("central_admin_users", {
+          maxBytes: 256 * 1024,
+        });
         const latestAccount = Array.isArray(users)
           ? users.find((user) => user.id === currentUser?.id)
           : null;
@@ -1032,6 +1165,7 @@ const chooseLocationSuggestion = (suggestion) => {
         throw new Error(result.error || "โหลดเลขใบจองถัดไปไม่สำเร็จ");
       }
 
+      localStorage.setItem(PREVIEW_BOOKING_NUMBER_KEY, result.bookingNumber);
       setPreviewBookingNumber(result.bookingNumber);
       setBookingDate(result.bookingDate || bookingDate);
       setToday(result.today || today);
@@ -1050,8 +1184,9 @@ const chooseLocationSuggestion = (suggestion) => {
 
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
+      const editMode = params.get("edit") === "1";
       const isCreateBookingRoute =
-        window.location.pathname === ROUTES.booking && !params.has("view");
+        window.location.pathname === ROUTES.booking && !params.has("view") && !editMode;
 
       if (!isCreateBookingRoute) {
         setIsDraftReady(true);
@@ -1062,7 +1197,7 @@ const chooseLocationSuggestion = (suggestion) => {
         const rawPrefill = localStorage.getItem(PENDING_BOOKING_PREFILL_KEY);
 
         if (rawPrefill) {
-          const prefill = JSON.parse(rawPrefill);
+          const prefill = safeGetObject(PENDING_BOOKING_PREFILL_KEY);
 
           if (prefill?.brand === BRAND_ID) {
             const prefillSlip = getNormalizedSlipFields(prefill);
@@ -1116,7 +1251,16 @@ const chooseLocationSuggestion = (suggestion) => {
         const rawDraft = localStorage.getItem(BOOKING_DRAFT_KEY);
 
         if (rawDraft) {
-          const draft = JSON.parse(rawDraft);
+          const draft = safeGetObject(BOOKING_DRAFT_KEY);
+
+          if (draft?.draftType !== BOOKING_DRAFT_TYPE) {
+            localStorage.removeItem(BOOKING_DRAFT_KEY);
+            resetCreateBookingFields();
+            setDraftStatus("");
+            setIsDraftReady(true);
+            return;
+          }
+
           const draftSlip = getNormalizedSlipFields(draft);
 
           setCustomerName(normalizeTextValue(draft.customerName));
@@ -1163,7 +1307,7 @@ const chooseLocationSuggestion = (suggestion) => {
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [isAuthorized]);
+  }, [isAuthorized, resetCreateBookingFields]);
 
   useEffect(() => {
     if (
@@ -1177,8 +1321,9 @@ const chooseLocationSuggestion = (suggestion) => {
     }
 
     const params = new URLSearchParams(window.location.search);
+    const editMode = params.get("edit") === "1";
     const isCreateBookingRoute =
-      window.location.pathname === ROUTES.booking && !params.has("view");
+      window.location.pathname === ROUTES.booking && !params.has("view") && !editMode;
 
     if (!isCreateBookingRoute) return;
 
@@ -1200,8 +1345,9 @@ const chooseLocationSuggestion = (suggestion) => {
     if (!isDraftReady || isViewMode || loadedBookingNumber) return;
 
     const params = new URLSearchParams(window.location.search);
+    const editMode = params.get("edit") === "1";
     const isCreateBookingRoute =
-      window.location.pathname === ROUTES.booking && !params.has("view");
+      window.location.pathname === ROUTES.booking && !params.has("view") && !editMode;
 
     if (!isCreateBookingRoute) return;
 
@@ -1239,9 +1385,10 @@ const chooseLocationSuggestion = (suggestion) => {
 
     const saveTimer = window.setTimeout(() => {
       try {
-        localStorage.setItem(
+        safeSetJson(
           BOOKING_DRAFT_KEY,
-          JSON.stringify({
+          stripLargeStoragePayload({
+            draftType: BOOKING_DRAFT_TYPE,
             customerName,
             phone,
             email,
@@ -1267,7 +1414,8 @@ const chooseLocationSuggestion = (suggestion) => {
             slipFileName,
             slipFileType,
             savedAt: new Date().toISOString(),
-          })
+          }),
+          { maxBytes: MAX_STORAGE_BYTES }
         );
 
         setDraftStatus(
@@ -1322,22 +1470,16 @@ const chooseLocationSuggestion = (suggestion) => {
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
       const hasViewParam = params.has("view");
+      const editMode = params.get("edit") === "1";
       const isCreateBookingRoute =
-        window.location.pathname === ROUTES.booking && !hasViewParam;
-      const viewMode = hasViewParam;
+        window.location.pathname === ROUTES.booking && !hasViewParam && !editMode;
+      const viewMode = hasViewParam && !editMode;
       const customerView = false;
 
-      const shouldOpenEditMode =
-        viewMode &&
-        params.get("view") === "" &&
-        !params.has("pdf");
+      const shouldOpenEditMode = editMode;
 
-      setIsViewMode(shouldOpenEditMode ? false : viewMode);
+      setIsViewMode(viewMode);
       setIsCustomerView(customerView);
-
-      if (shouldOpenEditMode) {
-        window.history.replaceState({}, "", ROUTES.home);
-      }
 
       if (isCreateBookingRoute) {
         setEditedFields({});
@@ -1362,21 +1504,25 @@ const chooseLocationSuggestion = (suggestion) => {
         localStorage.removeItem(CURRENT_BOOKING_KEY);
       }
 
-      if (viewMode) {
+      if (viewMode || shouldOpenEditMode) {
         const savedBooking =
           localStorage.getItem(SELECTED_BOOKING_KEY) ||
           localStorage.getItem(CURRENT_BOOKING_KEY);
 
         if (savedBooking) {
           try {
-            const booking = JSON.parse(savedBooking);
+            const booking = readObjectFromStorage(
+              localStorage.getItem(SELECTED_BOOKING_KEY)
+                ? SELECTED_BOOKING_KEY
+                : CURRENT_BOOKING_KEY
+            );
             const bookingSlip = getNormalizedSlipFields(booking);
             setEditedFields({});
             setLoadedBookingNumber(booking.bookingNumber || "");
             setPreviewBookingNumber("");
             previewBookingNumberRequestRef.current = "";
             setIsBookingSaved(Boolean(booking.bookingNumber));
-            setIsEditingBooking(false);
+            setIsEditingBooking(shouldOpenEditMode);
             setCustomBookingNumber("");
             setCustomerName(normalizeTextValue(booking.customerName));
             setPhone(normalizeTextValue(booking.phone));
@@ -1456,7 +1602,7 @@ const chooseLocationSuggestion = (suggestion) => {
 
       const customers = readArrayFromStorage(CUSTOMERS_KEY);
 
-      localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(customers));
+      writeBookingListStorage(CUSTOMERS_KEY, customers);
       setCustomerCount(customers.length);
 
       const savedSequenceOverride = Number(
@@ -1498,7 +1644,117 @@ const chooseLocationSuggestion = (suggestion) => {
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [isAuthorized]);
+  }, [isAuthorized, resetCreateBookingFields]);
+
+  useEffect(() => {
+    if (!isAuthorized || !isViewMode || loadedBookingNumber) return;
+
+    const lookupPhone = normalizeTextValue(phone);
+    const lookupEmail = normalizeEmail(email);
+    const lookupCustomerName = normalizeTextValue(customerName);
+    const lookupEventDate = normalizeTextValue(eventDate);
+
+    if (!lookupPhone && !lookupEmail && !lookupCustomerName) return;
+
+    let isCancelled = false;
+
+    const loadMissingBookingNumber = async () => {
+      try {
+        let query = supabase
+          .from("bookings")
+          .select(
+            "id, booking_number, booking_data, customer_name, phone, email, event_date, job_status, created_at"
+          )
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (lookupPhone) {
+          query = query.eq("phone", lookupPhone);
+        } else if (lookupEmail) {
+          query = query.eq("email", lookupEmail);
+        } else {
+          query = query.eq("customer_name", lookupCustomerName);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const matchedRow = (Array.isArray(data) ? data : []).find((row) => {
+          const bookingData = row?.booking_data || {};
+          const rowBrand = normalizeTextValue(
+            bookingData.brandId || bookingData.brand || ""
+          );
+          const rowStatus = normalizeTextValue(
+            bookingData.bookingStatus || bookingData.status || row?.job_status || ""
+          );
+          const rowBookingNumber = row?.booking_number || bookingData.bookingNumber || "";
+          const rowEventDate = normalizeTextValue(
+            bookingData.eventDate || row?.event_date || ""
+          );
+          const rowEmail = normalizeEmail(bookingData.email || row?.email || "");
+          const rowName = normalizeTextValue(
+            bookingData.customerName || row?.customer_name || ""
+          );
+
+          return (
+            rowBrand === BRAND_ID &&
+            rowStatus !== "draft" &&
+            rowBookingNumber &&
+            (!lookupEventDate || rowEventDate === lookupEventDate) &&
+            (!lookupEmail || rowEmail === lookupEmail) &&
+            (!lookupCustomerName || rowName === lookupCustomerName)
+          );
+        });
+
+        if (isCancelled || !matchedRow) return;
+
+        const bookingData = matchedRow.booking_data || {};
+        const resolvedBookingNumber =
+          matchedRow.booking_number || bookingData.bookingNumber || "";
+        if (!resolvedBookingNumber) return;
+
+        const resolvedBooking = {
+          ...bookingData,
+          supabaseId: matchedRow.id || bookingData.supabaseId || "",
+          bookingId: matchedRow.id || bookingData.bookingId || "",
+          bookingNumber: resolvedBookingNumber,
+        };
+
+        setLoadedBookingNumber(resolvedBookingNumber);
+        setLastSavedBookingNumber(resolvedBookingNumber);
+        setIsBookingSaved(true);
+
+        [SELECTED_BOOKING_KEY, CURRENT_BOOKING_KEY].forEach((key) => {
+          try {
+            const rawBooking = localStorage.getItem(key);
+            const storedBooking = rawBooking ? readObjectFromStorage(key) || {} : {};
+            writeBookingStorage(
+              key,
+              { ...storedBooking, ...resolvedBooking }
+            );
+          } catch (storageError) {
+            console.error("Cannot update stored booking number", storageError);
+          }
+        });
+      } catch (error) {
+        console.error("Cannot resolve missing booking number", error);
+      }
+    };
+
+    loadMissingBookingNumber();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    isAuthorized,
+    isViewMode,
+    loadedBookingNumber,
+    customerName,
+    phone,
+    email,
+    eventDate,
+  ]);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -1853,19 +2109,23 @@ const formattedEventDate = formatThaiDateInput(eventDate);
   );
 
   const openServiceModal = () => {
-    setSelectedServiceName("");
-    setSelectedServiceType("service");
-    setSelectedServicePrice("");
-    setSelectedServiceQuantity("1");
+    resetServiceModalFields();
     setShowServiceModal(true);
   };
 
   const closeServiceModal = () => {
+    resetServiceModalFields();
+    setShowServiceModal(false);
+  };
+
+  const resetServiceModalFields = (serviceType = "service") => {
     setSelectedServiceName("");
-    setSelectedServiceType("service");
+    setSelectedServiceType(serviceType);
     setSelectedServicePrice("");
     setSelectedServiceQuantity("1");
-    setShowServiceModal(false);
+    setSelectedTravelDetail("");
+    setSelectedRoomQuantity("1");
+    setSelectedCustomRoomQuantity("");
   };
 
   const addServiceItem = () => {
@@ -1880,18 +2140,39 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     }
 
     const isPersonnel = personnelServices.includes(selectedServiceName);
-    const quantity = isPersonnel
+    const isAccommodation = isAccommodationServiceName(selectedServiceName);
+    const unitLabel = getQuantityUnitLabel(selectedServiceName);
+    const roomQuantity =
+      selectedRoomQuantity === CUSTOM_ROOM_QUANTITY_VALUE
+        ? Number(selectedCustomRoomQuantity)
+        : Number(selectedRoomQuantity);
+
+    if (
+      isAccommodation &&
+      (!Number.isInteger(roomQuantity) || roomQuantity < 1)
+    ) {
+      alert("กรุณาระบุจำนวนห้องให้ถูกต้อง");
+      return;
+    }
+
+    const quantity = isAccommodation
+      ? roomQuantity
+      : isPersonnel
       ? Math.min(Math.max(Number(selectedServiceQuantity) || 1, 1), 10)
       : 1;
     const unitPrice = Number(selectedServicePrice) || 0;
+    const description = isTravelServiceName(selectedServiceName)
+      ? selectedTravelDetail.trim()
+      : packageDescriptions[selectedServiceName] || "";
 
     setServiceItems((currentItems) => [
       ...currentItems,
       {
         id: `${Date.now()}-${Math.random()}`,
         name: selectedServiceName,
-        description: packageDescriptions[selectedServiceName] || "",
+        description,
         quantity,
+        unitLabel,
         unitPrice,
         price: unitPrice * quantity,
       },
@@ -2963,7 +3244,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     localStorage.removeItem(BOOKING_DRAFT_KEY);
     bookingPrefillConsumedRef.current = false;
     previewBookingNumberRequestRef.current = "";
-    setPreviewBookingNumber("");
+    setPreviewBookingNumber(getImmediatePreviewBookingNumber());
     setIsLoadingPreviewBookingNumber(false);
     setDraftStatus("");
     setEditedFields({});
@@ -3043,7 +3324,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
   const duplicateBooking = () => {
     setIsBookingSaved(false);
     previewBookingNumberRequestRef.current = "";
-    setPreviewBookingNumber("");
+    setPreviewBookingNumber(getImmediatePreviewBookingNumber());
     const customers = readArrayFromStorage(CUSTOMERS_KEY);
     const now = new Date();
 
@@ -3214,7 +3495,13 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         const rawBooking =
           localStorage.getItem(SELECTED_BOOKING_KEY) ||
           localStorage.getItem(CURRENT_BOOKING_KEY);
-        const parsedBooking = rawBooking ? JSON.parse(rawBooking) : null;
+        const parsedBooking = rawBooking
+          ? readObjectFromStorage(
+              localStorage.getItem(SELECTED_BOOKING_KEY)
+                ? SELECTED_BOOKING_KEY
+                : CURRENT_BOOKING_KEY
+            )
+          : null;
 
         return parsedBooking?.bookingNumber || "";
       } catch (error) {
@@ -3346,8 +3633,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         }
       }
 
-      localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(oldData));
-      localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
+      writeBookingListStorage(CUSTOMERS_KEY, oldData);
+      writeBookingStorage(CURRENT_BOOKING_KEY, customer);
       setCustomerCount(oldData.length);
 
       localStorage.removeItem(NEXT_BOOKING_SEQUENCE_OVERRIDE_KEY);
@@ -3355,6 +3642,15 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
       const nextSequence = getNextBookingSequence(oldData);
       if (nextSequence != null) setNextBookingSequence(nextSequence);
+      const savedSequence = getBookingSequence(customer.bookingNumber);
+      if (savedSequence != null && savedSequence < 9999) {
+        localStorage.setItem(
+          PREVIEW_BOOKING_NUMBER_KEY,
+          formatBookingNumber(new Date(), savedSequence + 1)
+        );
+      } else {
+        localStorage.removeItem(PREVIEW_BOOKING_NUMBER_KEY);
+      }
       previewBookingNumberRequestRef.current = "";
       setPreviewBookingNumber("");
       setLastSavedBookingNumber(customer.bookingNumber);
@@ -3377,8 +3673,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
 
         customer = applyGoogleCalendarSyncResult(customer, calendarResult);
         oldData[customerIndex] = customer;
-        localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(oldData));
-        localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
+        writeBookingListStorage(CUSTOMERS_KEY, oldData);
+        writeBookingStorage(CURRENT_BOOKING_KEY, customer);
 
         const calendarUpdateQuery = supabase
           .from("bookings")
@@ -3410,8 +3706,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
           calendarSyncErrorMessage
         );
         oldData[customerIndex] = customer;
-        localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(oldData));
-        localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(customer));
+        writeBookingListStorage(CUSTOMERS_KEY, oldData);
+        writeBookingStorage(CURRENT_BOOKING_KEY, customer);
 
         const calendarErrorUpdateQuery = supabase
           .from("bookings")
@@ -3460,6 +3756,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
         existingIndex !== -1 || forceUpdate
           ? "แก้ไขข้อมูลสำเร็จ"
           : "บันทึกข้อมูลสำเร็จ";
+      const shouldPrepareNextBooking = existingIndex === -1 && !forceUpdate;
 
       alert(
         calendarSyncErrorMessage
@@ -3468,6 +3765,13 @@ const formattedEventDate = formatThaiDateInput(eventDate);
             ? "บันทึกใบจองและซิงก์ Google Calendar สำเร็จ"
           : saveSuccessMessage
       );
+
+      if (shouldPrepareNextBooking) {
+        createNewBooking();
+        window.setTimeout(() => {
+          loadPreviewBookingNumber();
+        }, 0);
+      }
     } catch (error) {
       console.error("Cannot save booking", getSafeErrorMessage(error));
       alert("ไม่สามารถบันทึกข้อมูลได้ พื้นที่จัดเก็บอาจไม่เพียงพอ กรุณาลดขนาดรูปสลิปหรือลบข้อมูลเก่าบางส่วน");
@@ -4448,14 +4752,14 @@ const markBookingEmailSent = async ({ driveFile, messageId }) => {
   const updatedCurrentBooking = applyStatus(readObjectFromStorage(CURRENT_BOOKING_KEY));
   const updatedSelectedBooking = applyStatus(readObjectFromStorage(SELECTED_BOOKING_KEY));
 
-  localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(updatedCustomers));
+  writeBookingListStorage(CUSTOMERS_KEY, updatedCustomers);
 
   if (updatedCurrentBooking) {
-    localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(updatedCurrentBooking));
+    writeBookingStorage(CURRENT_BOOKING_KEY, updatedCurrentBooking);
   }
 
   if (updatedSelectedBooking) {
-    localStorage.setItem(SELECTED_BOOKING_KEY, JSON.stringify(updatedSelectedBooking));
+    writeBookingStorage(SELECTED_BOOKING_KEY, updatedSelectedBooking);
   }
 
   const emailStatusUpdatePayload = {
@@ -5435,8 +5739,8 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                     <div className="min-w-0">
                       <p className="font-medium truncate">
                         {item.name}
-                        {personnelServices.includes(item.name)
-                          ? ` × ${item.quantity || 1} คน`
+                        {usesUnitPricing(item.name)
+                          ? ` × ${getServiceQuantityLabel(item)}`
                           : ""}
                       </p>
                       {item.description && (
@@ -5445,9 +5749,9 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                         </p>
                       )}
                       <p className="text-sm text-zinc-500">
-                        {personnelServices.includes(item.name) ? (
+                        {usesUnitPricing(item.name) ? (
                           <>
-                            ฿ {Number(item.unitPrice || 0).toLocaleString()} × {item.quantity || 1}
+                            ฿ {Number(item.unitPrice || 0).toLocaleString()} × {getServiceQuantityLabel(item)}
                             {" = "}฿ {Number(item.price || 0).toLocaleString()}
                           </>
                         ) : (
@@ -5511,8 +5815,8 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   <div key={item.id} className="flex justify-between gap-3">
                     <span>
                       {item.name}
-                      {personnelServices.includes(item.name)
-                        ? ` × ${item.quantity || 1} คน`
+                      {usesUnitPricing(item.name)
+                        ? ` × ${getServiceQuantityLabel(item)}`
                         : ""}
                     </span>
                     <span>฿ {Number(item.price || 0).toLocaleString()}</span>
@@ -5780,6 +6084,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                 <img
                   src={slipPreviewUrl}
                   alt="หลักฐานการโอน"
+                  width="1000"
+                  height="750"
+                  loading="lazy"
+                  decoding="async"
                   onError={() => setSlipPreviewFailed(true)}
                   className="max-h-[300px] w-full rounded-2xl border object-contain md:max-h-[420px]"
                 />
@@ -6166,7 +6474,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   setIsViewMode(false);
                   setEditedFields({});
                   setIsEditingBooking(true);
-                  window.history.replaceState({}, "", ROUTES.home);
+                  window.history.replaceState({}, "", `${ROUTES.home}?edit=1`);
                 }}
                 className={actionEditButtonClass}
               >
@@ -6235,6 +6543,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               <img
                 src="/pharadol-logo.jpeg"
                 alt="logo"
+                width="144"
+                height="144"
+                loading="lazy"
+                decoding="async"
                 className={`${isDenseDocument ? "w-28 h-28 -ml-4" : "w-36 h-36 -ml-6"} rounded-full object-cover`}
               />
 
@@ -6342,7 +6654,8 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                 </div>
               ) : (
                 serviceItems.map((item, index) => {
-                  const isPersonnel = personnelServices.includes(item.name);
+                  const isUnitPricedItem = usesUnitPricing(item.name);
+                  const unitLabel = getQuantityUnitLabel(item.name, item.unitLabel || "");
                   return (
                     <div
                       key={item.id}
@@ -6363,18 +6676,18 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                               </p>
                             )}
                           </div>
-                          {isPersonnel && (
+                          {isUnitPricedItem && (
                             <p className={`${isDenseDocument ? "text-[10px]" : "text-xs"} mt-0.5 text-zinc-500`}>
-                              ฿ {Number(item.unitPrice || 0).toLocaleString()} ต่อคน
+                              ฿ {Number(item.unitPrice || 0).toLocaleString()} ต่อ{unitLabel}
                             </p>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center justify-center">
                         <span className={`inline-flex w-24 items-center justify-center rounded-full bg-zinc-100 font-semibold text-zinc-700 ${isDenseDocument ? "py-0.5 text-xs" : "py-1 text-sm"}`}>
-                          {isPersonnel
-                            ? `${item.quantity || 1} คน`
-                            : item.description
+                          {isUnitPricedItem
+                            ? `${item.quantity || 1} ${unitLabel}`
+                            : isPackageServiceName(item.name)
                               ? "1 แพ็กเกจ"
                               : "1 รายการ"}
                         </span>
@@ -6383,7 +6696,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                         <p className={`${isDenseDocument ? "text-lg" : "text-xl"} font-bold text-zinc-900`}>
                           ฿ {Number(item.price || 0).toLocaleString()}
                         </p>
-                        {isPersonnel && Number(item.quantity || 1) > 1 && (
+                        {isUnitPricedItem && Number(item.quantity || 1) > 1 && (
                           <p className={`${isDenseDocument ? "text-[10px]" : "text-xs"} mt-0.5 text-zinc-500`}>
                             {Number(item.unitPrice || 0).toLocaleString()} × {item.quantity || 1}
                           </p>
@@ -6473,6 +6786,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               <img
                 src="/pharadol-logo.jpeg"
                 alt="logo"
+                width="144"
+                height="144"
+                loading="lazy"
+                decoding="async"
                 className="w-36 h-36 -ml-6 rounded-full object-cover"
               />
 
@@ -6610,6 +6927,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                 <img
                   src={slipPdfPreviewUrl || slipPreviewUrl}
                   alt="หลักฐานการโอนงาน"
+                  width="1000"
+                  height="750"
+                  loading="lazy"
+                  decoding="async"
                   onError={() => setSlipPreviewFailed(true)}
                   className="max-h-[300px] w-full rounded-xl object-contain md:max-h-[420px]"
                 />
@@ -6702,6 +7023,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               <img
                 src="/pharadol-logo.jpeg"
                 alt="logo"
+                width="144"
+                height="144"
+                loading="lazy"
+                decoding="async"
                 className="w-36 h-36 -ml-6 rounded-full object-cover"
               />
 
@@ -6918,6 +7243,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               <img
                 src="/pharadol-logo.jpeg"
                 alt="logo"
+                width="144"
+                height="144"
+                loading="lazy"
+                decoding="async"
                 className="w-36 h-36 -ml-6 rounded-full object-cover"
               />
 
@@ -7014,8 +7343,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedServiceType("service");
-                  setSelectedServiceName("");
+                  resetServiceModalFields("service");
                 }}
                 className={`rounded-2xl border py-3 font-semibold ${
                   selectedServiceType === "service"
@@ -7029,8 +7357,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedServiceType("package");
-                  setSelectedServiceName("");
+                  resetServiceModalFields("package");
                 }}
                 className={`rounded-2xl border py-3 font-semibold ${
                   selectedServiceType === "package"
@@ -7049,13 +7376,16 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
             </label>
             <select
               value={selectedServiceName}
-              onChange={(e) =>
+              onChange={(e) => {
                 updateEditableField(
                   "selectedServiceName",
                   setSelectedServiceName,
                   e.target.value
-                )
-              }
+                );
+                setSelectedTravelDetail("");
+                setSelectedRoomQuantity("1");
+                setSelectedCustomRoomQuantity("");
+              }}
               className={editableInputClass(
                 "selectedServiceName",
                 selectedServiceName,
@@ -7117,9 +7447,92 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               </>
             )}
 
+            {isTravelServiceName(selectedServiceName) && (
+              <>
+                <label className="block font-semibold mb-2">
+                  รายละเอียดค่าเดินทาง
+                </label>
+                <textarea
+                  placeholder="เช่น ค่าน้ำมัน, ค่าทางด่วน, เส้นทาง หรือหมายเหตุเพิ่มเติม"
+                  value={selectedTravelDetail}
+                  onChange={(e) =>
+                    updateEditableField(
+                      "selectedTravelDetail",
+                      setSelectedTravelDetail,
+                      e.target.value
+                    )
+                  }
+                  className={editableInputClass(
+                    "selectedTravelDetail",
+                    selectedTravelDetail,
+                    "mb-4 min-h-28 px-4 py-4"
+                  )}
+                />
+              </>
+            )}
+
+            {isAccommodationServiceName(selectedServiceName) && (
+              <>
+                <label className="block font-semibold mb-2">จำนวนห้อง</label>
+                <select
+                  value={selectedRoomQuantity}
+                  onChange={(e) =>
+                    updateEditableField(
+                      "selectedRoomQuantity",
+                      setSelectedRoomQuantity,
+                      e.target.value
+                    )
+                  }
+                  className={editableInputClass(
+                    "selectedRoomQuantity",
+                    selectedRoomQuantity,
+                    "mb-4 px-4 py-4"
+                  )}
+                >
+                  {Array.from({ length: 10 }, (_, index) => index + 1).map(
+                    (quantity) => (
+                      <option key={quantity} value={quantity}>
+                        {quantity} ห้อง
+                      </option>
+                    )
+                  )}
+                  <option value={CUSTOM_ROOM_QUANTITY_VALUE}>
+                    อื่นๆ
+                  </option>
+                </select>
+
+                {selectedRoomQuantity === CUSTOM_ROOM_QUANTITY_VALUE && (
+                  <>
+                    <label className="block font-semibold mb-2">
+                      ระบุจำนวนห้อง
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="กรอกจำนวนห้อง"
+                      value={selectedCustomRoomQuantity}
+                      onChange={(e) =>
+                        updateEditableField(
+                          "selectedCustomRoomQuantity",
+                          setSelectedCustomRoomQuantity,
+                          e.target.value
+                        )
+                      }
+                      className={editableInputClass(
+                        "selectedCustomRoomQuantity",
+                        selectedCustomRoomQuantity,
+                        "mb-4 px-4 py-4"
+                      )}
+                    />
+                  </>
+                )}
+              </>
+            )}
+
             <label className="block font-semibold mb-2">
-              {personnelServices.includes(selectedServiceName)
-                ? "ราคาต่อคน"
+              {usesUnitPricing(selectedServiceName)
+                ? `ราคาต่อ${getQuantityUnitLabel(selectedServiceName)}`
                 : packageDescriptions[selectedServiceName]
                   ? "ราคาแพ็กเกจ"
                   : "ราคา"}
@@ -7128,8 +7541,8 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               type="number"
               min="0"
               placeholder={
-                personnelServices.includes(selectedServiceName)
-                  ? "กรอกราคาต่อคน"
+                usesUnitPricing(selectedServiceName)
+                  ? `กรอกราคาต่อ${getQuantityUnitLabel(selectedServiceName)}`
                   : packageDescriptions[selectedServiceName]
                     ? "กรอกราคาแพ็กเกจ"
                     : "กรอกราคา"
