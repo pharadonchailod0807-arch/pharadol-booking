@@ -21,6 +21,12 @@ import {
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const SIDEBAR_REMOTE_CACHE_TTL_MS = 30 * 1000;
 const sidebarRemoteCountsCache = new Map();
+const AUTH_SESSION_STORAGE_KEYS = [
+  "loggedIn",
+  "currentUser",
+  "lastActivity",
+  "activeBrand",
+];
 
 const isAdminRole = (role) => role === "ADMIN" || role === "super_admin";
 
@@ -28,6 +34,10 @@ const normalizeBrandList = (brands = []) =>
   Array.isArray(brands)
     ? brands.map((item) => (item === "pharadon" ? "pharadol" : item))
     : [];
+
+const clearStoredClientSession = () => {
+  AUTH_SESSION_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
+};
 
 const Icon = ({ name, className = "h-5 w-5" }) => {
   const paths = {
@@ -292,7 +302,6 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
 
   useEffect(() => {
     installSidebarCountsStorageBridge();
-    let allowTimer = 0;
 
     let refreshFrame = 0;
     let disposed = false;
@@ -373,8 +382,13 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
 
   const menuItems = useMemo(() => buildMenuItems(brandId, counts), [brandId, counts]);
 
-  const logout = () => {
-    sessionStorage.clear();
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST", cache: "no-store" });
+    } catch {
+      // Continue with client-side logout even if the network request fails.
+    }
+    clearStoredClientSession();
     window.location.replace("/login");
   };
 
@@ -536,19 +550,15 @@ export default function BrandAppShell({ brandId, children }) {
 
   useEffect(() => {
     installSidebarCountsStorageBridge();
+    let allowTimer = 0;
 
     const denyAccess = () => {
-      sessionStorage.clear();
-      window.location.replace("/login");
+      clearStoredClientSession();
+      window.location.replace(`/login?next=${encodeURIComponent(pathname)}`);
     };
 
-    try {
+    const allowAccess = (currentUser, activeBrand) => {
       const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-      const currentUser = safeGetObject("currentUser", {
-        storage: "session",
-        maxBytes: 64 * 1024,
-      });
-      const activeBrand = sessionStorage.getItem("activeBrand");
       const lastActivity = Number(
         sessionStorage.getItem("lastActivity") || Date.now()
       );
@@ -571,17 +581,59 @@ export default function BrandAppShell({ brandId, children }) {
         sessionExpired ||
         (settingsRequiresAdmin && !accountIsAdmin)
       ) {
-        denyAccess();
-        return;
+        return false;
       }
 
       sessionStorage.setItem("lastActivity", String(Date.now()));
       allowTimer = window.setTimeout(() => {
         setIsAllowed(true);
       }, 0);
-    } catch {
-      denyAccess();
-    }
+      return true;
+    };
+
+    const restoreServerSession = async () => {
+      const response = await fetch("/api/auth/session", { cache: "no-store" });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result?.success || !result.user) {
+        throw new Error("No active server session");
+      }
+
+      const accountIsAdmin = isAdminRole(result.user.role);
+      const nextActiveBrand = accountIsAdmin ? brandId : result.activeBrand;
+
+      if (Array.isArray(result.users)) {
+        localStorage.setItem("central_admin_users", JSON.stringify(result.users));
+      }
+
+      clearStoredClientSession();
+      sessionStorage.setItem("loggedIn", "true");
+      sessionStorage.setItem("currentUser", JSON.stringify(result.user));
+      sessionStorage.setItem("lastActivity", String(Date.now()));
+      sessionStorage.setItem("activeBrand", nextActiveBrand);
+      return { currentUser: result.user, activeBrand: nextActiveBrand };
+    };
+
+    const verifyAccess = async () => {
+      try {
+        const currentUser = safeGetObject("currentUser", {
+          storage: "session",
+          maxBytes: 64 * 1024,
+        });
+        const activeBrand = sessionStorage.getItem("activeBrand");
+
+        if (allowAccess(currentUser, activeBrand)) return;
+
+        const restoredSession = await restoreServerSession();
+        if (!allowAccess(restoredSession.currentUser, restoredSession.activeBrand)) {
+          denyAccess();
+        }
+      } catch {
+        denyAccess();
+      }
+    };
+
+    verifyAccess();
 
     return () => {
       if (allowTimer) window.clearTimeout(allowTimer);

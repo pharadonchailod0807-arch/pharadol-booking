@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   AUTH_SESSION_COOKIE,
+  getActiveBrandForUser,
+  getDefaultRedirectForUser,
   getPublicAdminUsers,
   verifySessionToken,
 } from "@/lib/auth";
@@ -18,7 +20,8 @@ export async function GET(request) {
   return NextResponse.json({
     success: true,
     user,
-    activeBrand: user.role === "ADMIN" ? "admin" : user.brands?.[0] || "",
+    activeBrand: getActiveBrandForUser(user),
+    redirectTo: getDefaultRedirectForUser(user),
     users: await getPublicAdminUsers(),
   });
 }

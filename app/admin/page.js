@@ -10,6 +10,12 @@ const ADMIN_USERS_TABLE = "admin_users";
 const ADMIN_SETTINGS_KEY = "central_admin_settings";
 const ADMIN_LOG_KEY = "central_admin_activityLog";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const AUTH_SESSION_STORAGE_KEYS = [
+  "loggedIn",
+  "currentUser",
+  "lastActivity",
+  "activeBrand",
+];
 
 const defaultUsers = [
   {
@@ -43,6 +49,10 @@ const rowToUser = (row) => ({
   brands: Array.isArray(row.brands) ? row.brands : [],
   active: row.active !== false,
 });
+
+const clearStoredClientSession = () => {
+  AUTH_SESSION_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
+};
 
 const syncUsersToSupabase = async (nextUsers) => {
   const { error } = await supabase
@@ -268,7 +278,46 @@ export default function AdminPage() {
       loadUsersFromSupabase();
     };
 
-    const verifyAccess = () => {
+    const denyAccess = () => {
+      clearStoredClientSession();
+      window.location.replace("/login?next=%2Fadmin");
+      return false;
+    };
+
+    const authorizeAdminUser = (nextCurrentUser) => {
+      sessionStorage.setItem("loggedIn", "true");
+      sessionStorage.setItem("currentUser", JSON.stringify(nextCurrentUser));
+      sessionStorage.setItem("lastActivity", String(Date.now()));
+      sessionStorage.setItem("activeBrand", "admin");
+      setCurrentUser(nextCurrentUser);
+      setIsAuthorized(true);
+      loadAdminData();
+      return true;
+    };
+
+    const restoreServerSession = async () => {
+      const response = await fetch("/api/auth/session", { cache: "no-store" });
+      const result = await response.json().catch(() => ({}));
+
+      if (
+        !response.ok ||
+        !result?.success ||
+        !result.user ||
+        result.user.role !== "ADMIN" ||
+        result.user.active === false
+      ) {
+        throw new Error("No active admin server session");
+      }
+
+      if (Array.isArray(result.users)) {
+        localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(result.users));
+      }
+
+      clearStoredClientSession();
+      return result.user;
+    };
+
+    const verifyAccess = async () => {
       try {
         const loggedIn = sessionStorage.getItem("loggedIn") === "true";
         const savedCurrentUser = JSON.parse(
@@ -299,9 +348,8 @@ export default function AdminPage() {
           !accountIsAdmin ||
           sessionExpired
         ) {
-          sessionStorage.clear();
-          window.location.replace("/login");
-          return false;
+          const restoredUser = await restoreServerSession();
+          return authorizeAdminUser(restoredUser);
         }
 
         const nextCurrentUser = {
@@ -309,21 +357,14 @@ export default function AdminPage() {
           ...latestAccount,
         };
 
-        sessionStorage.setItem("currentUser", JSON.stringify(nextCurrentUser));
-        sessionStorage.setItem("lastActivity", String(Date.now()));
-        setCurrentUser(nextCurrentUser);
-        setIsAuthorized(true);
-        loadAdminData();
-        return true;
+        return authorizeAdminUser(nextCurrentUser);
       } catch (error) {
         console.error("Cannot load central admin data", error);
-        sessionStorage.clear();
-        window.location.replace("/login");
-        return false;
+        return denyAccess();
       }
     };
 
-    if (!verifyAccess()) return;
+    verifyAccess();
 
     let activityTimer;
 
@@ -348,7 +389,9 @@ export default function AdminPage() {
       verifyAccess();
     };
 
-    const sessionCheck = window.setInterval(verifyAccess, 60 * 1000);
+    const sessionCheck = window.setInterval(() => {
+      verifyAccess();
+    }, 60 * 1000);
     const activityEvents = ["mousedown", "keydown", "touchstart", "scroll"];
 
     activityEvents.forEach((eventName) =>
@@ -697,10 +740,15 @@ export default function AdminPage() {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     if (!window.confirm("ต้องการออกจากระบบใช่หรือไม่?")) return;
 
-    sessionStorage.clear();
+    try {
+      await fetch("/api/auth/logout", { method: "POST", cache: "no-store" });
+    } catch {
+      // Continue with client-side logout even if the network request fails.
+    }
+    clearStoredClientSession();
     window.location.replace("/login");
   };
 

@@ -6,6 +6,14 @@ const ADMIN_USERS_KEY = "central_admin_users";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
 const MAX_LOGIN_USERNAME_HISTORY = 8;
 const GENERAL_LOGIN_ERROR = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
+const SESSION_CREATE_ERROR =
+  "เข้าสู่ระบบสำเร็จ แต่ไม่สามารถสร้างเซสชันได้ กรุณาลองใหม่อีกครั้ง";
+const AUTH_SESSION_STORAGE_KEYS = [
+  "loggedIn",
+  "currentUser",
+  "lastActivity",
+  "activeBrand",
+];
 
 const normalizeUsernameHistory = (value) => {
   const items = Array.isArray(value) ? value : [];
@@ -38,6 +46,18 @@ const getSafeRedirectPath = (value, fallback = "") => {
   } catch {
     return fallback;
   }
+};
+
+const clearStoredClientSession = () => {
+  AUTH_SESSION_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
+};
+
+const getDefaultClientRedirect = (user, activeBrand) => {
+  if (user?.role === "ADMIN") return "/admin";
+  if (activeBrand === "pharadol" || activeBrand === "adisorn") {
+    return `/${activeBrand}/welcome`;
+  }
+  return "/login";
 };
 
 function ProviderIcon({ provider }) {
@@ -211,7 +231,7 @@ export default function LoginPage() {
         localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(users));
       }
 
-      sessionStorage.clear();
+      clearStoredClientSession();
       sessionStorage.setItem("loggedIn", "true");
       sessionStorage.setItem("currentUser", JSON.stringify(user));
       sessionStorage.setItem("lastActivity", String(Date.now()));
@@ -219,7 +239,7 @@ export default function LoginPage() {
       window.location.replace(
         getSafeRedirectPath(
           nextPath,
-          activeBrand === "admin" ? "/admin" : `/${activeBrand}/welcome`
+          getDefaultClientRedirect(user, activeBrand)
         )
       );
     },
@@ -249,41 +269,46 @@ export default function LoginPage() {
         setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
       }
 
-      if (oauthStatus === "success") {
-        fetch("/api/auth/session", { cache: "no-store" })
-          .then((response) => response.json())
-          .then((result) => {
-            if (!result?.success || !result.user) {
-              throw new Error("Cannot restore OAuth session");
-            }
-
-            completeClientSession({
-              user: result.user,
-              activeBrand: result.activeBrand,
-              users: result.users,
-              redirectTo: nextPath || result.redirectTo,
-            });
-          })
-          .catch(() => {
-            setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
+      fetch("/api/auth/session", { cache: "no-store" })
+        .then(async (response) => {
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || !result?.success || !result.user) {
+            throw new Error("No active server session");
+          }
+          return result;
+        })
+        .then((result) => {
+          completeClientSession({
+            user: result.user,
+            activeBrand: result.activeBrand,
+            users: result.users,
+            redirectTo: nextPath || result.redirectTo,
           });
-      } else {
-        const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-        const currentUser = JSON.parse(sessionStorage.getItem("currentUser") || "null");
-        const activeBrand = sessionStorage.getItem("activeBrand");
-
-        if (loggedIn && currentUser && activeBrand) {
-          const fallback =
-            currentUser.role === "ADMIN"
-              ? "/admin"
-              : `/${activeBrand === "admin" ? "pharadol" : activeBrand}/welcome`;
-          window.location.replace(nextPath || fallback);
-        }
-      }
+        })
+        .catch(() => {
+          clearStoredClientSession();
+          if (oauthStatus === "success") {
+            setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
+          }
+        });
     }, 0);
 
     return () => window.clearTimeout(timer);
   }, [completeClientSession]);
+
+  const verifyServerSession = async (preferredRedirectTo = "") => {
+    const response = await fetch("/api/auth/session", { cache: "no-store" });
+    const sessionResult = await response.json().catch(() => ({}));
+
+    if (!response.ok || !sessionResult?.success || !sessionResult.user) {
+      throw new Error(SESSION_CREATE_ERROR);
+    }
+
+    return {
+      ...sessionResult,
+      redirectTo: preferredRedirectTo || sessionResult.redirectTo,
+    };
+  };
 
   const saveUsernameHistory = (value) => {
     const savedUsername = String(value || "").trim();
@@ -333,10 +358,16 @@ export default function LoginPage() {
         throw new Error(result?.error || GENERAL_LOGIN_ERROR);
       }
 
-      saveUsernameHistory(result.user.username || normalizedIdentifier);
-      completeClientSession(result);
+      const verifiedSession = await verifyServerSession(result.redirectTo);
+
+      saveUsernameHistory(verifiedSession.user.username || normalizedIdentifier);
+      completeClientSession(verifiedSession);
     } catch (loginError) {
-      setError(loginError?.message || GENERAL_LOGIN_ERROR);
+      setError(
+        loginError?.message === SESSION_CREATE_ERROR
+          ? SESSION_CREATE_ERROR
+          : loginError?.message || GENERAL_LOGIN_ERROR
+      );
       submitLockRef.current = false;
       setIsSubmitting(false);
     }
