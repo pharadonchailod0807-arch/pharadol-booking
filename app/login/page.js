@@ -6,13 +6,6 @@ const ADMIN_USERS_KEY = "central_admin_users";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
 const MAX_LOGIN_USERNAME_HISTORY = 8;
 const GENERAL_LOGIN_ERROR = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
-const GOOGLE_LOGIN_ENABLED =
-  process.env.NEXT_PUBLIC_GOOGLE_LOGIN_ENABLED === "true";
-const GOOGLE_PROVIDER = {
-  key: "google",
-  label: "ดำเนินการต่อด้วยบัญชี Google",
-  href: "/api/auth/google",
-};
 
 const normalizeUsernameHistory = (value) => {
   const items = Array.isArray(value) ? value : [];
@@ -103,6 +96,24 @@ function ProviderIcon({ provider }) {
     );
   }
 
+  if (provider === "phone") {
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <rect x="7" y="2" width="10" height="20" rx="2" />
+        <path d="M11 18h2" />
+      </svg>
+    );
+  }
+
   return (
     <svg
       aria-hidden="true"
@@ -140,121 +151,12 @@ function EyeIcon({ crossed = false }) {
   );
 }
 
-const systemHighlights = [
-  { key: "booking", label: "จัดการใบจอง" },
-  { key: "customers", label: "จัดการข้อมูลลูกค้า" },
-  { key: "calendar", label: "จัดการปฏิทินงาน" },
-  { key: "reports", label: "รายงานและรายได้" },
-  { key: "documents", label: "ส่งอีเมลและเอกสาร" },
-  { key: "cloud", label: "จัดเก็บไฟล์บนคลาวด์" },
+const SOCIAL_LOGIN_PLACEHOLDERS = [
+  { key: "google", label: "Google" },
+  { key: "apple", label: "Apple" },
+  { key: "facebook", label: "Facebook" },
+  { key: "phone", label: "เบอร์มือถือ" },
 ];
-
-function SystemIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="h-5 w-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect x="4" y="5" width="16" height="15" rx="3" />
-      <path d="M8 3v4M16 3v4M4 10h16M8 14h3M13 14h3M8 17h2" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m5 12 4 4L19 6" />
-    </svg>
-  );
-}
-
-function FeatureIcon({ type }) {
-  const sharedProps = {
-    "aria-hidden": true,
-    viewBox: "0 0 24 24",
-    className: "h-5 w-5",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: "1.8",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-  };
-
-  if (type === "customers") {
-    return (
-      <svg {...sharedProps}>
-        <path d="M16 11a4 4 0 1 0-8 0" />
-        <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
-        <path d="M18.5 8.5a2.5 2.5 0 0 1 0 5" />
-      </svg>
-    );
-  }
-
-  if (type === "calendar") {
-    return (
-      <svg {...sharedProps}>
-        <rect x="4" y="5" width="16" height="15" rx="3" />
-        <path d="M8 3v4M16 3v4M4 10h16M8 14h3M13 14h3M8 17h2" />
-      </svg>
-    );
-  }
-
-  if (type === "reports") {
-    return (
-      <svg {...sharedProps}>
-        <path d="M5 19V5" />
-        <path d="M5 19h15" />
-        <path d="M9 16v-5" />
-        <path d="M13 16V8" />
-        <path d="M17 16v-3" />
-      </svg>
-    );
-  }
-
-  if (type === "documents") {
-    return (
-      <svg {...sharedProps}>
-        <path d="M5 7.5h14" />
-        <path d="m5 7.5 7 5 7-5" />
-        <rect x="4" y="6" width="16" height="12" rx="3" />
-      </svg>
-    );
-  }
-
-  if (type === "cloud") {
-    return (
-      <svg {...sharedProps}>
-        <path d="M17.5 18H8a4 4 0 0 1-.8-7.92 5.5 5.5 0 0 1 10.42-1.85A4.5 4.5 0 0 1 17.5 18Z" />
-        <path d="M12 12v4" />
-        <path d="m9.5 14.5 2.5-2.5 2.5 2.5" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg {...sharedProps}>
-      <path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2Z" />
-      <path d="M9 9h6" />
-      <path d="M9 13h4" />
-    </svg>
-  );
-}
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState("");
@@ -264,11 +166,7 @@ export default function LoginPage() {
   const [usernameHistory, setUsernameHistory] = useState([]);
   const [isUsernameHistoryOpen, setIsUsernameHistoryOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [hasPreviousPage, setHasPreviousPage] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [redirectTo, setRedirectTo] = useState("");
-  const [enabledProviders, setEnabledProviders] = useState([]);
-  const [pendingProvider, setPendingProvider] = useState("");
   const submitLockRef = useRef(false);
 
   const completeClientSession = useCallback(
@@ -300,8 +198,6 @@ export default function LoginPage() {
       const oauthError = params.get("error");
 
       setRedirectTo(nextPath);
-      setHasPreviousPage(window.history.length > 1 && document.referrer !== "");
-
       try {
         const savedHistory = JSON.parse(
           localStorage.getItem(LOGIN_USERNAME_HISTORY_KEY) || "[]"
@@ -316,8 +212,6 @@ export default function LoginPage() {
       } else if (oauthError) {
         setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
       }
-
-      setEnabledProviders(GOOGLE_LOGIN_ENABLED ? [GOOGLE_PROVIDER] : []);
 
       if (oauthStatus === "success") {
         fetch("/api/auth/session", { cache: "no-store" })
@@ -412,14 +306,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleProviderLogin = (provider) => {
-    if (!provider.href || pendingProvider) return;
-    setPendingProvider(provider.key);
-    const url = new URL(provider.href, window.location.origin);
-    if (redirectTo) url.searchParams.set("next", redirectTo);
-    window.location.assign(url.toString());
-  };
-
   const usernameSearch = identifier.trim().toLowerCase();
   const visibleUsernameHistory = usernameHistory.filter((item) =>
     item.toLowerCase().includes(usernameSearch)
@@ -429,111 +315,31 @@ export default function LoginPage() {
 
   return (
     <main className="login-bg min-h-screen overflow-x-hidden bg-[#090D14] text-[#15171B]">
-      <div className="login-gradient min-h-screen px-5 pb-[max(22px,env(safe-area-inset-bottom))] pt-[max(16px,env(safe-area-inset-top))] sm:px-8 lg:flex lg:items-center lg:justify-center lg:px-10 lg:py-8">
-        <section className="login-shell mx-auto flex min-h-[calc(100vh-44px)] w-full max-w-[1160px] flex-col lg:min-h-[660px] lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-8 xl:gap-12">
-          <header className="flex min-h-[46px] items-center justify-between text-white lg:hidden">
-            <button
-              type="button"
-              onClick={() => window.history.back()}
-              disabled={!hasPreviousPage}
-              aria-label="ย้อนกลับ"
-              className="flex h-11 w-11 items-center justify-center rounded-full text-2xl font-semibold text-white transition hover:bg-white/10 disabled:invisible"
-            >
-              ‹
-            </button>
-            <h1 className="text-center text-[15px] font-black leading-tight">
-              STUDIO BOOKING
-              <span className="block text-xs font-semibold text-white/62">
-                MANAGEMENT
-              </span>
-            </h1>
-            <button
-              type="button"
-              aria-label="ช่วยเหลือ"
-              onClick={() => setIsHelpOpen((current) => !current)}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-base font-black text-white transition hover:bg-white/10"
-            >
-              ?
-            </button>
-          </header>
-
-          <aside className="system-panel hidden text-white lg:block">
-            <div className="rounded-[28px] border border-white/14 bg-[#141B25]/95 p-7 shadow-[0_34px_120px_rgba(0,0,0,0.32)] backdrop-blur-2xl xl:p-9">
-              <div className="inline-flex items-center gap-3 rounded-full border border-[#C9A86A]/38 bg-[#C9A86A]/14 px-4 py-2 text-sm font-bold text-[#F0D69A]">
-                <SystemIcon />
-                ระบบกลางสำหรับทีมสตูดิโอ
-              </div>
-
-              <h2 className="mt-7 max-w-[560px] text-[44px] font-black leading-[1.04] text-[#F8F4EC] [text-shadow:0_10px_34px_rgba(0,0,0,0.38)] xl:text-[52px]">
-                STUDIO BOOKING
-                <span className="block">MANAGEMENT</span>
-              </h2>
-              <p className="mt-4 max-w-[560px] text-[17px] font-medium leading-8 text-[#D9DEE7]">
-                ระบบกลางสำหรับจัดการใบจอง ข้อมูลลูกค้า ปฏิทินงาน และการทำงานของทีม
-              </p>
-
-              <div className="mt-7 grid grid-cols-2 gap-3">
-                {systemHighlights.map((item) => (
-                  <div
-                    key={item.key}
-                    className="flex min-h-[66px] items-center gap-3 rounded-2xl border border-white/12 bg-[#0D1621] px-4 py-3 text-sm font-bold text-[#DDE3EC]"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#C9A86A]/22 bg-[#C9A86A]/10 text-[#E1C58D]">
-                      <FeatureIcon type={item.key} />
-                    </span>
-                    <span>{item.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 flex items-start gap-3 rounded-[22px] border border-[#C9A86A]/24 bg-[#C9A86A]/12 px-5 py-4 text-sm font-semibold leading-6 text-[#DDE3EC]">
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#C9A86A]/18 text-[#E1C58D]">
-                  <CheckIcon />
-                </span>
-                <div>
-                  <p className="text-xs font-black tracking-[0.18em] text-[#E1C58D]">
-                    SECURE WORKSPACE
-                  </p>
-                  <p className="mt-1">
-                    ระบบนี้สำหรับผู้ได้รับอนุญาตเท่านั้น การเข้าสู่ระบบและข้อมูลของผู้ใช้งานได้รับการปกป้องอย่างปลอดภัย
-                  </p>
-                </div>
-              </div>
-            </div>
-          </aside>
-
+      <div className="login-gradient flex min-h-screen items-center justify-center px-4 py-[max(24px,env(safe-area-inset-top))] sm:px-6">
+        <section className="login-shell flex min-h-[calc(100vh-48px)] w-full items-center justify-center">
           <form
             onSubmit={handleLogin}
-            className="login-card mx-auto mt-5 w-full max-w-[500px] rounded-[26px] border border-white/80 bg-[#FBFAF7] px-5 py-6 shadow-[0_30px_90px_rgba(0,0,0,0.30),0_1px_0_rgba(255,255,255,0.88)_inset] sm:px-8 sm:py-8 lg:mt-0 lg:max-w-[486px] xl:px-9 xl:py-9"
+            className="login-card w-[92vw] max-w-[510px] rounded-[30px] border border-white/80 bg-white px-6 py-7 shadow-[0_34px_110px_rgba(0,0,0,0.34),0_0_80px_rgba(201,168,106,0.16),0_1px_0_rgba(255,255,255,0.92)_inset] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_40px_130px_rgba(0,0,0,0.38),0_0_96px_rgba(201,168,106,0.20),0_1px_0_rgba(255,255,255,0.92)_inset] sm:px-9 sm:py-9"
           >
             <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[20px] border border-[#E1D5C2] bg-[linear-gradient(145deg,#FFFFFF,#EFE8DB)] text-lg font-black text-[#1B2230] shadow-[0_16px_34px_rgba(27,34,48,0.12)]">
-                SBM
-              </div>
-              <p className="mt-4 text-sm font-black text-[#A88953]">
+              <p className="text-[11px] font-black uppercase tracking-[0.34em] text-[#B99458]">
                 STUDIO BOOKING MANAGEMENT
               </p>
-              <h2 className="mt-5 text-[28px] font-black leading-tight text-[#10231C]">
+              <h2 className="mt-4 text-[32px] font-black leading-tight text-[#111318] sm:text-[36px]">
                 เข้าสู่ระบบ
               </h2>
-              <p className="mt-2 text-sm font-medium leading-6 text-zinc-500">
-                เข้าสู่ระบบเพื่อจัดการใบจอง ข้อมูลลูกค้า และปฏิทินงาน
+              <p className="mx-auto mt-2 max-w-[360px] text-sm font-medium leading-6 text-zinc-500">
+                เข้าสู่ระบบเพื่อจัดการใบจอง ข้อมูลลูกค้า และการปฏิบัติงาน
               </p>
             </div>
 
-            {isHelpOpen && (
-              <div className="mt-5 rounded-2xl border border-[#DAD2C2] bg-[#F4F0E8] px-4 py-3 text-sm font-medium leading-6 text-[#4A4235]">
-                กรุณาติดต่อผู้ดูแลระบบ หากต้องการรีเซ็ตรหัสผ่านหรือขอสิทธิ์เข้าใช้งาน
-              </div>
-            )}
-
-            <div className="mt-7 space-y-4">
+            <div className="mt-8 space-y-4">
               <div className="relative">
                 <label
                   htmlFor="login-identifier"
-                  className="mb-2 block text-sm font-bold text-[#10231C]"
+                  className="mb-2 block text-sm font-bold text-[#191B20]"
                 >
-                  ชื่อผู้ใช้ อีเมล หรือเบอร์โทรศัพท์
+                  ชื่อผู้ใช้ / Email / เบอร์โทรศัพท์
                 </label>
                 <input
                   id="login-identifier"
@@ -553,7 +359,7 @@ export default function LoginPage() {
                   autoComplete="username"
                   autoCapitalize="none"
                   autoCorrect="off"
-                  className="h-[54px] w-full rounded-2xl border border-[#DDD7CC] bg-white px-4 text-base font-semibold text-[#15171B] outline-none transition placeholder:text-zinc-400 focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)]"
+                  className="h-14 w-full rounded-2xl border border-[#DDD9D0] bg-white px-4 text-base font-semibold text-[#15171B] outline-none transition duration-200 placeholder:text-zinc-400 hover:border-[#C8B99E] hover:shadow-[0_10px_24px_rgba(15,23,42,0.05)] focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)]"
                   aria-describedby={error ? "login-error" : undefined}
                 />
 
@@ -569,7 +375,7 @@ export default function LoginPage() {
                           setIsUsernameHistoryOpen(false);
                           setError("");
                         }}
-                        className="block w-full rounded-xl px-4 py-2.5 text-left text-sm font-semibold text-zinc-700 transition hover:bg-[#F5F1E9] focus:bg-[#F5F1E9] focus:outline-none"
+                        className="block w-full rounded-xl px-4 py-2.5 text-left text-sm font-semibold text-zinc-700 transition duration-200 hover:bg-[#F5F1E9] focus:bg-[#F5F1E9] focus:outline-none"
                       >
                         {item}
                       </button>
@@ -582,7 +388,7 @@ export default function LoginPage() {
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <label
                     htmlFor="login-password"
-                    className="block text-sm font-bold text-[#10231C]"
+                    className="block text-sm font-bold text-[#191B20]"
                   >
                     รหัสผ่าน
                   </label>
@@ -606,14 +412,14 @@ export default function LoginPage() {
                       setError("");
                     }}
                     autoComplete="current-password"
-                    className="h-[54px] w-full rounded-2xl border border-[#DDD7CC] bg-white px-4 pr-14 text-base font-semibold text-[#15171B] outline-none transition placeholder:text-zinc-400 focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)]"
+                    className="h-14 w-full rounded-2xl border border-[#DDD9D0] bg-white px-4 pr-14 text-base font-semibold text-[#15171B] outline-none transition duration-200 placeholder:text-zinc-400 hover:border-[#C8B99E] hover:shadow-[0_10px_24px_rgba(15,23,42,0.05)] focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)]"
                     aria-describedby={error ? "login-error" : undefined}
                   />
                   <button
                     type="button"
                     aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
                     onClick={() => setShowPassword((current) => !current)}
-                    className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-zinc-500 transition hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
+                    className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-xl text-zinc-500 transition duration-200 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
                   >
                     <EyeIcon crossed={showPassword} />
                   </button>
@@ -635,41 +441,43 @@ export default function LoginPage() {
                 type="submit"
                 disabled={isSubmitting}
                 aria-busy={isSubmitting}
-                className="flex h-[56px] w-full items-center justify-center rounded-2xl bg-[#151B26] px-5 text-base font-black text-white shadow-[0_14px_26px_rgba(21,27,38,0.22)] transition hover:-translate-y-0.5 hover:bg-[#0C111B] hover:shadow-[0_18px_34px_rgba(21,27,38,0.26)] active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#B99458]/22 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60"
+                className="flex h-14 w-full items-center justify-center rounded-2xl bg-[#151B26] px-5 text-base font-black text-white shadow-[0_14px_26px_rgba(21,27,38,0.22)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#0C111B] hover:shadow-[0_18px_34px_rgba(21,27,38,0.26)] active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#B99458]/22 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60"
               >
                 {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
               </button>
             </div>
 
-            {enabledProviders.length > 0 && (
-              <div className="mt-7">
-                <div className="flex items-center gap-3">
-                  <span className="h-px flex-1 bg-zinc-200" />
-                  <span className="text-xs font-bold text-zinc-400">
-                    หรือ
-                  </span>
-                  <span className="h-px flex-1 bg-zinc-200" />
-                </div>
-
-                <div className="mt-4 grid gap-3">
-                  {enabledProviders.map((provider) => (
-                    <button
-                      key={provider.key}
-                      type="button"
-                      disabled={Boolean(pendingProvider)}
-                      aria-busy={pendingProvider === provider.key}
-                      onClick={() => handleProviderLogin(provider)}
-                      className="relative flex h-[54px] w-full items-center justify-center rounded-2xl border border-[#DDD7CC] bg-white px-4 text-sm font-black text-[#15171B] transition hover:border-[#B99458] hover:bg-[#F8F4EC] active:scale-[0.99] focus:outline-none focus:ring-4 focus:ring-[#B99458]/16 disabled:cursor-not-allowed disabled:opacity-65 disabled:hover:border-[#DDD7CC] disabled:hover:bg-white"
-                    >
-                      <span className="absolute left-4 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-[#1B2230]">
-                        <ProviderIcon provider={provider.key} />
-                      </span>
-                      {pendingProvider === provider.key ? "กำลังเชื่อมต่อ..." : provider.label}
-                    </button>
-                  ))}
-                </div>
+            <div className="mt-7">
+              <div className="flex items-center gap-3">
+                <span className="h-px flex-1 bg-zinc-200" />
+                <span className="text-xs font-bold text-zinc-400">หรือ</span>
+                <span className="h-px flex-1 bg-zinc-200" />
               </div>
-            )}
+
+              <div className="mt-4 grid gap-3">
+                {SOCIAL_LOGIN_PLACEHOLDERS.map((provider) => (
+                  <button
+                    key={provider.key}
+                    type="button"
+                    onClick={() => {}}
+                    className="relative flex h-14 w-full items-center justify-center rounded-2xl border border-[#DDD9D0] bg-white px-4 text-sm font-black text-[#15171B] shadow-[0_8px_18px_rgba(15,23,42,0.03)] transition duration-200 hover:-translate-y-0.5 hover:border-[#D0C6B5] hover:bg-[#F7F7F5] hover:shadow-[0_14px_26px_rgba(15,23,42,0.07)] active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#B99458]/14"
+                  >
+                    <span
+                      className={`absolute left-4 flex h-8 w-8 items-center justify-center rounded-full bg-white ${
+                        provider.key === "facebook"
+                          ? "text-[#1877F2]"
+                          : provider.key === "phone"
+                            ? "text-[#394150]"
+                            : "text-[#111111]"
+                      }`}
+                    >
+                      <ProviderIcon provider={provider.key} />
+                    </span>
+                    {provider.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="mt-6 border-t border-[#E7E0D4] pt-5 text-center text-xs font-semibold leading-5 text-zinc-500">
               <p>ระบบนี้สำหรับผู้ได้รับอนุญาตเท่านั้น</p>
@@ -688,12 +496,8 @@ export default function LoginPage() {
           animation: loginGradient 18s ease-in-out infinite alternate;
         }
 
-        .brand-panel {
-          animation: loginSlideUp 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
-        }
-
         .login-card {
-          animation: loginFadeIn 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+          animation: loginFadeIn 30ms ease-out both;
         }
 
         @keyframes loginGradient {
@@ -705,29 +509,19 @@ export default function LoginPage() {
           }
         }
 
-        @keyframes loginSlideUp {
-          from {
-            transform: translateY(14px);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-
         @keyframes loginFadeIn {
           from {
             opacity: 0;
-            transform: translateY(10px) scale(0.99);
+            transform: translateY(4px);
           }
           to {
             opacity: 1;
-            transform: translateY(0) scale(1);
+            transform: translateY(0);
           }
         }
 
         @media (prefers-reduced-motion: reduce) {
           .login-gradient,
-          .brand-panel,
           .login-card {
             animation: none;
           }
