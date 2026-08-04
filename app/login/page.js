@@ -351,29 +351,29 @@ export default function LoginPage() {
 
   return (
     <main className="login-bg min-h-screen overflow-x-hidden bg-[#090D14] text-[#15171B]">
-      <div className="login-gradient flex min-h-screen items-center justify-center px-0 py-[max(18px,env(safe-area-inset-top))] sm:py-[max(20px,env(safe-area-inset-top))]">
-        <section className="login-shell flex min-h-[calc(100vh-48px)] w-full items-center justify-center">
+      <div className="login-gradient flex min-h-screen items-center justify-center px-3 pt-[max(18px,env(safe-area-inset-top))] pb-[max(18px,env(safe-area-inset-bottom))] sm:px-0 sm:py-[max(20px,env(safe-area-inset-top))]">
+        <section className="login-shell flex min-h-[calc(100vh-36px)] w-full items-center justify-center sm:min-h-[calc(100vh-48px)]">
           <form
             onSubmit={handleLogin}
-            className="login-card w-[calc(100%-24px)] max-w-[560px] rounded-[24px] border border-white/75 bg-[#FCFBF8] px-[22px] py-[22px] shadow-[0_28px_86px_rgba(0,0,0,0.34),0_0_64px_rgba(201,168,106,0.16),0_1px_0_rgba(255,255,255,0.94)_inset] sm:w-[calc(100%-40px)] sm:rounded-[28px] sm:px-[38px] sm:py-[34px]"
+            className="login-card mx-auto w-full max-w-none rounded-[24px] border border-white/75 bg-[#FCFBF8] px-5 pt-6 pb-[22px] shadow-[0_22px_68px_rgba(0,0,0,0.30),0_0_52px_rgba(201,168,106,0.14),0_1px_0_rgba(255,255,255,0.94)_inset] sm:w-[calc(100%-40px)] sm:max-w-[560px] sm:rounded-[28px] sm:px-[38px] sm:py-[34px] sm:shadow-[0_28px_86px_rgba(0,0,0,0.34),0_0_64px_rgba(201,168,106,0.16),0_1px_0_rgba(255,255,255,0.94)_inset]"
           >
             <div className="text-center">
-              <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-[#B99458]">
+              <p className="text-[10px] font-extrabold uppercase leading-[1.4] tracking-[0.18em] text-[#B99458] sm:text-[11px] sm:leading-[normal]">
                 STUDIO BOOKING MANAGEMENT
               </p>
-              <h2 className="mt-[10px] text-[30px] font-black leading-[1.05] text-[#111318] sm:text-[36px]">
+              <h2 className="mt-2 text-[31px] font-black leading-[1.15] text-[#111318] sm:mt-[10px] sm:text-[36px] sm:leading-[1.05]">
                 เข้าสู่ระบบ
               </h2>
-              <p className="mx-auto mt-2 max-w-[440px] text-[14px] font-medium leading-[1.6] text-[#777B84]">
+              <p className="mx-auto mt-[7px] max-w-[290px] text-[13px] font-medium leading-[1.6] text-[#777B84] sm:mt-2 sm:max-w-[440px] sm:text-[14px]">
                 เข้าสู่ระบบเพื่อจัดการใบจอง ข้อมูลลูกค้า และการปฏิบัติงาน
               </p>
             </div>
 
-            <div className="mt-[26px] space-y-4">
+            <div className="login-fields mt-6 space-y-4 sm:mt-[26px]">
               <div className="relative">
                 <label
                   htmlFor="login-identifier"
-                  className="mb-[7px] block text-[14px] font-extrabold text-[#181A1F]"
+                  className="mb-[7px] block text-[14px] font-extrabold leading-[1.4] text-[#181A1F] sm:leading-[normal]"
                 >
                   ชื่อผู้ใช้ / Email / เบอร์โทรศัพท์
                 </label>
@@ -399,7 +399,7 @@ export default function LoginPage() {
                     autoComplete="username"
                     autoCapitalize="none"
                     autoCorrect="off"
-                    className="h-14 w-full rounded-[15px] border border-[#DDD9D0] bg-white px-4 pl-12 text-[15px] font-semibold text-[#15171B] outline-none transition duration-200 placeholder:text-zinc-400 hover:border-[#C8B99E] hover:shadow-[0_8px_18px_rgba(15,23,42,0.04)] focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)]"
+                    className="h-[54px] w-full rounded-[15px] border border-[#DDD9D0] bg-white px-4 pl-[46px] text-[16px] font-semibold text-[#15171B] outline-none transition duration-200 placeholder:text-zinc-400 hover:border-[#C8B99E] hover:shadow-[0_8px_18px_rgba(15,23,42,0.04)] focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)] sm:h-14 sm:pl-12 sm:text-[15px]"
                     aria-describedby={error ? "login-error" : undefined}
                   />
                 </div>
@@ -429,7 +429,7 @@ export default function LoginPage() {
                 <div className="mb-[7px] flex items-center justify-between gap-3">
                   <label
                     htmlFor="login-password"
-                    className="block text-[14px] font-extrabold text-[#181A1F]"
+                    className="block text-[14px] font-extrabold leading-[1.4] text-[#181A1F] sm:leading-[normal]"
                   >
                     รหัสผ่าน
                   </label>
@@ -456,14 +456,14 @@ export default function LoginPage() {
                       setError("");
                     }}
                     autoComplete="current-password"
-                    className="h-14 w-full rounded-[15px] border border-[#DDD9D0] bg-white px-4 pl-12 pr-14 text-[15px] font-semibold text-[#15171B] outline-none transition duration-200 placeholder:text-zinc-400 hover:border-[#C8B99E] hover:shadow-[0_8px_18px_rgba(15,23,42,0.04)] focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)]"
+                    className="h-[54px] w-full rounded-[15px] border border-[#DDD9D0] bg-white px-4 pl-[46px] pr-14 text-[16px] font-semibold text-[#15171B] outline-none transition duration-200 placeholder:text-zinc-400 hover:border-[#C8B99E] hover:shadow-[0_8px_18px_rgba(15,23,42,0.04)] focus:border-[#B99458] focus:shadow-[0_0_0_4px_rgba(185,148,88,0.16)] sm:h-14 sm:pl-12 sm:text-[15px]"
                     aria-describedby={error ? "login-error" : undefined}
                   />
                   <button
                     type="button"
                     aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
                     onClick={() => setShowPassword((current) => !current)}
-                    className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-xl text-zinc-500 transition duration-200 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none"
+                    className="absolute right-2 top-1/2 flex h-[42px] w-[42px] -translate-y-1/2 items-center justify-center rounded-xl text-zinc-500 transition duration-200 hover:bg-zinc-100 focus:bg-zinc-100 focus:outline-none sm:h-11 sm:w-11"
                   >
                     <EyeIcon crossed={showPassword} />
                   </button>
@@ -485,26 +485,26 @@ export default function LoginPage() {
                 type="submit"
                 disabled={isSubmitting}
                 aria-busy={isSubmitting}
-                className="mt-[18px] flex h-14 w-full items-center justify-center rounded-[15px] bg-[#151B26] px-5 text-[16px] font-black text-white shadow-[0_12px_24px_rgba(21,27,38,0.22)] transition duration-200 hover:bg-[#0C111B] hover:shadow-[0_16px_30px_rgba(21,27,38,0.26)] active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#B99458]/22 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-[18px] flex h-[54px] w-full items-center justify-center rounded-[15px] bg-[#151B26] px-5 text-[16px] font-black text-white shadow-[0_10px_20px_rgba(21,27,38,0.18)] transition duration-200 hover:bg-[#0C111B] hover:shadow-[0_14px_26px_rgba(21,27,38,0.22)] active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#B99458]/22 disabled:cursor-not-allowed disabled:opacity-60 sm:h-14 sm:shadow-[0_12px_24px_rgba(21,27,38,0.22)] sm:hover:shadow-[0_16px_30px_rgba(21,27,38,0.26)]"
               >
                 {isSubmitting ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
               </button>
             </div>
 
-            <div className="mt-6">
+            <div className="login-social mt-[22px] sm:mt-6">
               <div className="flex items-center gap-3">
                 <span className="h-px flex-1 bg-zinc-200" />
                 <span className="text-[12px] font-bold text-[#8A8D96]">หรือ</span>
                 <span className="h-px flex-1 bg-zinc-200" />
               </div>
 
-              <div className="mt-4 grid gap-2.5">
+              <div className="login-social-list mt-[14px] grid gap-[9px] sm:mt-4 sm:gap-2.5">
                 {SOCIAL_LOGIN_PLACEHOLDERS.map((provider) => (
                   <button
                     key={provider.key}
                     type="button"
                     onClick={() => {}}
-                    className="relative flex h-[52px] w-full items-center justify-center rounded-[14px] border border-[#DDD9D0] bg-white px-6 text-center text-[15px] font-extrabold text-[#15171B] shadow-[0_6px_14px_rgba(15,23,42,0.03)] transition duration-200 hover:border-[#D0C6B5] hover:bg-[#F7F7F5] hover:shadow-[0_10px_20px_rgba(15,23,42,0.06)] active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#B99458]/14 sm:h-[54px]"
+                    className="login-social-button relative flex h-[50px] w-full items-center justify-center rounded-[14px] border border-[#DDD9D0] bg-white px-4 text-center text-[14px] font-bold text-[#15171B] shadow-[0_6px_14px_rgba(15,23,42,0.03)] transition duration-200 hover:border-[#D0C6B5] hover:bg-[#F7F7F5] hover:shadow-[0_10px_20px_rgba(15,23,42,0.06)] active:translate-y-0 focus:outline-none focus:ring-4 focus:ring-[#B99458]/14 sm:h-[54px] sm:px-6 sm:text-[15px] sm:font-extrabold"
                   >
                     <span
                       className={`absolute left-4 flex h-6 w-6 items-center justify-center rounded-full bg-white [&>svg]:h-5 [&>svg]:w-5 ${
@@ -523,7 +523,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="mt-[22px] pt-[18px] text-center text-[11px] font-semibold leading-[1.6] text-[#8A8D96]">
+            <div className="login-footer mt-[18px] pt-[14px] text-center text-[10.5px] font-semibold leading-[1.55] text-[#8A8D96] sm:mt-[22px] sm:pt-[18px] sm:text-[11px] sm:leading-[1.6]">
               <p>ระบบนี้สำหรับผู้ได้รับอนุญาตเท่านั้น</p>
               <p>ข้อมูลการเข้าสู่ระบบได้รับการปกป้องอย่างปลอดภัย</p>
             </div>
@@ -568,6 +568,35 @@ export default function LoginPage() {
           .login-gradient,
           .login-card {
             animation: none;
+          }
+        }
+
+        @media (max-width: 640px) and (max-height: 760px) {
+          .login-card {
+            padding-top: 18px;
+            padding-bottom: 18px;
+          }
+
+          .login-fields {
+            margin-top: 20px;
+          }
+
+          .login-social {
+            margin-top: 18px;
+          }
+
+          .login-social-list {
+            margin-top: 12px;
+            gap: 7px;
+          }
+
+          .login-social-button {
+            height: 48px;
+          }
+
+          .login-footer {
+            margin-top: 14px;
+            padding-top: 10px;
           }
         }
       `}</style>
