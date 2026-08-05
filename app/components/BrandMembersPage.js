@@ -265,8 +265,8 @@ const validateMemberForm = (form) => {
   return errors;
 };
 
-const Field = ({ label, children, required, error }) => (
-  <label className="block">
+const Field = ({ label, children, required, error, className = "" }) => (
+  <label className={`block ${className}`}>
     <span className="mb-1 block text-[13px] font-extrabold text-zinc-700">
       {label}
       {required && <span className="text-red-500"> *</span>}
@@ -301,10 +301,10 @@ const SelectInput = ({ children, className = "", error, inputRef, ...props }) =>
   </select>
 );
 
-const Section = ({ title, children }) => (
-  <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 sm:p-4">
+const Section = ({ title, children, gridClassName = "grid gap-2.5 md:grid-cols-2" }) => (
+  <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-2.5 sm:p-3">
     <h3 className="text-sm font-black text-zinc-900">{title}</h3>
-    <div className="mt-3 grid gap-2.5 md:grid-cols-2">{children}</div>
+    <div className={`mt-2.5 ${gridClassName}`}>{children}</div>
   </section>
 );
 
@@ -1103,7 +1103,7 @@ export default function BrandMembersPage({ brandId }) {
 
       {formOpen && (
         <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/45 px-2 py-3 sm:px-4 sm:py-5">
-          <form onSubmit={saveMember} noValidate className="mx-auto flex w-full max-w-4xl flex-col gap-3 rounded-[24px] bg-white p-3 shadow-2xl sm:rounded-[28px] sm:p-5">
+          <form onSubmit={saveMember} noValidate className="mx-auto flex w-full max-w-5xl flex-col gap-2.5 rounded-[24px] bg-white p-3 shadow-2xl sm:rounded-[28px] sm:p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: brandChrome.theme.accent }}>
@@ -1116,47 +1116,61 @@ export default function BrandMembersPage({ brandId }) {
               </button>
             </div>
 
-            <Section title="ข้อมูลส่วนตัว">
-              <div className="md:col-span-2">
+            <Section title="ข้อมูลส่วนตัว" gridClassName="space-y-2.5">
+              <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[132px_repeat(3,minmax(0,1fr))]">
                 <Field label="รูปโปรไฟล์">
-                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-                    <Avatar member={{ ...form, profileImageUrl: previewUrl || form.profileImageUrl, fullName: `${form.firstName} ${form.lastName}` }} size="h-16 w-16" />
-                    <div className="flex-1">
-                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold" />
-                      <p className="mt-1 text-xs font-semibold text-zinc-500">รองรับ JPG, PNG, WebP ไม่เกิน 5 MB และบีบอัดก่อนอัปโหลด</p>
-                      {(previewUrl || form.profileImageUrl) && (
-                        <button type="button" onClick={() => { resetImagePreview(); setFormValue("profileImageUrl", ""); }} className="mt-2 text-xs font-black text-red-600">ลบรูปโปรไฟล์</button>
-                      )}
+                  <div className="rounded-2xl border border-zinc-200 bg-white p-2">
+                    <div className="flex items-center gap-2.5 xl:flex-col xl:items-start">
+                      <Avatar member={{ ...form, profileImageUrl: previewUrl || form.profileImageUrl, fullName: `${form.firstName} ${form.lastName}` }} size="h-14 w-14" />
+                      <div className="min-w-0 flex-1">
+                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} className="w-full text-[12px] font-semibold text-zinc-600 file:mr-2 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-2 file:py-1.5 file:text-xs file:font-black file:text-zinc-700" />
+                        <p className="mt-1 text-[11px] font-semibold leading-4 text-zinc-500">JPG, PNG, WebP ไม่เกิน 5 MB</p>
+                        {(previewUrl || form.profileImageUrl) && (
+                          <button type="button" onClick={() => { resetImagePreview(); setFormValue("profileImageUrl", ""); }} className="mt-1 text-xs font-black text-red-600">ลบรูป</button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Field>
+                <Field label="ชื่อ" required error={formErrors.firstName}><TextInput value={form.firstName} onChange={(event) => setFormValue("firstName", event.target.value)} error={formErrors.firstName} inputRef={(node) => { formFieldRefs.current.firstName = node; }} /></Field>
+                <Field label="นามสกุล" required error={formErrors.lastName}><TextInput value={form.lastName} onChange={(event) => setFormValue("lastName", event.target.value)} error={formErrors.lastName} inputRef={(node) => { formFieldRefs.current.lastName = node; }} /></Field>
+                <Field label="ชื่อเล่น"><TextInput value={form.nickname} onChange={(event) => setFormValue("nickname", event.target.value)} /></Field>
               </div>
-              <Field label="รหัสสมาชิก"><TextInput value={form.memberCode || "สร้างอัตโนมัติหลังบันทึก"} disabled /></Field>
-              <Field label="ชื่อ" required error={formErrors.firstName}><TextInput value={form.firstName} onChange={(event) => setFormValue("firstName", event.target.value)} error={formErrors.firstName} inputRef={(node) => { formFieldRefs.current.firstName = node; }} /></Field>
-              <Field label="นามสกุล" required error={formErrors.lastName}><TextInput value={form.lastName} onChange={(event) => setFormValue("lastName", event.target.value)} error={formErrors.lastName} inputRef={(node) => { formFieldRefs.current.lastName = node; }} /></Field>
-              <Field label="ชื่อเล่น"><TextInput value={form.nickname} onChange={(event) => setFormValue("nickname", event.target.value)} /></Field>
-              <Field label="วันเดือนปีเกิด" error={formErrors.birthDate}><TextInput type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthDate || ""} onChange={(event) => setFormValue("birthDate", event.target.value)} error={formErrors.birthDate} inputRef={(node) => { formFieldRefs.current.birthDate = node; }} /></Field>
-              <Field label="อายุ"><TextInput value={calculateAge(form.birthDate)} readOnly /></Field>
-              <Field label="เพศ">
-                <SelectInput value={form.gender} onChange={(event) => setFormValue("gender", event.target.value)}>
-                  <option value="">ไม่ระบุ</option>
-                  {MEMBER_GENDERS.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
-                </SelectInput>
-              </Field>
-              {form.gender === "อื่นๆ" && <Field label="ระบุเพศเพิ่มเติม"><TextInput value={form.genderOther} onChange={(event) => setFormValue("genderOther", event.target.value)} /></Field>}
+              <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[132px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="hidden xl:block" />
+                <Field label="รหัสสมาชิก"><TextInput value={form.memberCode || "สร้างอัตโนมัติหลังบันทึก"} disabled /></Field>
+              </div>
+              <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[132px_repeat(3,minmax(0,1fr))]">
+                <div className="hidden xl:block" />
+                <Field label="วันเดือนปีเกิด" error={formErrors.birthDate}><TextInput type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthDate || ""} onChange={(event) => setFormValue("birthDate", event.target.value)} error={formErrors.birthDate} inputRef={(node) => { formFieldRefs.current.birthDate = node; }} /></Field>
+                <Field label="อายุ"><TextInput value={calculateAge(form.birthDate)} readOnly /></Field>
+                <Field label="เพศ">
+                  <SelectInput value={form.gender} onChange={(event) => setFormValue("gender", event.target.value)}>
+                    <option value="">ไม่ระบุ</option>
+                    {MEMBER_GENDERS.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
+                  </SelectInput>
+                </Field>
+                {form.gender === "อื่นๆ" && <Field label="ระบุเพศเพิ่มเติม" className="xl:col-start-2"><TextInput value={form.genderOther} onChange={(event) => setFormValue("genderOther", event.target.value)} /></Field>}
+              </div>
             </Section>
 
-            <Section title="ช่องทางติดต่อ">
-              <Field label="เบอร์โทรศัพท์" error={formErrors.phone}><TextInput inputMode="tel" value={form.phone} onChange={(event) => setFormValue("phone", event.target.value)} error={formErrors.phone} inputRef={(node) => { formFieldRefs.current.phone = node; }} /></Field>
-              <Field label="อีเมล" error={formErrors.email}><TextInput type="email" value={form.email} onChange={(event) => setFormValue("email", event.target.value)} error={formErrors.email} inputRef={(node) => { formFieldRefs.current.email = node; }} /></Field>
-              <Field label="LINE ID"><TextInput value={form.lineId} onChange={(event) => setFormValue("lineId", event.target.value)} /></Field>
-              <Field label="Facebook"><TextInput value={form.facebook} onChange={(event) => setFormValue("facebook", event.target.value)} /></Field>
+            <Section title="ช่องทางติดต่อ" gridClassName="space-y-2.5">
+              <div className="grid gap-2.5 md:grid-cols-2">
+                <Field label="เบอร์โทรศัพท์" error={formErrors.phone}><TextInput inputMode="tel" value={form.phone} onChange={(event) => setFormValue("phone", event.target.value)} error={formErrors.phone} inputRef={(node) => { formFieldRefs.current.phone = node; }} /></Field>
+                <Field label="อีเมล" error={formErrors.email}><TextInput type="email" value={form.email} onChange={(event) => setFormValue("email", event.target.value)} error={formErrors.email} inputRef={(node) => { formFieldRefs.current.email = node; }} /></Field>
+              </div>
+              <div className="grid gap-2.5 md:grid-cols-2">
+                <Field label="LINE ID"><TextInput value={form.lineId} onChange={(event) => setFormValue("lineId", event.target.value)} /></Field>
+                <Field label="Facebook"><TextInput value={form.facebook} onChange={(event) => setFormValue("facebook", event.target.value)} /></Field>
+              </div>
               <Field label="ชื่อผู้ติดต่อฉุกเฉิน"><TextInput value={form.emergencyContactName} onChange={(event) => setFormValue("emergencyContactName", event.target.value)} /></Field>
-              <Field label="ความสัมพันธ์"><TextInput value={form.emergencyContactRelationship} onChange={(event) => setFormValue("emergencyContactRelationship", event.target.value)} /></Field>
-              <Field label="เบอร์ผู้ติดต่อฉุกเฉิน" error={formErrors.emergencyContactPhone}><TextInput inputMode="tel" value={form.emergencyContactPhone} onChange={(event) => setFormValue("emergencyContactPhone", event.target.value)} error={formErrors.emergencyContactPhone} inputRef={(node) => { formFieldRefs.current.emergencyContactPhone = node; }} /></Field>
+              <div className="grid gap-2.5 md:grid-cols-2">
+                <Field label="ความสัมพันธ์"><TextInput value={form.emergencyContactRelationship} onChange={(event) => setFormValue("emergencyContactRelationship", event.target.value)} /></Field>
+                <Field label="เบอร์ผู้ติดต่อฉุกเฉิน" error={formErrors.emergencyContactPhone}><TextInput inputMode="tel" value={form.emergencyContactPhone} onChange={(event) => setFormValue("emergencyContactPhone", event.target.value)} error={formErrors.emergencyContactPhone} inputRef={(node) => { formFieldRefs.current.emergencyContactPhone = node; }} /></Field>
+              </div>
             </Section>
 
-            <Section title="ที่อยู่">
+            <Section title="ที่อยู่" gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
               <Field label="บ้านเลขที่"><TextInput value={form.addressHouseNumber} onChange={(event) => setFormValue("addressHouseNumber", event.target.value)} /></Field>
               <Field label="อาคาร / หมู่บ้าน"><TextInput value={form.addressBuildingVillage} onChange={(event) => setFormValue("addressBuildingVillage", event.target.value)} /></Field>
               <Field label="หมู่"><TextInput value={form.addressMoo} onChange={(event) => setFormValue("addressMoo", event.target.value)} /></Field>
@@ -1173,7 +1187,7 @@ export default function BrandMembersPage({ brandId }) {
               <Field label="รหัสไปรษณีย์" error={formErrors.addressPostalCode}><TextInput inputMode="numeric" maxLength={5} value={form.addressPostalCode} onChange={(event) => setFormValue("addressPostalCode", event.target.value.replace(/\D/g, "").slice(0, 5))} error={formErrors.addressPostalCode} inputRef={(node) => { formFieldRefs.current.addressPostalCode = node; }} /></Field>
             </Section>
 
-            <Section title="ข้อมูลการเงิน">
+            <Section title="ข้อมูลการเงิน" gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
               <Field label="ธนาคาร">
                 <SelectInput value={form.bankName} onChange={(event) => setFormValue("bankName", event.target.value)}>
                   <option value="">เลือกธนาคาร</option>
@@ -1185,7 +1199,7 @@ export default function BrandMembersPage({ brandId }) {
               <Field label="เลขบัญชีธนาคาร"><TextInput inputMode="numeric" value={form.bankAccountNumber || ""} onChange={(event) => setFormValue("bankAccountNumber", event.target.value)} /></Field>
             </Section>
 
-            <Section title="ข้อมูลการทำงาน">
+            <Section title="ข้อมูลการทำงาน" gridClassName="grid gap-2.5 md:grid-cols-2">
               <Field label="ตำแหน่ง">
                 <SelectInput value={form.position} onChange={(event) => setFormValue("position", event.target.value)}>
                   <option value="">เลือกตำแหน่ง</option>
