@@ -6,8 +6,6 @@ const ADMIN_USERS_KEY = "central_admin_users";
 const LOGIN_USERNAME_HISTORY_KEY = "login_username_history";
 const MAX_LOGIN_USERNAME_HISTORY = 8;
 const GENERAL_LOGIN_ERROR = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง";
-const SESSION_CREATE_ERROR =
-  "เข้าสู่ระบบสำเร็จ แต่ไม่สามารถสร้างเซสชันได้ กรุณาลองใหม่อีกครั้ง";
 const AUTH_SESSION_STORAGE_KEYS = [
   "loggedIn",
   "currentUser",
@@ -224,6 +222,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [redirectTo, setRedirectTo] = useState("");
   const submitLockRef = useRef(false);
+  const restoreSessionAbortRef = useRef(null);
 
   const completeClientSession = useCallback(
     ({ user, activeBrand, users, redirectTo: nextPath }) => {
@@ -269,7 +268,13 @@ export default function LoginPage() {
         setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
       }
 
-      fetch("/api/auth/session", { cache: "no-store" })
+      const controller = new AbortController();
+      restoreSessionAbortRef.current = controller;
+
+      fetch("/api/auth/session", {
+        cache: "no-store",
+        signal: controller.signal,
+      })
         .then(async (response) => {
           const result = await response.json().catch(() => ({}));
           if (!response.ok || !result?.success || !result.user) {
@@ -285,7 +290,8 @@ export default function LoginPage() {
             redirectTo: nextPath || result.redirectTo,
           });
         })
-        .catch(() => {
+        .catch((restoreError) => {
+          if (restoreError?.name === "AbortError") return;
           clearStoredClientSession();
           if (oauthStatus === "success") {
             setError("เข้าสู่ระบบด้วยผู้ให้บริการนี้ไม่สำเร็จ");
@@ -293,22 +299,11 @@ export default function LoginPage() {
         });
     }, 0);
 
-    return () => window.clearTimeout(timer);
-  }, [completeClientSession]);
-
-  const verifyServerSession = async (preferredRedirectTo = "") => {
-    const response = await fetch("/api/auth/session", { cache: "no-store" });
-    const sessionResult = await response.json().catch(() => ({}));
-
-    if (!response.ok || !sessionResult?.success || !sessionResult.user) {
-      throw new Error(SESSION_CREATE_ERROR);
-    }
-
-    return {
-      ...sessionResult,
-      redirectTo: preferredRedirectTo || sessionResult.redirectTo,
+    return () => {
+      window.clearTimeout(timer);
+      restoreSessionAbortRef.current?.abort();
     };
-  };
+  }, [completeClientSession]);
 
   const saveUsernameHistory = (value) => {
     const savedUsername = String(value || "").trim();
@@ -341,6 +336,7 @@ export default function LoginPage() {
 
     submitLockRef.current = true;
     setIsSubmitting(true);
+    restoreSessionAbortRef.current?.abort();
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -358,16 +354,10 @@ export default function LoginPage() {
         throw new Error(result?.error || GENERAL_LOGIN_ERROR);
       }
 
-      const verifiedSession = await verifyServerSession(result.redirectTo);
-
-      saveUsernameHistory(verifiedSession.user.username || normalizedIdentifier);
-      completeClientSession(verifiedSession);
+      saveUsernameHistory(result.user.username || normalizedIdentifier);
+      completeClientSession(result);
     } catch (loginError) {
-      setError(
-        loginError?.message === SESSION_CREATE_ERROR
-          ? SESSION_CREATE_ERROR
-          : loginError?.message || GENERAL_LOGIN_ERROR
-      );
+      setError(loginError?.message || GENERAL_LOGIN_ERROR);
       submitLockRef.current = false;
       setIsSubmitting(false);
     }
