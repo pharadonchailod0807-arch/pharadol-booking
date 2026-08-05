@@ -56,6 +56,21 @@ const SORT_OPTIONS = [
   ["birthday", "วันเกิดใกล้ถึง"],
 ];
 
+const EMAIL_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
+const PHONE_PATTERN = /^[0-9+\-\s().]{8,20}$/;
+const FORM_FIELD_ORDER = [
+  "firstName",
+  "lastName",
+  "birthDate",
+  "phone",
+  "email",
+  "emergencyContactPhone",
+  "addressPostalCode",
+  "bankNameOther",
+  "positionOther",
+  "status",
+];
+
 const Icon = ({ name, className = "h-5 w-5" }) => {
   const paths = {
     plus: (
@@ -212,36 +227,84 @@ const compressImageFile = async (file) => {
   });
 };
 
-const Field = ({ label, children, required }) => (
+const validateMemberForm = (form) => {
+  const errors = {};
+  const today = new Date().toISOString().slice(0, 10);
+
+  if (!String(form.firstName || "").trim()) {
+    errors.firstName = "กรุณากรอกชื่อ";
+  }
+  if (!String(form.lastName || "").trim()) {
+    errors.lastName = "กรุณากรอกนามสกุล";
+  }
+  if (form.birthDate && form.birthDate > today) {
+    errors.birthDate = "วันเกิดห้ามเป็นวันที่ในอนาคต";
+  }
+  if (form.phone && !PHONE_PATTERN.test(form.phone)) {
+    errors.phone = "เบอร์โทรศัพท์ไม่ถูกต้อง";
+  }
+  if (form.email && !EMAIL_PATTERN.test(form.email)) {
+    errors.email = "อีเมลไม่ถูกต้อง";
+  }
+  if (form.emergencyContactPhone && !PHONE_PATTERN.test(form.emergencyContactPhone)) {
+    errors.emergencyContactPhone = "เบอร์ผู้ติดต่อฉุกเฉินไม่ถูกต้อง";
+  }
+  if (form.addressPostalCode && !/^\d{5}$/.test(form.addressPostalCode)) {
+    errors.addressPostalCode = "รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก";
+  }
+  if (form.bankName === "อื่นๆ" && !String(form.bankNameOther || "").trim()) {
+    errors.bankNameOther = "กรุณาระบุชื่อธนาคาร";
+  }
+  if (form.position === "อื่นๆ" && !String(form.positionOther || "").trim()) {
+    errors.positionOther = "กรุณาระบุตำแหน่ง";
+  }
+  if (!form.status) {
+    errors.status = "กรุณาเลือกสถานะสมาชิก";
+  }
+
+  return errors;
+};
+
+const Field = ({ label, children, required, error }) => (
   <label className="block">
-    <span className="mb-1.5 block text-[13px] font-extrabold text-zinc-700">
+    <span className="mb-1 block text-[13px] font-extrabold text-zinc-700">
       {label}
       {required && <span className="text-red-500"> *</span>}
     </span>
     {children}
+    {error && <span className="mt-1 block text-xs font-bold text-red-600">{error}</span>}
   </label>
 );
 
-const TextInput = ({ className = "", ...props }) => (
+const inputClassName = (error, className = "") =>
+  `h-12 w-full rounded-xl border bg-white px-3 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100 disabled:bg-zinc-50 ${
+    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-zinc-200"
+  } ${className}`;
+
+const TextInput = ({ className = "", error, inputRef, ...props }) => (
   <input
     {...props}
-    className={`h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100 disabled:bg-zinc-50 ${className}`}
+    ref={inputRef}
+    aria-invalid={error ? "true" : undefined}
+    className={inputClassName(error, className)}
   />
 );
 
-const SelectInput = ({ children, className = "", ...props }) => (
+const SelectInput = ({ children, className = "", error, inputRef, ...props }) => (
   <select
     {...props}
-    className={`h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100 ${className}`}
+    ref={inputRef}
+    aria-invalid={error ? "true" : undefined}
+    className={inputClassName(error, className)}
   >
     {children}
   </select>
 );
 
 const Section = ({ title, children }) => (
-  <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4">
+  <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 sm:p-4">
     <h3 className="text-sm font-black text-zinc-900">{title}</h3>
-    <div className="mt-4 grid gap-3 md:grid-cols-2">{children}</div>
+    <div className="mt-3 grid gap-2.5 md:grid-cols-2">{children}</div>
   </section>
 );
 
@@ -304,6 +367,7 @@ export default function BrandMembersPage({ brandId }) {
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
   const [form, setForm] = useState(DEFAULT_FORM);
+  const [formErrors, setFormErrors] = useState({});
   const [editingMember, setEditingMember] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
   const [bankVisible, setBankVisible] = useState(false);
@@ -311,6 +375,7 @@ export default function BrandMembersPage({ brandId }) {
   const [previewUrl, setPreviewUrl] = useState("");
   const [pendingActionId, setPendingActionId] = useState("");
   const previewUrlRef = useRef("");
+  const formFieldRefs = useRef({});
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const canGoPrev = page > 0;
@@ -382,6 +447,12 @@ export default function BrandMembersPage({ brandId }) {
 
   const setFormValue = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
+    setFormErrors((current) => {
+      if (!current[key]) return current;
+      const nextErrors = { ...current };
+      delete nextErrors[key];
+      return nextErrors;
+    });
   };
 
   const resetImagePreview = () => {
@@ -395,6 +466,7 @@ export default function BrandMembersPage({ brandId }) {
     resetImagePreview();
     setEditingMember(null);
     setForm(DEFAULT_FORM);
+    setFormErrors({});
     setFormMode("create");
     setFormOpen(true);
     setError("");
@@ -431,6 +503,7 @@ export default function BrandMembersPage({ brandId }) {
       resetImagePreview();
       setEditingMember(detail);
       setForm({ ...DEFAULT_FORM, ...detail });
+      setFormErrors({});
       setFormMode("edit");
       setFormOpen(true);
       setSelectedMember(null);
@@ -468,7 +541,21 @@ export default function BrandMembersPage({ brandId }) {
     event.preventDefault();
     if (isSaving) return;
 
+    const nextFormErrors = validateMemberForm(form);
+    const firstErrorKey = FORM_FIELD_ORDER.find((key) => nextFormErrors[key]);
+
+    if (firstErrorKey) {
+      setFormErrors(nextFormErrors);
+      setError(nextFormErrors[firstErrorKey]);
+      window.setTimeout(() => setError(""), 2600);
+      window.requestAnimationFrame(() => {
+        formFieldRefs.current[firstErrorKey]?.focus?.();
+      });
+      return;
+    }
+
     setIsSaving(true);
+    setFormErrors({});
     setError("");
     try {
       let payload = {
@@ -511,10 +598,11 @@ export default function BrandMembersPage({ brandId }) {
       setFormOpen(false);
       setEditingMember(null);
       setMessage(formMode === "edit" ? "อัปเดตข้อมูลสมาชิกแล้ว" : `เพิ่มสมาชิก ${result.member?.memberCode || ""} แล้ว`);
-      window.setTimeout(() => setMessage(""), 2200);
+      window.setTimeout(() => setMessage(""), 2600);
       await refreshAfterAction();
     } catch (saveError) {
       setError(saveError?.message || "บันทึกสมาชิกไม่สำเร็จ");
+      window.setTimeout(() => setError(""), 3200);
     } finally {
       setIsSaving(false);
     }
@@ -588,6 +676,7 @@ export default function BrandMembersPage({ brandId }) {
       setFormValue("profileImageUrl", "");
     } catch (imageError) {
       setError(imageError?.message || "รูปโปรไฟล์ไม่ถูกต้อง");
+      window.setTimeout(() => setError(""), 2600);
       event.target.value = "";
     }
   };
@@ -807,7 +896,7 @@ export default function BrandMembersPage({ brandId }) {
       </section>
 
       {(message || error) && (
-        <div className={`rounded-2xl border px-4 py-3 text-sm font-bold ${error ? "border-red-100 bg-red-50 text-red-700" : "border-green-100 bg-green-50 text-green-700"}`}>
+        <div className={`fixed right-4 top-4 z-[100] max-w-[calc(100vw-32px)] rounded-2xl border px-4 py-3 text-sm font-bold shadow-2xl sm:max-w-sm ${error ? "border-red-100 bg-red-50 text-red-700" : "border-green-100 bg-green-50 text-green-700"}`}>
           {error || message}
         </div>
       )}
@@ -1013,14 +1102,14 @@ export default function BrandMembersPage({ brandId }) {
       )}
 
       {formOpen && (
-        <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/45 px-3 py-5">
-          <form onSubmit={saveMember} className="mx-auto flex max-w-5xl flex-col gap-4 rounded-[28px] bg-white p-4 shadow-2xl sm:p-6">
+        <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/45 px-2 py-3 sm:px-4 sm:py-5">
+          <form onSubmit={saveMember} noValidate className="mx-auto flex w-full max-w-4xl flex-col gap-3 rounded-[24px] bg-white p-3 shadow-2xl sm:rounded-[28px] sm:p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: brandChrome.theme.accent }}>
                   {formMode === "edit" ? form.memberCode : "New Member"}
                 </p>
-                <h2 className="mt-1 text-2xl font-black text-zinc-950">{formMode === "edit" ? "แก้ไขข้อมูลสมาชิก" : "เพิ่มสมาชิกใหม่"}</h2>
+                <h2 className="mt-1 text-xl font-black text-zinc-950 sm:text-2xl">{formMode === "edit" ? "แก้ไขข้อมูลสมาชิก" : "เพิ่มสมาชิกใหม่"}</h2>
               </div>
               <button type="button" onClick={() => { resetImagePreview(); setFormOpen(false); }} className="flex h-10 w-10 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
                 <Icon name="close" className="h-5 w-5" />
@@ -1030,8 +1119,8 @@ export default function BrandMembersPage({ brandId }) {
             <Section title="ข้อมูลส่วนตัว">
               <div className="md:col-span-2">
                 <Field label="รูปโปรไฟล์">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <Avatar member={{ ...form, profileImageUrl: previewUrl || form.profileImageUrl, fullName: `${form.firstName} ${form.lastName}` }} size="h-20 w-20" />
+                  <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+                    <Avatar member={{ ...form, profileImageUrl: previewUrl || form.profileImageUrl, fullName: `${form.firstName} ${form.lastName}` }} size="h-16 w-16" />
                     <div className="flex-1">
                       <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold" />
                       <p className="mt-1 text-xs font-semibold text-zinc-500">รองรับ JPG, PNG, WebP ไม่เกิน 5 MB และบีบอัดก่อนอัปโหลด</p>
@@ -1043,11 +1132,11 @@ export default function BrandMembersPage({ brandId }) {
                 </Field>
               </div>
               <Field label="รหัสสมาชิก"><TextInput value={form.memberCode || "สร้างอัตโนมัติหลังบันทึก"} disabled /></Field>
-              <Field label="ชื่อ" required><TextInput value={form.firstName} onChange={(event) => setFormValue("firstName", event.target.value)} required /></Field>
-              <Field label="นามสกุล" required><TextInput value={form.lastName} onChange={(event) => setFormValue("lastName", event.target.value)} required /></Field>
+              <Field label="ชื่อ" required error={formErrors.firstName}><TextInput value={form.firstName} onChange={(event) => setFormValue("firstName", event.target.value)} error={formErrors.firstName} inputRef={(node) => { formFieldRefs.current.firstName = node; }} /></Field>
+              <Field label="นามสกุล" required error={formErrors.lastName}><TextInput value={form.lastName} onChange={(event) => setFormValue("lastName", event.target.value)} error={formErrors.lastName} inputRef={(node) => { formFieldRefs.current.lastName = node; }} /></Field>
               <Field label="ชื่อเล่น"><TextInput value={form.nickname} onChange={(event) => setFormValue("nickname", event.target.value)} /></Field>
-              <Field label="วันเดือนปีเกิด"><TextInput type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthDate || ""} onChange={(event) => setFormValue("birthDate", event.target.value)} /></Field>
-              <Field label="อายุ"><TextInput value={calculateAge(form.birthDate)} disabled /></Field>
+              <Field label="วันเดือนปีเกิด" error={formErrors.birthDate}><TextInput type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthDate || ""} onChange={(event) => setFormValue("birthDate", event.target.value)} error={formErrors.birthDate} inputRef={(node) => { formFieldRefs.current.birthDate = node; }} /></Field>
+              <Field label="อายุ"><TextInput value={calculateAge(form.birthDate)} readOnly /></Field>
               <Field label="เพศ">
                 <SelectInput value={form.gender} onChange={(event) => setFormValue("gender", event.target.value)}>
                   <option value="">ไม่ระบุ</option>
@@ -1058,13 +1147,13 @@ export default function BrandMembersPage({ brandId }) {
             </Section>
 
             <Section title="ช่องทางติดต่อ">
-              <Field label="เบอร์โทรศัพท์"><TextInput inputMode="tel" value={form.phone} onChange={(event) => setFormValue("phone", event.target.value)} /></Field>
-              <Field label="อีเมล"><TextInput type="email" value={form.email} onChange={(event) => setFormValue("email", event.target.value)} /></Field>
+              <Field label="เบอร์โทรศัพท์" error={formErrors.phone}><TextInput inputMode="tel" value={form.phone} onChange={(event) => setFormValue("phone", event.target.value)} error={formErrors.phone} inputRef={(node) => { formFieldRefs.current.phone = node; }} /></Field>
+              <Field label="อีเมล" error={formErrors.email}><TextInput type="email" value={form.email} onChange={(event) => setFormValue("email", event.target.value)} error={formErrors.email} inputRef={(node) => { formFieldRefs.current.email = node; }} /></Field>
               <Field label="LINE ID"><TextInput value={form.lineId} onChange={(event) => setFormValue("lineId", event.target.value)} /></Field>
               <Field label="Facebook"><TextInput value={form.facebook} onChange={(event) => setFormValue("facebook", event.target.value)} /></Field>
               <Field label="ชื่อผู้ติดต่อฉุกเฉิน"><TextInput value={form.emergencyContactName} onChange={(event) => setFormValue("emergencyContactName", event.target.value)} /></Field>
               <Field label="ความสัมพันธ์"><TextInput value={form.emergencyContactRelationship} onChange={(event) => setFormValue("emergencyContactRelationship", event.target.value)} /></Field>
-              <Field label="เบอร์ผู้ติดต่อฉุกเฉิน"><TextInput inputMode="tel" value={form.emergencyContactPhone} onChange={(event) => setFormValue("emergencyContactPhone", event.target.value)} /></Field>
+              <Field label="เบอร์ผู้ติดต่อฉุกเฉิน" error={formErrors.emergencyContactPhone}><TextInput inputMode="tel" value={form.emergencyContactPhone} onChange={(event) => setFormValue("emergencyContactPhone", event.target.value)} error={formErrors.emergencyContactPhone} inputRef={(node) => { formFieldRefs.current.emergencyContactPhone = node; }} /></Field>
             </Section>
 
             <Section title="ที่อยู่">
@@ -1081,7 +1170,7 @@ export default function BrandMembersPage({ brandId }) {
                   {THAI_PROVINCES.map((province) => <option key={province} value={province}>{province}</option>)}
                 </SelectInput>
               </Field>
-              <Field label="รหัสไปรษณีย์"><TextInput inputMode="numeric" maxLength={5} value={form.addressPostalCode} onChange={(event) => setFormValue("addressPostalCode", event.target.value.replace(/\D/g, "").slice(0, 5))} /></Field>
+              <Field label="รหัสไปรษณีย์" error={formErrors.addressPostalCode}><TextInput inputMode="numeric" maxLength={5} value={form.addressPostalCode} onChange={(event) => setFormValue("addressPostalCode", event.target.value.replace(/\D/g, "").slice(0, 5))} error={formErrors.addressPostalCode} inputRef={(node) => { formFieldRefs.current.addressPostalCode = node; }} /></Field>
             </Section>
 
             <Section title="ข้อมูลการเงิน">
@@ -1091,7 +1180,7 @@ export default function BrandMembersPage({ brandId }) {
                   {THAI_BANKS.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
                 </SelectInput>
               </Field>
-              {form.bankName === "อื่นๆ" && <Field label="ระบุชื่อธนาคาร"><TextInput value={form.bankNameOther} onChange={(event) => setFormValue("bankNameOther", event.target.value)} /></Field>}
+              {form.bankName === "อื่นๆ" && <Field label="ระบุชื่อธนาคาร" required error={formErrors.bankNameOther}><TextInput value={form.bankNameOther} onChange={(event) => setFormValue("bankNameOther", event.target.value)} error={formErrors.bankNameOther} inputRef={(node) => { formFieldRefs.current.bankNameOther = node; }} /></Field>}
               <Field label="ชื่อบัญชี"><TextInput value={form.bankAccountName} onChange={(event) => setFormValue("bankAccountName", event.target.value)} /></Field>
               <Field label="เลขบัญชีธนาคาร"><TextInput inputMode="numeric" value={form.bankAccountNumber || ""} onChange={(event) => setFormValue("bankAccountNumber", event.target.value)} /></Field>
             </Section>
@@ -1103,15 +1192,15 @@ export default function BrandMembersPage({ brandId }) {
                   {MEMBER_POSITIONS.map((position) => <option key={position} value={position}>{position}</option>)}
                 </SelectInput>
               </Field>
-              {form.position === "อื่นๆ" && <Field label="ระบุตำแหน่ง" required><TextInput value={form.positionOther} onChange={(event) => setFormValue("positionOther", event.target.value)} required /></Field>}
-              <Field label="สถานะสมาชิก">
-                <SelectInput value={form.status} onChange={(event) => setFormValue("status", event.target.value)}>
+              {form.position === "อื่นๆ" && <Field label="ระบุตำแหน่ง" required error={formErrors.positionOther}><TextInput value={form.positionOther} onChange={(event) => setFormValue("positionOther", event.target.value)} error={formErrors.positionOther} inputRef={(node) => { formFieldRefs.current.positionOther = node; }} /></Field>}
+              <Field label="สถานะสมาชิก" required error={formErrors.status}>
+                <SelectInput value={form.status} onChange={(event) => setFormValue("status", event.target.value)} error={formErrors.status} inputRef={(node) => { formFieldRefs.current.status = node; }}>
                   {MEMBER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
                 </SelectInput>
               </Field>
             </Section>
 
-            <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4">
+            <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 sm:p-4">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-black text-zinc-900">หมายเหตุเพิ่มเติม</h3>
                 <span className="text-xs font-bold text-zinc-400">{(form.notes || "").length}/2000</span>
@@ -1119,13 +1208,13 @@ export default function BrandMembersPage({ brandId }) {
               <textarea
                 value={form.notes}
                 onChange={(event) => setFormValue("notes", event.target.value.slice(0, 2000))}
-                rows={4}
-                className="mt-3 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100"
+                rows={3}
+                className="mt-2.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100"
               />
             </section>
 
-            <div className="sticky bottom-0 -mx-4 -mb-4 flex flex-col-reverse gap-2 border-t border-zinc-100 bg-white/95 p-4 backdrop-blur sm:-mx-6 sm:-mb-6 sm:flex-row sm:justify-end sm:p-6">
-              <button type="button" onClick={() => { resetImagePreview(); setFormOpen(false); }} disabled={isSaving} className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-extrabold text-zinc-700 disabled:opacity-50">
+            <div className="sticky bottom-0 -mx-3 -mb-3 flex flex-col-reverse gap-2 border-t border-zinc-100 bg-white/95 p-3 backdrop-blur sm:-mx-5 sm:-mb-5 sm:flex-row sm:justify-end sm:p-4">
+              <button type="button" onClick={() => { resetImagePreview(); setFormErrors({}); setFormOpen(false); }} disabled={isSaving} className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-extrabold text-zinc-700 disabled:opacity-50">
                 ยกเลิก
               </button>
               <button type="submit" disabled={isSaving} className="min-h-11 rounded-xl px-5 text-sm font-extrabold text-white shadow-sm disabled:opacity-50" style={brandChrome.primaryButton}>
