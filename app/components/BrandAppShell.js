@@ -60,6 +60,14 @@ const Icon = ({ name, className = "h-5 w-5" }) => {
         <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
       </>
     ),
+    members: (
+      <>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+        <path d="M16 3.1a4 4 0 0 1 0 7.8" />
+      </>
+    ),
     archive: (
       <>
         <path d="M4 7h16" />
@@ -202,6 +210,14 @@ const buildMenuItems = (brandId, counts) => {
       badgeCount: counts.activeCustomers,
     },
     {
+      href: `/${brandId}/members`,
+      icon: "members",
+      title: "สมาชิก",
+      subtitle: "ทีมงานและบุคลากร",
+      badgeCount: counts.membersCount,
+      badgeColor: counts.membersCount > 0 ? "accent" : "",
+    },
+    {
       href: `/${brandId}/archives`,
       icon: "archive",
       title: "คลังข้อมูล",
@@ -275,14 +291,15 @@ const isActiveMenu = (pathname, item) => {
 const colorWithAlpha = (color, alphaHex, fallback) =>
   typeof color === "string" && color.startsWith("#") ? `${color}${alphaHex}` : fallback;
 
-const Badge = ({ count, theme }) => {
+const Badge = ({ count, theme, color }) => {
   const numericCount = Number(count || 0);
   if (numericCount <= 0) return null;
+  const backgroundColor = color === "accent" ? theme.accent : theme.danger;
 
   return (
     <span
       className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black leading-none text-white"
-      style={{ backgroundColor: theme.danger }}
+      style={{ backgroundColor }}
     >
       {numericCount > 99 ? "99+" : numericCount}
     </span>
@@ -499,7 +516,7 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
                   {item.subtitle}
                 </span>
               </span>
-              <Badge count={item.badgeCount} theme={theme} />
+              <Badge count={item.badgeCount} theme={theme} color={item.badgeColor} />
             </Link>
           );
         })}

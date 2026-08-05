@@ -11,6 +11,7 @@ export const emptySidebarCounts = {
   ...emptyDashboardCounts,
   calendarJobs: 0,
   customerRequests: 0,
+  membersCount: 0,
   notificationsCount: 0,
   reportsCount: 0,
 };
@@ -168,13 +169,30 @@ export const getBrandSidebarCounts = (brandId) => {
 };
 
 export const getRemoteBrandSidebarCounts = async (brandId) => {
-  const response = await fetch(`/api/bookings?mode=counts&brand=${brandId}`, {
-    cache: "no-store",
-  });
+  const [bookingResult, memberResult] = await Promise.allSettled([
+    fetch(`/api/bookings?mode=counts&brand=${brandId}`, {
+      cache: "no-store",
+    }),
+    fetch(`/api/members?stats=1&brand=${brandId}`, {
+      cache: "no-store",
+    }),
+  ]);
+
+  if (bookingResult.status !== "fulfilled") {
+    throw new Error("โหลดตัวเลขเมนูไม่สำเร็จ");
+  }
+
+  const response = bookingResult.value;
   const result = await response.json().catch(() => ({}));
 
   if (!response.ok || !result?.success) {
     throw new Error(result?.error || "โหลดตัวเลขเมนูไม่สำเร็จ");
+  }
+
+  let membersCount = 0;
+  if (memberResult.status === "fulfilled") {
+    const memberJson = await memberResult.value.json().catch(() => ({}));
+    membersCount = memberResult.value.ok && memberJson?.success ? Number(memberJson.total || 0) : 0;
   }
 
   const remoteCounts = result.counts || emptyDashboardCounts;
@@ -202,6 +220,7 @@ export const getRemoteBrandSidebarCounts = async (brandId) => {
     trashItems: trashItems + mailTrashItems.length,
     calendarJobs: remoteCounts.calendarJobs || 0,
     customerRequests: countActiveCustomerRequests(brandId),
+    membersCount,
     notificationsCount:
       notificationsCount > 0 ? notificationsCount : baseCounts.upcoming7Days,
     reportsCount: 0,
