@@ -67,6 +67,7 @@ const FORM_FIELD_ORDER = [
   "emergencyContactPhone",
   "addressPostalCode",
   "bankNameOther",
+  "position",
   "positionOther",
   "status",
 ];
@@ -131,6 +132,44 @@ const Icon = ({ name, className = "h-5 w-5" }) => {
       <>
         <path d="m6 6 12 12" />
         <path d="m18 6-12 12" />
+      </>
+    ),
+    user: (
+      <>
+        <path d="M16 11a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z" />
+        <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+      </>
+    ),
+    map: (
+      <>
+        <path d="M12 21s7-5.3 7-12a7 7 0 0 0-14 0c0 6.7 7 12 7 12Z" />
+        <circle cx="12" cy="9" r="2.5" />
+      </>
+    ),
+    bank: (
+      <>
+        <path d="M3 10h18" />
+        <path d="M5 10v8" />
+        <path d="M9 10v8" />
+        <path d="M15 10v8" />
+        <path d="M19 10v8" />
+        <path d="M4 18h16" />
+        <path d="M12 3 4 8h16Z" />
+      </>
+    ),
+    briefcase: (
+      <>
+        <rect x="3" y="7" width="18" height="13" rx="2" />
+        <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        <path d="M3 12h18" />
+      </>
+    ),
+    note: (
+      <>
+        <path d="M7 3h8l4 4v14H7z" />
+        <path d="M15 3v5h5" />
+        <path d="M10 13h6" />
+        <path d="M10 17h4" />
       </>
     ),
   };
@@ -255,6 +294,9 @@ const validateMemberForm = (form) => {
   if (form.bankName === "อื่นๆ" && !String(form.bankNameOther || "").trim()) {
     errors.bankNameOther = "กรุณาระบุชื่อธนาคาร";
   }
+  if (!String(form.position || "").trim()) {
+    errors.position = "กรุณาเลือกตำแหน่ง";
+  }
   if (form.position === "อื่นๆ" && !String(form.positionOther || "").trim()) {
     errors.positionOther = "กรุณาระบุตำแหน่ง";
   }
@@ -267,7 +309,7 @@ const validateMemberForm = (form) => {
 
 const Field = ({ label, children, required, error, className = "" }) => (
   <label className={`block ${className}`}>
-    <span className="mb-1 block text-[13px] font-extrabold text-zinc-700">
+    <span className="mb-1.5 block text-[13px] font-bold text-zinc-700">
       {label}
       {required && <span className="text-red-500"> *</span>}
     </span>
@@ -277,7 +319,7 @@ const Field = ({ label, children, required, error, className = "" }) => (
 );
 
 const inputClassName = (error, className = "") =>
-  `h-[46px] w-full rounded-xl border bg-white px-3 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100 disabled:bg-zinc-50 ${
+  `h-[46px] w-full rounded-xl border bg-white px-3.5 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100 disabled:bg-zinc-50 max-md:h-12 max-md:text-base ${
     error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-zinc-200"
   } ${className}`;
 
@@ -301,10 +343,27 @@ const SelectInput = ({ children, className = "", error, inputRef, ...props }) =>
   </select>
 );
 
-const Section = ({ title, children, gridClassName = "grid gap-2.5 md:grid-cols-2" }) => (
-  <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-2.5 sm:p-3">
-    <h3 className="text-sm font-black text-zinc-900">{title}</h3>
-    <div className={`mt-2.5 ${gridClassName}`}>{children}</div>
+const Section = ({
+  title,
+  children,
+  icon = "note",
+  gridClassName = "grid gap-3 md:grid-cols-2",
+  className = "",
+}) => (
+  <section className={`rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm ${className}`}>
+    <h3 className="flex items-center gap-2 text-[15px] font-black text-zinc-900">
+      <span
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+        style={{
+          backgroundColor: "var(--brand-accent-soft)",
+          color: "var(--brand-primary)",
+        }}
+      >
+        <Icon name={icon} className="h-4 w-4" />
+      </span>
+      {title}
+    </h3>
+    <div className={`mt-3.5 ${gridClassName}`}>{children}</div>
   </section>
 );
 
@@ -549,6 +608,10 @@ export default function BrandMembersPage({ brandId }) {
       setError(nextFormErrors[firstErrorKey]);
       window.setTimeout(() => setError(""), 2600);
       window.requestAnimationFrame(() => {
+        formFieldRefs.current[firstErrorKey]?.scrollIntoView?.({
+          behavior: "smooth",
+          block: "center",
+        });
         formFieldRefs.current[firstErrorKey]?.focus?.();
       });
       return;
@@ -1102,9 +1165,9 @@ export default function BrandMembersPage({ brandId }) {
       )}
 
       {formOpen && (
-        <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/45 px-2 py-3 sm:px-4 sm:py-5">
-          <form onSubmit={saveMember} noValidate className="mx-auto flex w-full max-w-5xl flex-col gap-2.5 rounded-[24px] bg-white p-3 shadow-2xl sm:rounded-[28px] sm:p-4">
-            <div className="flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center overflow-hidden bg-black/45 px-2 py-2 sm:px-4 sm:py-5">
+          <form onSubmit={saveMember} noValidate className="flex max-h-[94dvh] w-[96vw] max-w-[1560px] flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl max-md:max-h-[96dvh] max-md:w-[calc(100%-16px)]">
+            <div className="flex shrink-0 items-start justify-between gap-4 border-b border-zinc-100 px-5 py-4 sm:px-6">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em]" style={{ color: brandChrome.theme.accent }}>
                   {formMode === "edit" ? form.memberCode : "New Member"}
@@ -1116,13 +1179,17 @@ export default function BrandMembersPage({ brandId }) {
               </button>
             </div>
 
-            <Section title="ข้อมูลส่วนตัว" gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[150px_repeat(3,minmax(0,1fr))]">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-zinc-50/60 px-4 py-3 pb-24 sm:px-5">
+            <Section title="ข้อมูลส่วนตัว" icon="user" gridClassName="grid gap-3 md:grid-cols-2 xl:grid-cols-[160px_1fr_1fr_1fr]">
               <Field label="รูปโปรไฟล์" className="md:col-span-2 xl:row-span-2 xl:col-span-1">
                 <div className="h-full rounded-2xl border border-zinc-200 bg-white p-2">
-                  <div className="flex h-full items-center gap-2.5 xl:flex-col xl:items-start xl:justify-center">
-                    <Avatar member={{ ...form, profileImageUrl: previewUrl || form.profileImageUrl, fullName: `${form.firstName} ${form.lastName}` }} size="h-14 w-14" />
-                    <div className="min-w-0 flex-1 xl:w-full xl:flex-none">
-                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} className="w-full max-w-[220px] text-[12px] font-semibold text-zinc-600 file:mr-2 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-2 file:py-1.5 file:text-xs file:font-black file:text-zinc-700 xl:max-w-full" />
+                  <div className="flex h-full items-center gap-2.5 max-md:justify-center md:justify-start xl:flex-col xl:items-center xl:justify-center">
+                    <Avatar member={{ ...form, profileImageUrl: previewUrl || form.profileImageUrl, fullName: `${form.firstName} ${form.lastName}` }} size="h-16 w-16" />
+                    <div className="min-w-0 flex-1 max-md:max-w-[220px] xl:w-full xl:flex-none">
+                      <div className="relative inline-flex min-h-9 cursor-pointer items-center justify-center rounded-xl bg-zinc-100 px-3 text-xs font-black text-zinc-700 transition hover:bg-zinc-200">
+                        คลิกเพื่อเลือกรูป
+                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} className="absolute inset-0 cursor-pointer opacity-0" />
+                      </div>
                       <p className="mt-1 text-[11px] font-semibold leading-4 text-zinc-500">JPG, PNG, WebP ไม่เกิน 5 MB</p>
                       {(previewUrl || form.profileImageUrl) && (
                         <button type="button" onClick={() => { resetImagePreview(); setFormValue("profileImageUrl", ""); }} className="mt-1 text-xs font-black text-red-600">ลบรูป</button>
@@ -1134,7 +1201,7 @@ export default function BrandMembersPage({ brandId }) {
               <Field label="ชื่อ" required error={formErrors.firstName}><TextInput value={form.firstName} onChange={(event) => setFormValue("firstName", event.target.value)} error={formErrors.firstName} inputRef={(node) => { formFieldRefs.current.firstName = node; }} /></Field>
               <Field label="นามสกุล" required error={formErrors.lastName}><TextInput value={form.lastName} onChange={(event) => setFormValue("lastName", event.target.value)} error={formErrors.lastName} inputRef={(node) => { formFieldRefs.current.lastName = node; }} /></Field>
               <Field label="ชื่อเล่น"><TextInput value={form.nickname} onChange={(event) => setFormValue("nickname", event.target.value)} /></Field>
-              <Field label="รหัสสมาชิก"><TextInput value={form.memberCode || "สร้างอัตโนมัติหลังบันทึก"} disabled /></Field>
+              <Field label="รหัสสมาชิก" className="xl:col-span-1"><TextInput value={form.memberCode || "สร้างอัตโนมัติหลังบันทึก"} disabled /></Field>
               <Field label="วันเดือนปีเกิด" error={formErrors.birthDate}><TextInput type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthDate || ""} onChange={(event) => setFormValue("birthDate", event.target.value)} error={formErrors.birthDate} inputRef={(node) => { formFieldRefs.current.birthDate = node; }} /></Field>
               <Field label="อายุ"><TextInput value={calculateAge(form.birthDate)} readOnly /></Field>
               <Field label="เพศ">
@@ -1146,80 +1213,96 @@ export default function BrandMembersPage({ brandId }) {
               {form.gender === "อื่นๆ" && <Field label="ระบุเพศเพิ่มเติม" className="xl:col-start-2"><TextInput value={form.genderOther} onChange={(event) => setFormValue("genderOther", event.target.value)} /></Field>}
             </Section>
 
-            <Section title="ช่องทางติดต่อ" gridClassName="space-y-2.5">
-              <div className="grid gap-2.5 md:grid-cols-2">
-                <Field label="เบอร์โทรศัพท์" error={formErrors.phone}><TextInput inputMode="tel" value={form.phone} onChange={(event) => setFormValue("phone", event.target.value)} error={formErrors.phone} inputRef={(node) => { formFieldRefs.current.phone = node; }} /></Field>
-                <Field label="อีเมล" error={formErrors.email}><TextInput type="email" value={form.email} onChange={(event) => setFormValue("email", event.target.value)} error={formErrors.email} inputRef={(node) => { formFieldRefs.current.email = node; }} /></Field>
+            <Section title="ช่องทางติดต่อ" icon="phone" gridClassName="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <Field label="เบอร์โทรศัพท์" error={formErrors.phone}><TextInput inputMode="tel" placeholder="081-234-5678" value={form.phone} onChange={(event) => setFormValue("phone", event.target.value)} error={formErrors.phone} inputRef={(node) => { formFieldRefs.current.phone = node; }} /></Field>
+              <Field label="อีเมล" error={formErrors.email}><TextInput type="email" placeholder="example@email.com" value={form.email} onChange={(event) => setFormValue("email", event.target.value)} error={formErrors.email} inputRef={(node) => { formFieldRefs.current.email = node; }} /></Field>
+              <Field label="LINE ID"><TextInput placeholder="yourlineid" value={form.lineId} onChange={(event) => setFormValue("lineId", event.target.value)} /></Field>
+              <Field label="Facebook"><TextInput placeholder="facebook.com/username" value={form.facebook} onChange={(event) => setFormValue("facebook", event.target.value)} /></Field>
+              <Field label="ชื่อผู้ติดต่อฉุกเฉิน" className="xl:col-span-1"><TextInput placeholder="กรอกชื่อผู้ติดต่อ" value={form.emergencyContactName} onChange={(event) => setFormValue("emergencyContactName", event.target.value)} /></Field>
+              <Field label="ความสัมพันธ์"><TextInput placeholder="เช่น พ่อ, แม่, พี่ชาย" value={form.emergencyContactRelationship} onChange={(event) => setFormValue("emergencyContactRelationship", event.target.value)} /></Field>
+              <Field label="เบอร์ผู้ติดต่อฉุกเฉิน" error={formErrors.emergencyContactPhone}><TextInput inputMode="tel" placeholder="081-234-5678" value={form.emergencyContactPhone} onChange={(event) => setFormValue("emergencyContactPhone", event.target.value)} error={formErrors.emergencyContactPhone} inputRef={(node) => { formFieldRefs.current.emergencyContactPhone = node; }} /></Field>
+            </Section>
+
+            <Section title="ที่อยู่" icon="map" gridClassName="space-y-3">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[0.9fr_1.2fr_0.8fr_1fr_1fr]">
+                <Field label="บ้านเลขที่"><TextInput placeholder="123/45" value={form.addressHouseNumber} onChange={(event) => setFormValue("addressHouseNumber", event.target.value)} /></Field>
+                <Field label="อาคาร / หมู่บ้าน"><TextInput placeholder="หมู่บ้านสุขสวัสดิ์" value={form.addressBuildingVillage} onChange={(event) => setFormValue("addressBuildingVillage", event.target.value)} /></Field>
+                <Field label="หมู่"><TextInput placeholder="5" value={form.addressMoo} onChange={(event) => setFormValue("addressMoo", event.target.value)} /></Field>
+                <Field label="ซอย"><TextInput placeholder="รามคำแหง 24" value={form.addressSoi} onChange={(event) => setFormValue("addressSoi", event.target.value)} /></Field>
+                <Field label="ถนน"><TextInput placeholder="รามคำแหง" value={form.addressRoad} onChange={(event) => setFormValue("addressRoad", event.target.value)} /></Field>
               </div>
-              <div className="grid gap-2.5 md:grid-cols-2">
-                <Field label="LINE ID"><TextInput value={form.lineId} onChange={(event) => setFormValue("lineId", event.target.value)} /></Field>
-                <Field label="Facebook"><TextInput value={form.facebook} onChange={(event) => setFormValue("facebook", event.target.value)} /></Field>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <Field label="ตำบล / แขวง"><TextInput placeholder="หัวหมาก" value={form.addressSubdistrict} onChange={(event) => setFormValue("addressSubdistrict", event.target.value)} /></Field>
+                <Field label="อำเภอ / เขต"><TextInput placeholder="บางกะปิ" value={form.addressDistrict} onChange={(event) => setFormValue("addressDistrict", event.target.value)} /></Field>
+                <Field label="จังหวัด">
+                  <SelectInput value={form.addressProvince} onChange={(event) => setFormValue("addressProvince", event.target.value)}>
+                    <option value="">เลือกจังหวัด</option>
+                    {THAI_PROVINCES.map((province) => <option key={province} value={province}>{province}</option>)}
+                  </SelectInput>
+                </Field>
+                <Field label="รหัสไปรษณีย์" error={formErrors.addressPostalCode}><TextInput inputMode="numeric" maxLength={5} placeholder="10240" value={form.addressPostalCode} onChange={(event) => setFormValue("addressPostalCode", event.target.value.replace(/\D/g, "").slice(0, 5))} error={formErrors.addressPostalCode} inputRef={(node) => { formFieldRefs.current.addressPostalCode = node; }} /></Field>
               </div>
-              <Field label="ชื่อผู้ติดต่อฉุกเฉิน" className="md:col-span-2"><TextInput value={form.emergencyContactName} onChange={(event) => setFormValue("emergencyContactName", event.target.value)} /></Field>
-              <div className="grid gap-2.5 md:grid-cols-2">
-                <Field label="ความสัมพันธ์"><TextInput value={form.emergencyContactRelationship} onChange={(event) => setFormValue("emergencyContactRelationship", event.target.value)} /></Field>
-                <Field label="เบอร์ผู้ติดต่อฉุกเฉิน" error={formErrors.emergencyContactPhone}><TextInput inputMode="tel" value={form.emergencyContactPhone} onChange={(event) => setFormValue("emergencyContactPhone", event.target.value)} error={formErrors.emergencyContactPhone} inputRef={(node) => { formFieldRefs.current.emergencyContactPhone = node; }} /></Field>
-              </div>
             </Section>
 
-            <Section title="ที่อยู่" gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-              <Field label="บ้านเลขที่"><TextInput value={form.addressHouseNumber} onChange={(event) => setFormValue("addressHouseNumber", event.target.value)} /></Field>
-              <Field label="อาคาร / หมู่บ้าน"><TextInput value={form.addressBuildingVillage} onChange={(event) => setFormValue("addressBuildingVillage", event.target.value)} /></Field>
-              <Field label="หมู่"><TextInput value={form.addressMoo} onChange={(event) => setFormValue("addressMoo", event.target.value)} /></Field>
-              <Field label="ซอย"><TextInput value={form.addressSoi} onChange={(event) => setFormValue("addressSoi", event.target.value)} /></Field>
-              <Field label="ถนน"><TextInput value={form.addressRoad} onChange={(event) => setFormValue("addressRoad", event.target.value)} /></Field>
-              <Field label="ตำบล / แขวง"><TextInput value={form.addressSubdistrict} onChange={(event) => setFormValue("addressSubdistrict", event.target.value)} /></Field>
-              <Field label="อำเภอ / เขต"><TextInput value={form.addressDistrict} onChange={(event) => setFormValue("addressDistrict", event.target.value)} /></Field>
-              <Field label="จังหวัด">
-                <SelectInput value={form.addressProvince} onChange={(event) => setFormValue("addressProvince", event.target.value)}>
-                  <option value="">เลือกจังหวัด</option>
-                  {THAI_PROVINCES.map((province) => <option key={province} value={province}>{province}</option>)}
-                </SelectInput>
-              </Field>
-              <Field label="รหัสไปรษณีย์" error={formErrors.addressPostalCode}><TextInput inputMode="numeric" maxLength={5} value={form.addressPostalCode} onChange={(event) => setFormValue("addressPostalCode", event.target.value.replace(/\D/g, "").slice(0, 5))} error={formErrors.addressPostalCode} inputRef={(node) => { formFieldRefs.current.addressPostalCode = node; }} /></Field>
-            </Section>
+            <div className="grid gap-3 xl:grid-cols-2">
+              <Section title="ข้อมูลบัญชีธนาคาร" icon="bank" gridClassName="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <Field label="ธนาคาร">
+                  <SelectInput value={form.bankName} onChange={(event) => setFormValue("bankName", event.target.value)}>
+                    <option value="">เลือกธนาคาร</option>
+                    {THAI_BANKS.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
+                  </SelectInput>
+                </Field>
+                {form.bankName === "อื่นๆ" && <Field label="ระบุชื่อธนาคาร" required error={formErrors.bankNameOther}><TextInput value={form.bankNameOther} onChange={(event) => setFormValue("bankNameOther", event.target.value)} error={formErrors.bankNameOther} inputRef={(node) => { formFieldRefs.current.bankNameOther = node; }} /></Field>}
+                <Field label="ชื่อบัญชี"><TextInput value={form.bankAccountName} onChange={(event) => setFormValue("bankAccountName", event.target.value)} /></Field>
+                <Field label="เลขบัญชีธนาคาร"><TextInput inputMode="numeric" value={form.bankAccountNumber || ""} onChange={(event) => setFormValue("bankAccountNumber", event.target.value)} /></Field>
+              </Section>
 
-            <Section title="ข้อมูลการเงิน" gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-              <Field label="ธนาคาร">
-                <SelectInput value={form.bankName} onChange={(event) => setFormValue("bankName", event.target.value)}>
-                  <option value="">เลือกธนาคาร</option>
-                  {THAI_BANKS.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
-                </SelectInput>
-              </Field>
-              {form.bankName === "อื่นๆ" && <Field label="ระบุชื่อธนาคาร" required error={formErrors.bankNameOther}><TextInput value={form.bankNameOther} onChange={(event) => setFormValue("bankNameOther", event.target.value)} error={formErrors.bankNameOther} inputRef={(node) => { formFieldRefs.current.bankNameOther = node; }} /></Field>}
-              <Field label="ชื่อบัญชี"><TextInput value={form.bankAccountName} onChange={(event) => setFormValue("bankAccountName", event.target.value)} /></Field>
-              <Field label="เลขบัญชีธนาคาร"><TextInput inputMode="numeric" value={form.bankAccountNumber || ""} onChange={(event) => setFormValue("bankAccountNumber", event.target.value)} /></Field>
-            </Section>
+              <Section title="ข้อมูลการทำงาน" icon="briefcase" gridClassName="grid gap-3 md:grid-cols-2">
+                <Field label="ตำแหน่ง" required error={formErrors.position}>
+                  <SelectInput value={form.position} onChange={(event) => setFormValue("position", event.target.value)} error={formErrors.position} inputRef={(node) => { formFieldRefs.current.position = node; }}>
+                    <option value="">เลือกตำแหน่ง</option>
+                    {MEMBER_POSITIONS.map((position) => <option key={position} value={position}>{position}</option>)}
+                  </SelectInput>
+                </Field>
+                <Field label="สถานะสมาชิก" required error={formErrors.status}>
+                  <SelectInput value={form.status} onChange={(event) => setFormValue("status", event.target.value)} error={formErrors.status} inputRef={(node) => { formFieldRefs.current.status = node; }}>
+                    {MEMBER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </SelectInput>
+                </Field>
+                {form.position === "อื่นๆ" && <Field label="ระบุตำแหน่ง" required error={formErrors.positionOther} className="md:col-span-2"><TextInput value={form.positionOther} onChange={(event) => setFormValue("positionOther", event.target.value)} error={formErrors.positionOther} inputRef={(node) => { formFieldRefs.current.positionOther = node; }} /></Field>}
+              </Section>
+            </div>
 
-            <Section title="ข้อมูลการทำงาน" gridClassName="grid gap-2.5 md:grid-cols-2">
-              <Field label="ตำแหน่ง">
-                <SelectInput value={form.position} onChange={(event) => setFormValue("position", event.target.value)}>
-                  <option value="">เลือกตำแหน่ง</option>
-                  {MEMBER_POSITIONS.map((position) => <option key={position} value={position}>{position}</option>)}
-                </SelectInput>
-              </Field>
-              {form.position === "อื่นๆ" && <Field label="ระบุตำแหน่ง" required error={formErrors.positionOther}><TextInput value={form.positionOther} onChange={(event) => setFormValue("positionOther", event.target.value)} error={formErrors.positionOther} inputRef={(node) => { formFieldRefs.current.positionOther = node; }} /></Field>}
-              <Field label="สถานะสมาชิก" required error={formErrors.status}>
-                <SelectInput value={form.status} onChange={(event) => setFormValue("status", event.target.value)} error={formErrors.status} inputRef={(node) => { formFieldRefs.current.status = node; }}>
-                  {MEMBER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
-                </SelectInput>
-              </Field>
-            </Section>
-
-            <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-2.5 sm:p-3">
+            <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-black text-zinc-900">หมายเหตุเพิ่มเติม</h3>
-                <span className="text-xs font-bold text-zinc-400">{(form.notes || "").length}/2000</span>
+                <h3 className="flex items-center gap-2 text-[15px] font-black text-zinc-900">
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+                    style={{
+                      backgroundColor: "var(--brand-accent-soft)",
+                      color: "var(--brand-primary)",
+                    }}
+                  >
+                    <Icon name="note" className="h-4 w-4" />
+                  </span>
+                  หมายเหตุเพิ่มเติม
+                </h3>
               </div>
-              <textarea
-                value={form.notes}
-                onChange={(event) => setFormValue("notes", event.target.value.slice(0, 2000))}
-                rows={3}
-                className="mt-2.5 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100"
-              />
+              <div className="relative mt-3.5">
+                <textarea
+                  value={form.notes}
+                  onChange={(event) => setFormValue("notes", event.target.value.slice(0, 2000))}
+                  rows={3}
+                  placeholder="กรอกหมายเหตุเพิ่มเติม (ถ้ามี)"
+                  className="min-h-[76px] w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 pb-6 text-sm font-semibold text-zinc-800 outline-none transition placeholder:text-zinc-400 focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100 max-md:text-base"
+                />
+                <span className="pointer-events-none absolute bottom-2 right-3 text-xs font-bold text-zinc-400">{(form.notes || "").length}/2000</span>
+              </div>
             </section>
 
-            <div className="sticky bottom-0 -mx-3 -mb-3 flex flex-col-reverse gap-2 border-t border-zinc-100 bg-white/95 p-2.5 backdrop-blur sm:-mx-4 sm:-mb-4 sm:flex-row sm:justify-end sm:p-3">
+            </div>
+
+            <div className="shrink-0 border-t border-zinc-200 bg-white px-4 py-3 shadow-[0_-12px_24px_rgba(15,23,42,0.06)] sm:flex sm:justify-end sm:gap-2 sm:px-6">
               <button type="button" onClick={() => { resetImagePreview(); setFormErrors({}); setFormOpen(false); }} disabled={isSaving} className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-extrabold text-zinc-700 disabled:opacity-50">
                 ยกเลิก
               </button>
