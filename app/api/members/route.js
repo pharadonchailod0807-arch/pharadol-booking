@@ -43,11 +43,110 @@ const SEARCH_COLUMNS = [
   "line_id",
   "facebook",
 ];
+const MEMBER_CREATE_RETRIES = 8;
+
+const formatMemberCode = (sequence) =>
+  `MB-${String(sequence).padStart(4, "0")}`;
+
+const isMissingRpcSchemaError = (error) => {
+  const message = String(error?.message || "").toLowerCase();
+  return (
+    error?.code === "PGRST202" ||
+    (message.includes("create_member_with_sequence") &&
+      message.includes("schema cache"))
+  );
+};
 
 const getSearchFilter = (search) => {
   const safeSearch = sanitizeText(search, 120).replace(/[%_,]/g, " ");
   if (!safeSearch) return "";
   return SEARCH_COLUMNS.map((column) => `${column}.ilike.%${safeSearch}%`).join(",");
+};
+
+const createMemberWithSequenceFallback = async ({ brand, memberData, actor }) => {
+  const sequenceSeed = await supabase
+    .from("member_sequences")
+    .upsert(
+      { brand, last_number: 0, updated_at: new Date().toISOString() },
+      { onConflict: "brand", ignoreDuplicates: true }
+    );
+
+  if (sequenceSeed.error) throw sequenceSeed.error;
+
+  let lastError = null;
+
+  for (let attempt = 0; attempt < MEMBER_CREATE_RETRIES; attempt += 1) {
+    const { data: currentSequence, error: sequenceReadError } = await supabase
+      .from("member_sequences")
+      .select("last_number")
+      .eq("brand", brand)
+      .single();
+
+    if (sequenceReadError) throw sequenceReadError;
+
+    const currentNumber = Number(currentSequence?.last_number || 0);
+    const nextNumber = currentNumber + 1;
+    const memberCode = formatMemberCode(nextNumber);
+
+    const { data: updatedSequence, error: sequenceUpdateError } = await supabase
+      .from("member_sequences")
+      .update({
+        last_number: nextNumber,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("brand", brand)
+      .eq("last_number", currentNumber)
+      .select("last_number")
+      .maybeSingle();
+
+    if (sequenceUpdateError) throw sequenceUpdateError;
+    if (!updatedSequence) continue;
+
+    const { data: member, error: insertError } = await supabase
+      .from("members")
+      .insert({
+        ...memberData,
+        brand,
+        member_code: memberCode,
+        created_by: actor,
+        updated_by: actor,
+      })
+      .select(MEMBER_SELECT_COLUMNS)
+      .single();
+
+    if (!insertError) return member;
+
+    lastError = insertError;
+    if (insertError.code !== "23505") throw insertError;
+  }
+
+  throw lastError || new Error("ไม่สามารถสร้างรหัสสมาชิกได้ กรุณาลองใหม่");
+};
+
+const createMemberWithSequence = async ({ brand, memberData, actor }) => {
+  const { data, error } = await supabase
+    .rpc("create_member_with_sequence", {
+      p_brand: brand,
+      p_member: memberData,
+      p_created_by: actor,
+    })
+    .single();
+
+  if (error && !isMissingRpcSchemaError(error)) throw error;
+
+  if (!error) {
+    const { data: row, error: detailError } = await supabase
+      .from("members")
+      .select(MEMBER_SELECT_COLUMNS)
+      .eq("id", data?.id || data)
+      .eq("brand", brand)
+      .single();
+
+    if (detailError) throw detailError;
+    return row;
+  }
+
+  return createMemberWithSequenceFallback({ brand, memberData, actor });
 };
 
 export async function GET(request) {
@@ -163,28 +262,15 @@ export async function POST(request) {
     return Response.json({ success: false, error: validation.errors[0], errors: validation.errors }, { status: 400 });
   }
 
-  const { data, error } = await supabase
-    .rpc("create_member_with_sequence", {
-      p_brand: brand,
-      p_member: validation.data,
-      p_created_by: sanitizeText(user.username || user.name || user.id, 160),
-    })
-    .single();
+  try {
+    const row = await createMemberWithSequence({
+      brand,
+      memberData: validation.data,
+      actor: sanitizeText(user.username || user.name || user.id, 160),
+    });
 
-  if (error) {
+    return Response.json({ success: true, member: mapMemberRow(row, { includeSensitive: true }) });
+  } catch (error) {
     return Response.json({ success: false, error: getMemberReadableError(error) }, { status: 500 });
   }
-
-  const { data: row, error: detailError } = await supabase
-    .from("members")
-    .select(MEMBER_SELECT_COLUMNS)
-    .eq("id", data?.id || data)
-    .eq("brand", brand)
-    .single();
-
-  if (detailError) {
-    return Response.json({ success: false, error: getMemberReadableError(detailError) }, { status: 500 });
-  }
-
-  return Response.json({ success: true, member: mapMemberRow(row, { includeSensitive: true }) });
 }
