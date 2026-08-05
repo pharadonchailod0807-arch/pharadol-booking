@@ -277,7 +277,7 @@ const Field = ({ label, children, required, error, className = "" }) => (
 );
 
 const inputClassName = (error, className = "") =>
-  `h-12 w-full rounded-xl border bg-white px-3 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100 disabled:bg-zinc-50 ${
+  `h-[46px] w-full rounded-xl border bg-white px-3 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100 disabled:bg-zinc-50 ${
     error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-zinc-200"
   } ${className}`;
 
@@ -1116,42 +1116,34 @@ export default function BrandMembersPage({ brandId }) {
               </button>
             </div>
 
-            <Section title="ข้อมูลส่วนตัว" gridClassName="space-y-2.5">
-              <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[132px_repeat(3,minmax(0,1fr))]">
-                <Field label="รูปโปรไฟล์">
-                  <div className="rounded-2xl border border-zinc-200 bg-white p-2">
-                    <div className="flex items-center gap-2.5 xl:flex-col xl:items-start">
-                      <Avatar member={{ ...form, profileImageUrl: previewUrl || form.profileImageUrl, fullName: `${form.firstName} ${form.lastName}` }} size="h-14 w-14" />
-                      <div className="min-w-0 flex-1">
-                        <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} className="w-full text-[12px] font-semibold text-zinc-600 file:mr-2 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-2 file:py-1.5 file:text-xs file:font-black file:text-zinc-700" />
-                        <p className="mt-1 text-[11px] font-semibold leading-4 text-zinc-500">JPG, PNG, WebP ไม่เกิน 5 MB</p>
-                        {(previewUrl || form.profileImageUrl) && (
-                          <button type="button" onClick={() => { resetImagePreview(); setFormValue("profileImageUrl", ""); }} className="mt-1 text-xs font-black text-red-600">ลบรูป</button>
-                        )}
-                      </div>
+            <Section title="ข้อมูลส่วนตัว" gridClassName="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[150px_repeat(3,minmax(0,1fr))]">
+              <Field label="รูปโปรไฟล์" className="md:col-span-2 xl:row-span-2 xl:col-span-1">
+                <div className="h-full rounded-2xl border border-zinc-200 bg-white p-2">
+                  <div className="flex h-full items-center gap-2.5 xl:flex-col xl:items-start xl:justify-center">
+                    <Avatar member={{ ...form, profileImageUrl: previewUrl || form.profileImageUrl, fullName: `${form.firstName} ${form.lastName}` }} size="h-14 w-14" />
+                    <div className="min-w-0 flex-1 xl:w-full xl:flex-none">
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} className="w-full max-w-[220px] text-[12px] font-semibold text-zinc-600 file:mr-2 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-2 file:py-1.5 file:text-xs file:font-black file:text-zinc-700 xl:max-w-full" />
+                      <p className="mt-1 text-[11px] font-semibold leading-4 text-zinc-500">JPG, PNG, WebP ไม่เกิน 5 MB</p>
+                      {(previewUrl || form.profileImageUrl) && (
+                        <button type="button" onClick={() => { resetImagePreview(); setFormValue("profileImageUrl", ""); }} className="mt-1 text-xs font-black text-red-600">ลบรูป</button>
+                      )}
                     </div>
                   </div>
-                </Field>
-                <Field label="ชื่อ" required error={formErrors.firstName}><TextInput value={form.firstName} onChange={(event) => setFormValue("firstName", event.target.value)} error={formErrors.firstName} inputRef={(node) => { formFieldRefs.current.firstName = node; }} /></Field>
-                <Field label="นามสกุล" required error={formErrors.lastName}><TextInput value={form.lastName} onChange={(event) => setFormValue("lastName", event.target.value)} error={formErrors.lastName} inputRef={(node) => { formFieldRefs.current.lastName = node; }} /></Field>
-                <Field label="ชื่อเล่น"><TextInput value={form.nickname} onChange={(event) => setFormValue("nickname", event.target.value)} /></Field>
-              </div>
-              <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[132px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
-                <div className="hidden xl:block" />
-                <Field label="รหัสสมาชิก"><TextInput value={form.memberCode || "สร้างอัตโนมัติหลังบันทึก"} disabled /></Field>
-              </div>
-              <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-[132px_repeat(3,minmax(0,1fr))]">
-                <div className="hidden xl:block" />
-                <Field label="วันเดือนปีเกิด" error={formErrors.birthDate}><TextInput type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthDate || ""} onChange={(event) => setFormValue("birthDate", event.target.value)} error={formErrors.birthDate} inputRef={(node) => { formFieldRefs.current.birthDate = node; }} /></Field>
-                <Field label="อายุ"><TextInput value={calculateAge(form.birthDate)} readOnly /></Field>
-                <Field label="เพศ">
-                  <SelectInput value={form.gender} onChange={(event) => setFormValue("gender", event.target.value)}>
-                    <option value="">ไม่ระบุ</option>
-                    {MEMBER_GENDERS.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
-                  </SelectInput>
-                </Field>
-                {form.gender === "อื่นๆ" && <Field label="ระบุเพศเพิ่มเติม" className="xl:col-start-2"><TextInput value={form.genderOther} onChange={(event) => setFormValue("genderOther", event.target.value)} /></Field>}
-              </div>
+                </div>
+              </Field>
+              <Field label="ชื่อ" required error={formErrors.firstName}><TextInput value={form.firstName} onChange={(event) => setFormValue("firstName", event.target.value)} error={formErrors.firstName} inputRef={(node) => { formFieldRefs.current.firstName = node; }} /></Field>
+              <Field label="นามสกุล" required error={formErrors.lastName}><TextInput value={form.lastName} onChange={(event) => setFormValue("lastName", event.target.value)} error={formErrors.lastName} inputRef={(node) => { formFieldRefs.current.lastName = node; }} /></Field>
+              <Field label="ชื่อเล่น"><TextInput value={form.nickname} onChange={(event) => setFormValue("nickname", event.target.value)} /></Field>
+              <Field label="รหัสสมาชิก"><TextInput value={form.memberCode || "สร้างอัตโนมัติหลังบันทึก"} disabled /></Field>
+              <Field label="วันเดือนปีเกิด" error={formErrors.birthDate}><TextInput type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthDate || ""} onChange={(event) => setFormValue("birthDate", event.target.value)} error={formErrors.birthDate} inputRef={(node) => { formFieldRefs.current.birthDate = node; }} /></Field>
+              <Field label="อายุ"><TextInput value={calculateAge(form.birthDate)} readOnly /></Field>
+              <Field label="เพศ">
+                <SelectInput value={form.gender} onChange={(event) => setFormValue("gender", event.target.value)}>
+                  <option value="">ไม่ระบุ</option>
+                  {MEMBER_GENDERS.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
+                </SelectInput>
+              </Field>
+              {form.gender === "อื่นๆ" && <Field label="ระบุเพศเพิ่มเติม" className="xl:col-start-2"><TextInput value={form.genderOther} onChange={(event) => setFormValue("genderOther", event.target.value)} /></Field>}
             </Section>
 
             <Section title="ช่องทางติดต่อ" gridClassName="space-y-2.5">
@@ -1163,7 +1155,7 @@ export default function BrandMembersPage({ brandId }) {
                 <Field label="LINE ID"><TextInput value={form.lineId} onChange={(event) => setFormValue("lineId", event.target.value)} /></Field>
                 <Field label="Facebook"><TextInput value={form.facebook} onChange={(event) => setFormValue("facebook", event.target.value)} /></Field>
               </div>
-              <Field label="ชื่อผู้ติดต่อฉุกเฉิน"><TextInput value={form.emergencyContactName} onChange={(event) => setFormValue("emergencyContactName", event.target.value)} /></Field>
+              <Field label="ชื่อผู้ติดต่อฉุกเฉิน" className="md:col-span-2"><TextInput value={form.emergencyContactName} onChange={(event) => setFormValue("emergencyContactName", event.target.value)} /></Field>
               <div className="grid gap-2.5 md:grid-cols-2">
                 <Field label="ความสัมพันธ์"><TextInput value={form.emergencyContactRelationship} onChange={(event) => setFormValue("emergencyContactRelationship", event.target.value)} /></Field>
                 <Field label="เบอร์ผู้ติดต่อฉุกเฉิน" error={formErrors.emergencyContactPhone}><TextInput inputMode="tel" value={form.emergencyContactPhone} onChange={(event) => setFormValue("emergencyContactPhone", event.target.value)} error={formErrors.emergencyContactPhone} inputRef={(node) => { formFieldRefs.current.emergencyContactPhone = node; }} /></Field>
@@ -1214,7 +1206,7 @@ export default function BrandMembersPage({ brandId }) {
               </Field>
             </Section>
 
-            <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-3 sm:p-4">
+            <section className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-2.5 sm:p-3">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-black text-zinc-900">หมายเหตุเพิ่มเติม</h3>
                 <span className="text-xs font-bold text-zinc-400">{(form.notes || "").length}/2000</span>
@@ -1227,7 +1219,7 @@ export default function BrandMembersPage({ brandId }) {
               />
             </section>
 
-            <div className="sticky bottom-0 -mx-3 -mb-3 flex flex-col-reverse gap-2 border-t border-zinc-100 bg-white/95 p-3 backdrop-blur sm:-mx-5 sm:-mb-5 sm:flex-row sm:justify-end sm:p-4">
+            <div className="sticky bottom-0 -mx-3 -mb-3 flex flex-col-reverse gap-2 border-t border-zinc-100 bg-white/95 p-2.5 backdrop-blur sm:-mx-4 sm:-mb-4 sm:flex-row sm:justify-end sm:p-3">
               <button type="button" onClick={() => { resetImagePreview(); setFormErrors({}); setFormOpen(false); }} disabled={isSaving} className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-extrabold text-zinc-700 disabled:opacity-50">
                 ยกเลิก
               </button>
