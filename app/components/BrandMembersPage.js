@@ -766,7 +766,7 @@ export default function BrandMembersPage({ brandId }) {
 
     if (trashMode) {
       return (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-nowrap items-center justify-center gap-2">
           <button
             type="button"
             onClick={() => restoreMember(member)}
@@ -790,7 +790,7 @@ export default function BrandMembersPage({ brandId }) {
     }
 
     return (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-nowrap items-center justify-center gap-2">
         <button
           type="button"
           onClick={() => openDetail(member)}
