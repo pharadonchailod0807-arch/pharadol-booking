@@ -1,30 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 import { deleteBookingGoogleCalendarEvent } from "@/app/lib/googleCalendarClient";
+import { safeGetArray, safeSetJson } from "@/app/lib/safeStorage";
 
 const BRAND_ID = "pharadol";
+const TRASH_KEY = "pharadol_trash";
+const MAIL_TRASH_KEY = "pharadol_mail_trash";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const BOOKING_LIST_PAGE_SIZE = 30;
 
 const normalizeBookingRow = (row) => {
-  const bookingData = row?.booking_data || {};
+  const bookingData = row?.booking_data || row || {};
 
   return {
     ...bookingData,
-    supabaseId: row.id,
-    brandId: bookingData.brandId || "",
-    bookingNumber: bookingData.bookingNumber || row.booking_number || "",
-    customerName: bookingData.customerName || row.customer_name || "",
+    supabaseId: row.id || row.supabaseId || "",
+    brandId: bookingData.brandId || row.brandId || row.brand || "",
+    bookingNumber: bookingData.bookingNumber || row.booking_number || row.bookingNumber || "",
+    customerName: bookingData.customerName || row.customer_name || row.customerName || "",
     phone: bookingData.phone || row.phone || "",
     email: bookingData.email || row.email || "",
     service: bookingData.service || row.service || "",
     location: bookingData.location || row.location || "",
-    eventDate: bookingData.eventDate || row.event_date || "",
-    jobStatus: row.job_status || bookingData.jobStatus || "รอยืนยัน",
-    status: row.job_status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
+    eventDate: bookingData.eventDate || row.event_date || row.eventDate || "",
+    jobStatus: row.job_status || row.jobStatus || bookingData.jobStatus || "รอยืนยัน",
+    status: row.job_status || row.status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
   };
 };
 
@@ -36,8 +40,6 @@ const getBookingData = (booking, updates = {}) => {
 export default function TrashPage() {
   const router = useRouter();
   const brandChrome = getBrandChromeStyles(BRAND_ID);
-  const TRASH_KEY = "pharadol_trash";
-  const MAIL_TRASH_KEY = "pharadol_mail_trash";
 
   const [trash, setTrash] = useState([]);
   const [mailTrash, setMailTrash] = useState([]);
@@ -46,6 +48,53 @@ export default function TrashPage() {
     useState("");
   const [search, setSearch] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [listPage, setListPage] = useState(0);
+  const [hasMoreTrash, setHasMoreTrash] = useState(false);
+  const [isLoadingMoreTrash, setIsLoadingMoreTrash] = useState(false);
+
+  const syncTrash = useCallback((nextTrash) => {
+    safeSetJson(TRASH_KEY, nextTrash);
+    setTrash(nextTrash);
+  }, []);
+
+  const fetchBookingListPage = useCallback(async (page = 0) => {
+    const params = new URLSearchParams({
+      mode: "list",
+      brand: BRAND_ID,
+      status: "trash",
+      page: String(page),
+      pageSize: String(BOOKING_LIST_PAGE_SIZE),
+    });
+    const response = await fetch(`/api/bookings?${params.toString()}`, {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "โหลดข้อมูลถังขยะไม่สำเร็จ");
+    }
+
+    return {
+      bookings: Array.isArray(result.bookings)
+        ? result.bookings.map(normalizeBookingRow)
+        : [],
+      page: Number(result.page || 0),
+      hasMore: Boolean(result.hasMore),
+    };
+  }, []);
+
+  const loadTrashData = useCallback(async () => {
+    try {
+      const result = await fetchBookingListPage(0);
+      syncTrash(result.bookings);
+      setListPage(result.page);
+      setHasMoreTrash(result.hasMore);
+    } catch (error) {
+      console.error("Cannot load trash data", error);
+      setTrash(safeGetArray(TRASH_KEY).slice(0, BOOKING_LIST_PAGE_SIZE));
+      setHasMoreTrash(false);
+    }
+  }, [fetchBookingListPage, syncTrash]);
 
   const deleteCalendarEventSafely = async (booking) => {
     if (!booking?.googleCalendarEventId) return "";
@@ -130,31 +179,6 @@ export default function TrashPage() {
   useEffect(() => {
     if (!isAuthorized) return;
 
-    const loadTrashData = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("bookings")
-          .select("*")
-          .eq("deleted", true)
-          .order("booking_number", { ascending: false });
-
-        if (error) throw error;
-
-        const deletedBookings = (Array.isArray(data) ? data : [])
-          .map(normalizeBookingRow)
-          .filter((item) => item.brandId === BRAND_ID);
-
-        localStorage.setItem(TRASH_KEY, JSON.stringify(deletedBookings));
-        setTrash(deletedBookings);
-      } catch (error) {
-        console.error("Cannot load trash data", error);
-        const savedTrash = JSON.parse(
-          localStorage.getItem(TRASH_KEY) || "[]"
-        );
-        setTrash(Array.isArray(savedTrash) ? savedTrash : []);
-      }
-    };
-
     const handleTrashStorage = (event) => {
       if (event.key === TRASH_KEY) {
         loadTrashData();
@@ -176,7 +200,7 @@ export default function TrashPage() {
       )
       .subscribe();
 
-    loadTrashData();
+    const timer = window.setTimeout(loadTrashData, 0);
 
     window.addEventListener("focus", loadTrashData);
     window.addEventListener("pageshow", loadTrashData);
@@ -184,13 +208,14 @@ export default function TrashPage() {
     document.addEventListener("visibilitychange", handlePageVisible);
 
     return () => {
+      window.clearTimeout(timer);
       window.removeEventListener("focus", loadTrashData);
       window.removeEventListener("pageshow", loadTrashData);
       window.removeEventListener("storage", handleTrashStorage);
       document.removeEventListener("visibilitychange", handlePageVisible);
       supabase.removeChannel(bookingsChannel);
     };
-  }, [isAuthorized]);
+  }, [isAuthorized, loadTrashData]);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -223,6 +248,34 @@ export default function TrashPage() {
       window.removeEventListener("storage", handleMailTrashStorage);
     };
   }, [isAuthorized]);
+
+  const loadMoreTrash = async () => {
+    if (isLoadingMoreTrash || !hasMoreTrash) return;
+
+    setIsLoadingMoreTrash(true);
+    try {
+      const result = await fetchBookingListPage(listPage + 1);
+      const nextTrash = [
+        ...trash,
+        ...result.bookings.filter(
+          (booking) =>
+            !trash.some(
+              (item) =>
+                (booking.supabaseId && item.supabaseId === booking.supabaseId) ||
+                item.bookingNumber === booking.bookingNumber
+            )
+        ),
+      ];
+      syncTrash(nextTrash);
+      setListPage(result.page);
+      setHasMoreTrash(result.hasMore);
+    } catch (error) {
+      console.error("Cannot load more trash data", error);
+      alert(error?.message || "โหลดข้อมูลถังขยะเพิ่มไม่สำเร็จ");
+    } finally {
+      setIsLoadingMoreTrash(false);
+    }
+  };
 
 
   const loadCustomerRequestTrash = async () => {
@@ -925,6 +978,19 @@ export default function TrashPage() {
           ) : (
             <div className="rounded-[22px] border border-[#dbe4dc] bg-white px-5 py-8 text-center text-sm font-semibold text-zinc-500 shadow-sm">
               ไม่พบรายการในถังขยะใบจอง
+            </div>
+          )}
+
+          {hasMoreTrash && (
+            <div className="mt-5 flex justify-center">
+              <button
+                type="button"
+                onClick={loadMoreTrash}
+                disabled={isLoadingMoreTrash}
+                className="min-h-11 rounded-xl border border-[#bfcfc2] bg-white px-5 text-sm font-black text-[#173d31] transition hover:bg-[#edf7f2] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isLoadingMoreTrash ? "กำลังโหลด..." : "โหลดเพิ่ม"}
+              </button>
             </div>
           )}
         </section>

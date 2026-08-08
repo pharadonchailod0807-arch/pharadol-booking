@@ -16,7 +16,7 @@ const securityHeaders = [
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https://drive.google.com https://*.googleusercontent.com https://*.supabase.co",
       "media-src 'self' data: blob: https://*.googleusercontent.com https://*.supabase.co",
-      "connect-src 'self' https://*.supabase.co https://*.googleapis.com https://oauth2.googleapis.com https://api.resend.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://oauth2.googleapis.com https://api.resend.com",
       "frame-src 'self' https://drive.google.com https://accounts.google.com",
       "object-src 'none'",
       "base-uri 'self'",

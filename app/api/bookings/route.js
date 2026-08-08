@@ -417,14 +417,19 @@ export async function GET(request) {
       const from = page * pageSize;
       const to = from + pageSize - 1;
 
-      const { data, error, count } = await supabase
+      let query = supabase
         .from("bookings")
         .select(
           "id, booking_number, booking_data, customer_name, phone, email, service, location, event_date, job_status, archived, deleted, created_at, updated_at",
           { count: "exact" }
         )
-        .eq("archived", archived)
-        .eq("deleted", deleted)
+        .eq("deleted", deleted);
+
+      if (typeof archived === "boolean") {
+        query = query.eq("archived", archived);
+      }
+
+      const { data, error, count } = await query
         .order(status === "calendar" ? "event_date" : "booking_number", {
           ascending: status === "calendar",
         })

@@ -4,6 +4,20 @@ import { useEffect } from "react";
 
 export default function GlobalError({ error, reset }) {
   useEffect(() => {
+    if (process.env.NODE_ENV === "development" && typeof window !== "undefined") {
+      console.error("Application render error detail", {
+        pathname: window.location.pathname,
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
+        userAgent: window.navigator?.userAgent || "",
+      });
+    }
+
     console.error("Application render error", error);
   }, [error]);
 
