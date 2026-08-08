@@ -14,7 +14,6 @@ const RESET_BOOKING_SEQUENCE_ACTIVE_KEY =
   "pharadol_resetBookingSequenceActive";
 const TEAM_MEMBERS_KEY = "pharadol_team_members";
 const DASHBOARD_THEME_KEY = "pharadol_dashboard_theme";
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 function SettingsContent() {
   const router = useRouter();
@@ -35,48 +34,8 @@ function SettingsContent() {
     phone: "",
     email: "",
   });
-  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    const verifyAccess = () => {
-      try {
-        const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-        const currentUser = JSON.parse(
-          sessionStorage.getItem("currentUser") || "null"
-        );
-        const activeBrand = sessionStorage.getItem("activeBrand");
-        const accountIsActive = currentUser?.active !== false;
-        const brandIsCorrect = activeBrand === "pharadol";
-        const lastActivity = Number(
-          sessionStorage.getItem("lastActivity") || Date.now()
-        );
-        const sessionExpired = Date.now() - lastActivity > SESSION_TIMEOUT_MS;
-
-        if (
-          !loggedIn ||
-          !currentUser ||
-          !accountIsActive ||
-          !brandIsCorrect ||
-          sessionExpired
-        ) {
-          sessionStorage.clear();
-          window.location.replace("/login");
-          return false;
-        }
-
-        sessionStorage.setItem("lastActivity", String(Date.now()));
-        setIsAuthorized(true);
-        return true;
-      } catch (error) {
-        console.error("Cannot verify Pharadol settings access", error);
-        sessionStorage.clear();
-        window.location.replace("/login");
-        return false;
-      }
-    };
-
-    if (!verifyAccess()) return;
-
     let activityTimer;
 
     const updateActivity = () => {
@@ -86,7 +45,6 @@ function SettingsContent() {
       }, 500);
     };
 
-    const sessionCheck = window.setInterval(verifyAccess, 60 * 1000);
     const activityEvents = ["mousedown", "keydown", "touchstart", "scroll"];
 
     activityEvents.forEach((eventName) =>
@@ -94,7 +52,6 @@ function SettingsContent() {
     );
 
     return () => {
-      window.clearInterval(sessionCheck);
       window.clearTimeout(activityTimer);
       activityEvents.forEach((eventName) =>
         window.removeEventListener(eventName, updateActivity)
@@ -103,8 +60,6 @@ function SettingsContent() {
   }, []);
 
   useEffect(() => {
-    if (!isAuthorized) return;
-
     const loadBookingSettings = () => {
       const savedValue =
         localStorage.getItem(CUSTOM_BOOKING_NUMBER_KEY) || "";
@@ -151,11 +106,9 @@ function SettingsContent() {
       window.removeEventListener("focus", loadBookingSettings);
       window.removeEventListener("storage", handleBookingSettingsStorage);
     };
-  }, [isAuthorized]);
+  }, []);
 
   useEffect(() => {
-    if (!isAuthorized) return;
-
     const loadDashboardTheme = () => {
       const savedTheme = localStorage.getItem(DASHBOARD_THEME_KEY);
       setDashboardTheme(
@@ -173,7 +126,7 @@ function SettingsContent() {
       window.removeEventListener("focus", loadDashboardTheme);
       window.removeEventListener("storage", loadDashboardTheme);
     };
-  }, [isAuthorized]);
+  }, []);
 
   const saveDashboardTheme = (theme) => {
     const nextTheme = ["aurora", "classic", "neon"].includes(theme)
@@ -185,8 +138,6 @@ function SettingsContent() {
   };
 
   useEffect(() => {
-    if (!isAuthorized) return;
-
     const loadTeamMembers = () => {
       try {
         const savedTeamMembers = JSON.parse(
@@ -209,7 +160,7 @@ function SettingsContent() {
       window.removeEventListener("focus", loadTeamMembers);
       window.removeEventListener("storage", loadTeamMembers);
     };
-  }, [isAuthorized]);
+  }, []);
 
   const saveTeamMembers = (nextTeamMembers) => {
     localStorage.setItem(TEAM_MEMBERS_KEY, JSON.stringify(nextTeamMembers));
@@ -534,14 +485,6 @@ function SettingsContent() {
 
     alert("รีเซ็ตเรียบร้อย เลขอัตโนมัติจะเริ่มใหม่ที่ 0001");
   };
-
-  if (!isAuthorized) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-zinc-100 text-zinc-500">
-        กำลังตรวจสอบสิทธิ์การใช้งาน...
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-zinc-100 p-4 md:p-6 lg:p-8">

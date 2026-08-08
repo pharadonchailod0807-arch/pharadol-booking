@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -27,6 +27,7 @@ const AUTH_SESSION_STORAGE_KEYS = [
   "lastActivity",
   "activeBrand",
 ];
+const INVALID_SESSION_STATUSES = new Set([401, 403]);
 
 const isAdminRole = (role) => role === "ADMIN" || role === "super_admin";
 
@@ -37,6 +38,18 @@ const normalizeBrandList = (brands = []) =>
 
 const clearStoredClientSession = () => {
   AUTH_SESSION_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
+};
+
+const getStoredLastActivity = () => {
+  const storedValue = Number(sessionStorage.getItem("lastActivity"));
+  return Number.isFinite(storedValue) ? storedValue : Date.now();
+};
+
+const createSessionError = (message, status) => {
+  const error = new Error(message);
+  error.status = status;
+  error.isInvalidSession = INVALID_SESSION_STATUSES.has(status);
+  return error;
 };
 
 const Icon = ({ name, className = "h-5 w-5" }) => {
@@ -563,22 +576,44 @@ export default function BrandAppShell({ brandId, children }) {
   const theme = getBrandTheme(brandId);
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isAllowed, setIsAllowed] = useState(false);
+  const [authStatus, setAuthStatus] = useState("checking");
+  const [authError, setAuthError] = useState("");
+  const [authRetryKey, setAuthRetryKey] = useState(0);
+  const authStatusRef = useRef("checking");
+  const verifyRequestRef = useRef(0);
+
+  const setVerifiedStatus = useCallback((nextStatus) => {
+    authStatusRef.current = nextStatus;
+    setAuthStatus(nextStatus);
+  }, []);
 
   useEffect(() => {
     installSidebarCountsStorageBridge();
-    let allowTimer = 0;
+    const requestId = verifyRequestRef.current + 1;
+    verifyRequestRef.current = requestId;
+    const abortController = new AbortController();
+
+    const isCurrentRequest = () =>
+      verifyRequestRef.current === requestId && !abortController.signal.aborted;
 
     const denyAccess = () => {
+      if (!isCurrentRequest()) return;
+      setVerifiedStatus("denied");
+      setAuthError("");
       clearStoredClientSession();
       window.location.replace(`/login?next=${encodeURIComponent(pathname)}`);
     };
 
-    const allowAccess = (currentUser, activeBrand) => {
+    const denyRouteAccess = (redirectTo) => {
+      if (!isCurrentRequest()) return;
+      setVerifiedStatus("denied");
+      setAuthError("");
+      window.location.replace(redirectTo || `/${brandId}/dashboard`);
+    };
+
+    const checkAccess = (currentUser, activeBrand) => {
       const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-      const lastActivity = Number(
-        sessionStorage.getItem("lastActivity") || Date.now()
-      );
+      const lastActivity = getStoredLastActivity();
       const sessionExpired = Date.now() - lastActivity > SESSION_TIMEOUT_MS;
       const normalizedBrands = normalizeBrandList(currentUser?.brands);
       const accountIsActive = currentUser?.active !== false;
@@ -594,30 +629,43 @@ export default function BrandAppShell({ brandId, children }) {
         !loggedIn ||
         !currentUser ||
         !accountIsActive ||
-        !brandIsCorrect ||
-        sessionExpired ||
-        (settingsRequiresAdmin && !accountIsAdmin)
+        sessionExpired
       ) {
-        return false;
+        return { allowed: false, reason: "invalid-session" };
+      }
+
+      if (!brandIsCorrect || (settingsRequiresAdmin && !accountIsAdmin)) {
+        return { allowed: false, reason: "route-denied" };
       }
 
       sessionStorage.setItem("lastActivity", String(Date.now()));
-      allowTimer = window.setTimeout(() => {
-        setIsAllowed(true);
-      }, 0);
-      return true;
+      return { allowed: true };
+    };
+
+    const allowAccess = () => {
+      if (!isCurrentRequest()) return;
+      setAuthError("");
+      setVerifiedStatus("allowed");
     };
 
     const restoreServerSession = async () => {
-      const response = await fetch("/api/auth/session", { cache: "no-store" });
+      const response = await fetch("/api/auth/session", {
+        cache: "no-store",
+        signal: abortController.signal,
+      });
       const result = await response.json().catch(() => ({}));
 
       if (!response.ok || !result?.success || !result.user) {
-        throw new Error("No active server session");
+        throw createSessionError(
+          "No active server session",
+          response.ok ? 401 : response.status
+        );
       }
 
       const accountIsAdmin = isAdminRole(result.user.role);
       const nextActiveBrand = accountIsAdmin ? brandId : result.activeBrand;
+
+      if (!isCurrentRequest()) return null;
 
       if (Array.isArray(result.users)) {
         localStorage.setItem("central_admin_users", JSON.stringify(result.users));
@@ -628,7 +676,11 @@ export default function BrandAppShell({ brandId, children }) {
       sessionStorage.setItem("currentUser", JSON.stringify(result.user));
       sessionStorage.setItem("lastActivity", String(Date.now()));
       sessionStorage.setItem("activeBrand", nextActiveBrand);
-      return { currentUser: result.user, activeBrand: nextActiveBrand };
+      return {
+        currentUser: result.user,
+        activeBrand: nextActiveBrand,
+        redirectTo: result.redirectTo,
+      };
     };
 
     const verifyAccess = async () => {
@@ -638,32 +690,98 @@ export default function BrandAppShell({ brandId, children }) {
           maxBytes: 64 * 1024,
         });
         const activeBrand = sessionStorage.getItem("activeBrand");
+        const localAccess = checkAccess(currentUser, activeBrand);
 
-        if (allowAccess(currentUser, activeBrand)) return;
+        if (localAccess.allowed) {
+          allowAccess();
+          const restoredSession = await restoreServerSession();
+          if (!restoredSession || !isCurrentRequest()) return;
+
+          const restoredAccess = checkAccess(
+            restoredSession.currentUser,
+            restoredSession.activeBrand
+          );
+
+          if (restoredAccess.allowed) {
+            allowAccess();
+          } else if (restoredAccess.reason === "route-denied") {
+            denyRouteAccess(restoredSession.redirectTo);
+          } else {
+            denyAccess();
+          }
+          return;
+        }
+
+        if (authStatusRef.current !== "allowed") {
+          setVerifiedStatus("checking");
+        }
 
         const restoredSession = await restoreServerSession();
-        if (!allowAccess(restoredSession.currentUser, restoredSession.activeBrand)) {
+        if (!isCurrentRequest()) return;
+
+        const restoredAccess = checkAccess(
+          restoredSession.currentUser,
+          restoredSession.activeBrand
+        );
+
+        if (restoredAccess.allowed) {
+          allowAccess();
+        } else if (restoredAccess.reason === "route-denied") {
+          denyRouteAccess(restoredSession.redirectTo);
+        } else {
           denyAccess();
         }
-      } catch {
-        denyAccess();
+      } catch (error) {
+        if (!isCurrentRequest() || error?.name === "AbortError") return;
+
+        if (error?.isInvalidSession) {
+          denyAccess();
+          return;
+        }
+
+        setAuthError(
+          "ไม่สามารถตรวจสอบ session จากเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง"
+        );
+        if (authStatusRef.current !== "allowed") {
+          setVerifiedStatus("error");
+        }
       }
     };
 
     verifyAccess();
 
     return () => {
-      if (allowTimer) window.clearTimeout(allowTimer);
+      abortController.abort();
     };
-  }, [brandId, pathname]);
+  }, [brandId, pathname, authRetryKey, setVerifiedStatus]);
 
-  if (!isAllowed) {
+  if (authStatus !== "allowed") {
     return (
       <main
         className="flex min-h-screen items-center justify-center px-4 text-center text-sm font-semibold"
         style={{ backgroundColor: theme.background, color: theme.muted }}
       >
-        กำลังตรวจสอบสิทธิ์การใช้งาน...
+        <div className="space-y-4">
+          <p>
+            {authStatus === "error"
+              ? authError
+              : "กำลังตรวจสอบสิทธิ์การใช้งาน..."}
+          </p>
+          {authStatus === "error" && (
+            <button
+              type="button"
+              onClick={() => {
+                setAuthError("");
+                setVerifiedStatus("checking");
+                setAuthRetryKey((current) => current + 1);
+              }}
+              className="rounded-xl border px-4 py-2 text-sm font-bold transition hover:bg-white/40"
+              style={{ borderColor: theme.border, color: theme.text }}
+            >
+              ลองตรวจสอบอีกครั้ง
+            </button>
+          )}
+        </div>
       </main>
     );
   }
