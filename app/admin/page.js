@@ -813,6 +813,12 @@ export default function AdminPage() {
               >
                 ออกจากระบบ
               </button>
+              <a
+                href="/admin/audit"
+                className="rounded-2xl border border-white/14 bg-white/[0.1] px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-white/[0.16]"
+              >
+                Audit Log
+              </a>
             </div>
           </div>
         </section>
