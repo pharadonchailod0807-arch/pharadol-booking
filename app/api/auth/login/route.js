@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { writeAuditLog } from "@/lib/audit-log";
 import {
   AUTH_LOGIN_ERROR,
+  clearPersistentRateLimit,
   createAuthSuccessResponse,
   findPasswordAccountWithUsers,
   getSessionUserFromAccount,
@@ -16,7 +17,7 @@ import {
 export const runtime = "nodejs";
 
 const LOGIN_RATE_LIMIT_MESSAGE =
-  "มีการเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่";
+  "มีการพยายามเข้าสู่ระบบหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่";
 const shouldLogAuthTiming = () => process.env.NODE_ENV !== "production";
 
 const getElapsedMs = (startedAt) =>
@@ -61,8 +62,20 @@ export async function POST(request) {
   ]);
   const rateLimitMs = getElapsedMs(rateLimitStartedAt);
 
-  if (ipLimited) return ipLimited;
-  if (accountLimited) return accountLimited;
+  if (ipLimited || accountLimited) {
+    await writeAuditLog({
+      request,
+      action: "LOGIN_FAILED",
+      resourceType: "auth",
+      result: "failure",
+      metadata: {
+        reason: "rate_limited",
+        limitedBy: ipLimited ? "ip" : "identifier",
+        identifierPresent: Boolean(identifier),
+      },
+    });
+    return ipLimited || accountLimited;
+  }
 
   if (!identifier || !password) {
     logLoginTiming({
@@ -142,6 +155,10 @@ export async function POST(request) {
     redirectTo,
     users: publicUsers,
   });
+  await clearPersistentRateLimit([
+    `login-ip:${ip}`,
+    `login-account:${identifier.toLowerCase()}`,
+  ]);
   await writeAuditLog({
     request,
     user: sessionUser,
