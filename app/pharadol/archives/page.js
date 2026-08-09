@@ -18,6 +18,9 @@ const readArray = (key) => {
   return safeGetArray(key);
 };
 
+const isRecordObject = (value) =>
+  value && typeof value === "object" && !Array.isArray(value);
+
 const formatMoney = (value) =>
   Number(value || 0).toLocaleString("th-TH", {
     minimumFractionDigits: 0,
@@ -36,23 +39,31 @@ const formatSavedDate = (value) => {
 };
 
 const normalizeBookingRow = (row) => {
-  const bookingData = row?.booking_data || row || {};
+  const rowData = isRecordObject(row) ? row : {};
+  const bookingData = isRecordObject(rowData.booking_data)
+    ? rowData.booking_data
+    : rowData;
 
   return {
     ...bookingData,
-    supabaseId: row.id || row.supabaseId || "",
-    brandId: bookingData.brandId || row.brandId || row.brand || "",
-    bookingNumber: bookingData.bookingNumber || row.booking_number || row.bookingNumber || "",
-    customerName: bookingData.customerName || row.customer_name || row.customerName || "",
-    phone: bookingData.phone || row.phone || "",
-    email: bookingData.email || row.email || "",
-    service: bookingData.service || row.service || "",
-    location: bookingData.location || row.location || "",
-    eventDate: bookingData.eventDate || row.event_date || row.eventDate || "",
-    jobStatus: row.job_status || row.jobStatus || bookingData.jobStatus || "รอยืนยัน",
-    status: row.job_status || row.status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
+    supabaseId: rowData.id || rowData.supabaseId || "",
+    brandId: bookingData.brandId || rowData.brandId || rowData.brand || "",
+    bookingNumber: bookingData.bookingNumber || rowData.booking_number || rowData.bookingNumber || "",
+    customerName: bookingData.customerName || rowData.customer_name || rowData.customerName || "",
+    phone: bookingData.phone || rowData.phone || "",
+    email: bookingData.email || rowData.email || "",
+    service: bookingData.service || rowData.service || "",
+    location: bookingData.location || rowData.location || "",
+    eventDate: bookingData.eventDate || rowData.event_date || rowData.eventDate || "",
+    jobStatus: rowData.job_status || rowData.jobStatus || bookingData.jobStatus || "รอยืนยัน",
+    status: rowData.job_status || rowData.status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
   };
 };
+
+const normalizeBookingList = (items) =>
+  Array.isArray(items)
+    ? items.filter(isRecordObject).map(normalizeBookingRow)
+    : [];
 
 const getBookingData = (booking, updates = {}) => {
   const { supabaseId, ...bookingData } = booking;
@@ -93,9 +104,7 @@ export default function ArchivesPage() {
     }
 
     return {
-      bookings: Array.isArray(result.bookings)
-        ? result.bookings.map(normalizeBookingRow)
-        : [],
+      bookings: normalizeBookingList(result.bookings),
       page: Number(result.page || 0),
       hasMore: Boolean(result.hasMore),
     };
@@ -195,8 +204,11 @@ export default function ArchivesPage() {
       safeSetJson(ARCHIVES_KEY, bookingItems);
     } catch (error) {
       console.error("Cannot load archived bookings from Supabase", error);
-      bookingItems = readArray(ARCHIVES_KEY)
-        .filter((item) => item?.archiveType !== "payment-receipt")
+      bookingItems = normalizeBookingList(
+        readArray(ARCHIVES_KEY).filter(
+          (item) => isRecordObject(item) && item.archiveType !== "payment-receipt"
+        )
+      )
         .slice(0, BOOKING_LIST_PAGE_SIZE);
       setHasMoreBookings(false);
     }

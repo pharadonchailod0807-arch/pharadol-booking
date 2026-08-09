@@ -13,24 +13,38 @@ const MAIL_TRASH_KEY = "pharadol_mail_trash";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const BOOKING_LIST_PAGE_SIZE = 30;
 
+const isRecordObject = (value) =>
+  value && typeof value === "object" && !Array.isArray(value);
+
 const normalizeBookingRow = (row) => {
-  const bookingData = row?.booking_data || row || {};
+  const rowData = isRecordObject(row) ? row : {};
+  const bookingData = isRecordObject(rowData.booking_data)
+    ? rowData.booking_data
+    : rowData;
 
   return {
     ...bookingData,
-    supabaseId: row.id || row.supabaseId || "",
-    brandId: bookingData.brandId || row.brandId || row.brand || "",
-    bookingNumber: bookingData.bookingNumber || row.booking_number || row.bookingNumber || "",
-    customerName: bookingData.customerName || row.customer_name || row.customerName || "",
-    phone: bookingData.phone || row.phone || "",
-    email: bookingData.email || row.email || "",
-    service: bookingData.service || row.service || "",
-    location: bookingData.location || row.location || "",
-    eventDate: bookingData.eventDate || row.event_date || row.eventDate || "",
-    jobStatus: row.job_status || row.jobStatus || bookingData.jobStatus || "รอยืนยัน",
-    status: row.job_status || row.status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
+    supabaseId: rowData.id || rowData.supabaseId || "",
+    brandId: bookingData.brandId || rowData.brandId || rowData.brand || "",
+    bookingNumber: bookingData.bookingNumber || rowData.booking_number || rowData.bookingNumber || "",
+    customerName: bookingData.customerName || rowData.customer_name || rowData.customerName || "",
+    phone: bookingData.phone || rowData.phone || "",
+    email: bookingData.email || rowData.email || "",
+    service: bookingData.service || rowData.service || "",
+    location: bookingData.location || rowData.location || "",
+    eventDate: bookingData.eventDate || rowData.event_date || rowData.eventDate || "",
+    jobStatus: rowData.job_status || rowData.jobStatus || bookingData.jobStatus || "รอยืนยัน",
+    status: rowData.job_status || rowData.status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
   };
 };
+
+const normalizeBookingList = (items) =>
+  Array.isArray(items)
+    ? items.filter(isRecordObject).map(normalizeBookingRow)
+    : [];
+
+const sanitizeRecordList = (items) =>
+  Array.isArray(items) ? items.filter(isRecordObject) : [];
 
 const getBookingData = (booking, updates = {}) => {
   const { supabaseId, ...bookingData } = booking;
@@ -75,9 +89,7 @@ export default function TrashPage() {
     }
 
     return {
-      bookings: Array.isArray(result.bookings)
-        ? result.bookings.map(normalizeBookingRow)
-        : [],
+      bookings: normalizeBookingList(result.bookings),
       page: Number(result.page || 0),
       hasMore: Boolean(result.hasMore),
     };
@@ -91,7 +103,12 @@ export default function TrashPage() {
       setHasMoreTrash(result.hasMore);
     } catch (error) {
       console.error("Cannot load trash data", error);
-      setTrash(safeGetArray(TRASH_KEY).slice(0, BOOKING_LIST_PAGE_SIZE));
+      setTrash(
+        normalizeBookingList(safeGetArray(TRASH_KEY)).slice(
+          0,
+          BOOKING_LIST_PAGE_SIZE
+        )
+      );
       setHasMoreTrash(false);
     }
   }, [fetchBookingListPage, syncTrash]);
@@ -223,7 +240,7 @@ export default function TrashPage() {
 
     const loadMailTrashData = () => {
       try {
-        setMailTrash(safeGetArray(MAIL_TRASH_KEY));
+        setMailTrash(sanitizeRecordList(safeGetArray(MAIL_TRASH_KEY)));
       } catch {
         setMailTrash([]);
       }
@@ -296,7 +313,7 @@ export default function TrashPage() {
       }
 
       setCustomerRequestTrash(
-        Array.isArray(result.requests) ? result.requests : []
+        sanitizeRecordList(result.requests)
       );
     } catch (error) {
       console.error("Cannot load customer request trash", error);
@@ -427,21 +444,23 @@ export default function TrashPage() {
 
   const normalizedCustomerRequestSearch = search.trim().toLowerCase();
 
-  const filteredCustomerRequestTrash = customerRequestTrash.filter((item) => {
-    if (!normalizedCustomerRequestSearch) return true;
+  const filteredCustomerRequestTrash = customerRequestTrash
+    .filter(isRecordObject)
+    .filter((item) => {
+      if (!normalizedCustomerRequestSearch) return true;
 
-    return [
-      item.customerName,
-      item.phone,
-      item.email,
-      item.eventLocation,
-      item.eventDate,
-    ].some((value) =>
-      String(value || "")
-        .toLowerCase()
-        .includes(normalizedCustomerRequestSearch)
-    );
-  });
+      return [
+        item.customerName,
+        item.phone,
+        item.email,
+        item.eventLocation,
+        item.eventDate,
+      ].some((value) =>
+        String(value || "")
+          .toLowerCase()
+          .includes(normalizedCustomerRequestSearch)
+      );
+    });
 
   const restoreCustomer = async (originalIndex) => {
     const customer = trash[originalIndex];
@@ -636,6 +655,7 @@ export default function TrashPage() {
 
   const filteredTrash = trash
     .map((item, originalIndex) => ({ item, originalIndex }))
+    .filter(({ item }) => isRecordObject(item))
     .filter(({ item }) => {
       const keyword = search.trim().toLowerCase();
 
@@ -655,6 +675,7 @@ export default function TrashPage() {
 
   const filteredMailTrash = mailTrash
     .map((item, originalIndex) => ({ item, originalIndex }))
+    .filter(({ item }) => isRecordObject(item))
     .filter(({ item }) => {
       const keyword = search.trim().toLowerCase();
 

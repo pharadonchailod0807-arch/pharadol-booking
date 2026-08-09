@@ -24,6 +24,9 @@ const ROUTES = {
   trash: "/adisorn/trash",
 };
 
+const isRecordObject = (value) =>
+  value && typeof value === "object" && !Array.isArray(value);
+
 export default function CustomersPage() {
   const router = useRouter();
   const brandChrome = getBrandChromeStyles(BRAND_ID);
@@ -49,23 +52,34 @@ export default function CustomersPage() {
   };
 
   const normalizeBookingRow = useCallback((row) => {
-    const bookingData = row?.booking_data || row || {};
+    const rowData = isRecordObject(row) ? row : {};
+    const bookingData = isRecordObject(rowData.booking_data)
+      ? rowData.booking_data
+      : rowData;
 
     return {
       ...bookingData,
-      supabaseId: row.id || row.supabaseId || "",
-      brandId: bookingData.brandId || row.brandId || row.brand || "",
-      bookingNumber: bookingData.bookingNumber || row.booking_number || row.bookingNumber || "",
-      customerName: bookingData.customerName || row.customer_name || row.customerName || "",
-      phone: bookingData.phone || row.phone || "",
-      email: bookingData.email || row.email || "",
-      service: bookingData.service || row.service || "",
-      location: bookingData.location || row.location || "",
-      eventDate: bookingData.eventDate || row.event_date || row.eventDate || "",
-      jobStatus: row.job_status || bookingData.jobStatus || "รอยืนยัน",
-      status: row.job_status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
+      supabaseId: rowData.id || rowData.supabaseId || "",
+      brandId: bookingData.brandId || rowData.brandId || rowData.brand || "",
+      bookingNumber: bookingData.bookingNumber || rowData.booking_number || rowData.bookingNumber || "",
+      customerName: bookingData.customerName || rowData.customer_name || rowData.customerName || "",
+      phone: bookingData.phone || rowData.phone || "",
+      email: bookingData.email || rowData.email || "",
+      service: bookingData.service || rowData.service || "",
+      location: bookingData.location || rowData.location || "",
+      eventDate: bookingData.eventDate || rowData.event_date || rowData.eventDate || "",
+      jobStatus: rowData.job_status || bookingData.jobStatus || "รอยืนยัน",
+      status: rowData.job_status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
     };
   }, []);
+
+  const normalizeBookingList = useCallback(
+    (items) =>
+      Array.isArray(items)
+        ? items.filter(isRecordObject).map(normalizeBookingRow)
+        : [],
+    [normalizeBookingRow]
+  );
 
   const fetchBookingListPage = useCallback(async (page = 0) => {
     const params = new URLSearchParams({
@@ -85,13 +99,11 @@ export default function CustomersPage() {
     }
 
     return {
-      bookings: Array.isArray(result.bookings)
-        ? result.bookings.map(normalizeBookingRow)
-        : [],
+      bookings: normalizeBookingList(result.bookings),
       page: Number(result.page || 0),
       hasMore: Boolean(result.hasMore),
     };
-  }, [normalizeBookingRow]);
+  }, [normalizeBookingList]);
 
   const fetchFullBooking = useCallback(async (customer) => {
     const params = new URLSearchParams({
@@ -228,7 +240,12 @@ export default function CustomersPage() {
         setHasMoreCustomers(result.hasMore);
       } catch (error) {
         console.error("Cannot load customer data", error);
-        setCustomers(safeGetArray(CUSTOMERS_KEY).slice(0, BOOKING_LIST_PAGE_SIZE));
+        setCustomers(
+          normalizeBookingList(safeGetArray(CUSTOMERS_KEY)).slice(
+            0,
+            BOOKING_LIST_PAGE_SIZE
+          )
+        );
       }
     };
 
@@ -266,7 +283,7 @@ export default function CustomersPage() {
       document.removeEventListener("visibilitychange", handlePageVisible);
       supabase.removeChannel(bookingsChannel);
     };
-  }, [fetchBookingListPage, isAuthorized, syncCustomers]);
+  }, [fetchBookingListPage, isAuthorized, normalizeBookingList, syncCustomers]);
 
   const loadMoreCustomers = async () => {
     if (isLoadingMore || !hasMoreCustomers) return;
