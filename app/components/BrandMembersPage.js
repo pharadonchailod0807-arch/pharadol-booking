@@ -783,10 +783,15 @@ export default function BrandMembersPage({ brandId }) {
   };
 
   const permanentDeleteMember = async (member) => {
-    const firstConfirm = window.confirm(`ลบสมาชิก ${member.memberCode} แบบถาวรหรือไม่?`);
+    const reference = member.memberCode || member.id;
+    const firstConfirm = window.confirm(`ข้อมูลนี้จะไม่สามารถกู้คืนได้ ต้องการลบสมาชิก ${reference} แบบถาวรหรือไม่?`);
     if (!firstConfirm) return;
-    const secondConfirm = window.confirm("ยืนยันอีกครั้ง: การลบถาวรไม่สามารถกู้คืนได้");
-    if (!secondConfirm) return;
+    const typedReference = window.prompt(`พิมพ์ ${reference} เพื่อยืนยันการลบถาวร`);
+    if (typedReference !== reference) {
+      setError("ยกเลิกการลบถาวร: รหัสยืนยันไม่ถูกต้อง");
+      window.setTimeout(() => setError(""), 2600);
+      return;
+    }
 
     setPendingActionId(`permanent:${member.id}`);
     try {

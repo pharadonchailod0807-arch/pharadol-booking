@@ -405,12 +405,17 @@ export default function TrashPage() {
 
   const deleteCustomerRequestForever = async (item) => {
     if (!item?.id) return;
+    const reference = item.id;
 
     if (
       !window.confirm(
-        `ยืนยันการลบคำขอของ ${item.customerName || "ลูกค้า"} แบบถาวร?`
+        `ข้อมูลนี้จะไม่สามารถกู้คืนได้ ต้องการลบคำขอของ ${item.customerName || "ลูกค้า"} แบบถาวรหรือไม่?`
       )
     ) {
+      return;
+    }
+    if (window.prompt(`พิมพ์ ${reference} เพื่อยืนยันการลบถาวร`) !== reference) {
+      alert("ยกเลิกการลบถาวร: รหัสยืนยันไม่ถูกต้อง");
       return;
     }
 
@@ -524,56 +529,31 @@ export default function TrashPage() {
   };
 
   const deleteForever = async (originalIndex) => {
-    if (!window.confirm("ยืนยันการลบถาวร ?")) return;
-
     const customer = trash[originalIndex];
-    if (customer?.supabaseId || customer?.bookingNumber) {
-      let deletedRows = [];
-      let deleteError = null;
+    const reference = customer?.bookingNumber || customer?.supabaseId || "DELETE";
 
-      if (customer.supabaseId) {
-        const { data, error } = await supabase
-          .from("bookings")
-          .delete()
-          .eq("id", customer.supabaseId)
-          .select("id");
+    if (!window.confirm("ข้อมูลนี้จะไม่สามารถกู้คืนได้ ต้องการลบถาวรหรือไม่?")) return;
+    const typedReference = window.prompt(`พิมพ์ ${reference} เพื่อยืนยันการลบถาวร`);
+    if (typedReference !== reference) {
+      alert("ยกเลิกการลบถาวร: รหัสยืนยันไม่ถูกต้อง");
+      return;
+    }
 
-        deletedRows = Array.isArray(data) ? data : [];
-        deleteError = error;
-      }
+    const params = new URLSearchParams({
+      brand: BRAND_ID,
+      permanent: "1",
+    });
+    if (customer?.supabaseId) params.set("id", customer.supabaseId);
+    if (customer?.bookingNumber) params.set("bookingNumber", customer.bookingNumber);
 
-      if (
-        !deleteError &&
-        deletedRows.length === 0 &&
-        customer.bookingNumber
-      ) {
-        const { data, error } = await supabase
-          .from("bookings")
-          .delete()
-          .eq("booking_number", customer.bookingNumber)
-          .eq("deleted", true)
-          .select("id");
+    const response = await fetch(`/api/bookings?${params.toString()}`, {
+      method: "DELETE",
+    });
+    const result = await response.json().catch(() => ({}));
 
-        deletedRows = Array.isArray(data) ? data : [];
-        deleteError = error;
-      }
-
-      if (deleteError || deletedRows.length === 0) {
-        console.error("Cannot delete booking forever", deleteError);
-        alert("ลบถาวรไม่สำเร็จ กรุณาตรวจสอบ DELETE policy ใน Supabase");
-        return;
-      }
-    } else {
-      const { error } = await supabase
-        .from("bookings")
-        .delete()
-        .eq("deleted", true);
-
-      if (error) {
-        console.error("Cannot delete booking forever", error);
-        alert("ลบถาวรไม่สำเร็จ");
-        return;
-      }
+    if (!response.ok || !result.success) {
+      alert(result.error || "ลบถาวรไม่สำเร็จ");
+      return;
     }
 
     const updatedTrash = trash.filter(
@@ -593,20 +573,21 @@ export default function TrashPage() {
   };
 
   const clearTrash = async () => {
-    if (!window.confirm("ยืนยันการลบข้อมูลทั้งหมดในถังขยะ ?")) return;
+    if (!window.confirm("ข้อมูลทั้งหมดในถังขยะจะไม่สามารถกู้คืนได้ ต้องการลบถาวรหรือไม่?")) return;
+    if (window.prompt("พิมพ์ ล้างถังขยะ เพื่อยืนยัน") !== "ล้างถังขยะ") return;
 
-    const { data, error } = await supabase
-      .from("bookings")
-      .delete()
-      .eq("deleted", true)
-      .select("id");
+    const params = new URLSearchParams({
+      brand: BRAND_ID,
+      permanent: "1",
+      allTrash: "1",
+    });
+    const response = await fetch(`/api/bookings?${params.toString()}`, {
+      method: "DELETE",
+    });
+    const result = await response.json().catch(() => ({}));
 
-    if (
-      error ||
-      (trash.length > 0 && (!Array.isArray(data) || data.length === 0))
-    ) {
-      console.error("Cannot clear trash", error);
-      alert("ล้างถังขยะไม่สำเร็จ กรุณาตรวจสอบ DELETE policy ใน Supabase");
+    if (!response.ok || !result.success) {
+      alert(result.error || "ล้างถังขยะไม่สำเร็จ");
       return;
     }
 

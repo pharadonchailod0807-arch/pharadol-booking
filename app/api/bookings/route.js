@@ -352,6 +352,33 @@ const findExistingBooking = async ({ bookingId, bookingNumber, brandId }) => {
   return matchingRows[0] || null;
 };
 
+const getDeletedBookingRowsForPermanentDelete = async ({
+  bookingId,
+  bookingNumber,
+  brandId,
+  allTrash = false,
+}) => {
+  let query = supabase
+    .from("bookings")
+    .select("id, booking_number, booking_data, brand_id, brand, deleted")
+    .eq("deleted", true);
+
+  if (bookingId) {
+    query = query.eq("id", bookingId).limit(1);
+  } else if (bookingNumber) {
+    query = query.eq("booking_number", bookingNumber).limit(20);
+  } else if (allTrash) {
+    query = query.limit(500);
+  } else {
+    return [];
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (Array.isArray(data) ? data : []).filter((row) => getBookingBrand(row) === brandId);
+};
+
 export async function GET(request) {
   if (!supabase) {
     return Response.json(
@@ -775,6 +802,122 @@ export async function PATCH(request) {
         error:
           error?.message ||
           "แก้ไขใบจองไม่สำเร็จ กรุณาตรวจสอบข้อมูลแล้วลองใหม่",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request) {
+  const blockedCrossSite = rejectCrossSiteRequest(request);
+  if (blockedCrossSite) return blockedCrossSite;
+
+  const limited = rateLimit({
+    key: `bookings:delete:${getClientIp(request)}`,
+    limit: 20,
+    windowMs: 60_000,
+    message: "มีการลบใบจองบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+  });
+  if (limited) return limited;
+
+  if (!supabase) {
+    return Response.json(
+      { success: false, error: "ยังไม่ได้ตั้งค่า Supabase สำหรับบันทึกใบจอง" },
+      { status: 500 }
+    );
+  }
+
+  try {
+    const requestUrl = new URL(request.url);
+    const brandId = normalizeBrand(
+      requestUrl.searchParams.get("brandId") || requestUrl.searchParams.get("brand")
+    );
+    const permanent = requestUrl.searchParams.get("permanent") === "1";
+    const allTrash = requestUrl.searchParams.get("allTrash") === "1";
+    const bookingId = sanitizeText(requestUrl.searchParams.get("id"), 120);
+    const bookingNumber = sanitizeText(requestUrl.searchParams.get("bookingNumber"), 120);
+
+    if (!brandId) {
+      return Response.json(
+        { success: false, error: "ไม่พบแบรนด์ของใบจอง" },
+        { status: 400 }
+      );
+    }
+
+    if (!permanent) {
+      return Response.json(
+        { success: false, error: "การลบใบจองต้องทำผ่าน soft delete จากหน้าจัดการเดิม" },
+        { status: 400 }
+      );
+    }
+
+    if (!bookingId && !bookingNumber && !allTrash) {
+      return Response.json(
+        { success: false, error: "ไม่พบใบจองที่ต้องการลบถาวร" },
+        { status: 400 }
+      );
+    }
+
+    const auth = requireApiPermission({
+      request,
+      permission: "bookings.permanent_delete",
+      brandId,
+      missingBrandMessage: "ไม่พบแบรนด์ของใบจอง",
+      deniedMessage: "ไม่มีสิทธิ์ลบใบจองถาวร",
+    });
+    if (auth.response) return auth.response;
+
+    const rows = await getDeletedBookingRowsForPermanentDelete({
+      bookingId,
+      bookingNumber,
+      brandId,
+      allTrash,
+    });
+    const ids = rows.map((row) => row.id).filter(Boolean);
+
+    if (ids.length === 0) {
+      return Response.json(
+        { success: false, error: "ไม่พบใบจองในถังขยะของแบรนด์นี้" },
+        { status: 404 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .delete()
+      .in("id", ids)
+      .select("id,booking_number");
+
+    if (error) throw error;
+
+    await writeAuditLog({
+      request,
+      user: auth.user,
+      brand: brandId,
+      action: "BOOKING_PERMANENT_DELETED",
+      resourceType: "booking",
+      resourceId: allTrash ? "trash" : ids[0],
+      result: "success",
+      metadata: {
+        count: Array.isArray(data) ? data.length : ids.length,
+        bookingNumber: bookingNumber || rows[0]?.booking_number || "",
+        allTrash,
+      },
+    });
+
+    return Response.json({
+      success: true,
+      permanent: true,
+      deletedIds: ids,
+      count: Array.isArray(data) ? data.length : ids.length,
+    });
+  } catch (error) {
+    console.error("Cannot permanently delete booking", error?.message || error);
+
+    return Response.json(
+      {
+        success: false,
+        error: error?.message || "ลบใบจองถาวรไม่สำเร็จ",
       },
       { status: 500 }
     );
