@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation";
 import { getBrandTheme } from "@/app/lib/brandThemes";
 
 const AUTO_LOCK_MINUTES = 15;
+const SETTINGS_UNLOCK_TTL_MS = AUTO_LOCK_MINUTES * 60 * 1000;
 const SETTINGS_ACCESS = {
   pharadol: {
     pinKey: "pharadol_securityPin",
     unlockKey: "pharadol_settings_unlocked",
+    verifiedAtKey: "pharadol_settings_verified_at",
   },
   adisorn: {
     pinKey: "adisorn_securityPin",
     unlockKey: "adisorn_settings_unlocked",
+    verifiedAtKey: "adisorn_settings_verified_at",
   },
 };
 
@@ -47,7 +50,7 @@ const removeStorageValue = (storage, key) => {
 export default function BrandSettingsAccessGate({ brandId, children }) {
   const router = useRouter();
   const theme = getBrandTheme(brandId);
-  const { pinKey, unlockKey } = getAccessConfig(brandId);
+  const { pinKey, unlockKey, verifiedAtKey } = getAccessConfig(brandId);
   const [settingsAccessStatus, setSettingsAccessStatus] = useState("checking");
   const [pinInput, setPinInput] = useState("");
   const [message, setMessage] = useState("");
@@ -56,6 +59,10 @@ export default function BrandSettingsAccessGate({ brandId, children }) {
     const savedPin = readStorageValue(localStorage, pinKey);
     const settingsUnlocked =
       readStorageValue(sessionStorage, unlockKey) === "true";
+    const verifiedAt = Number(readStorageValue(sessionStorage, verifiedAtKey));
+    const settingsUnlockIsFresh =
+      Number.isFinite(verifiedAt) &&
+      Date.now() - verifiedAt <= SETTINGS_UNLOCK_TTL_MS;
 
     if (!savedPin) {
       setSettingsAccessStatus("allowed");
@@ -63,21 +70,30 @@ export default function BrandSettingsAccessGate({ brandId, children }) {
       return;
     }
 
-    if (settingsUnlocked) {
+    if (settingsUnlocked && settingsUnlockIsFresh) {
       setSettingsAccessStatus("allowed");
       setMessage("");
       return;
     }
 
+    if (settingsUnlocked) {
+      removeStorageValue(sessionStorage, unlockKey);
+      removeStorageValue(sessionStorage, verifiedAtKey);
+    }
+
     setSettingsAccessStatus("locked");
-  }, [pinKey, unlockKey]);
+  }, [pinKey, unlockKey, verifiedAtKey]);
 
   useEffect(() => {
     const initialCheckTimer = window.setTimeout(checkSettingsAccess, 0);
 
     const handleFocus = () => checkSettingsAccess();
     const handleStorage = (event) => {
-      if (event.key === pinKey || event.key === unlockKey) {
+      if (
+        event.key === pinKey ||
+        event.key === unlockKey ||
+        event.key === verifiedAtKey
+      ) {
         checkSettingsAccess();
       }
     };
@@ -90,7 +106,7 @@ export default function BrandSettingsAccessGate({ brandId, children }) {
       window.removeEventListener("focus", handleFocus);
       window.removeEventListener("storage", handleStorage);
     };
-  }, [checkSettingsAccess, pinKey, unlockKey]);
+  }, [checkSettingsAccess, pinKey, unlockKey, verifiedAtKey]);
 
   useEffect(() => {
     if (settingsAccessStatus !== "allowed") return undefined;
@@ -99,8 +115,10 @@ export default function BrandSettingsAccessGate({ brandId, children }) {
     let lockTimer;
     const resetLockTimer = () => {
       window.clearTimeout(lockTimer);
+      writeStorageValue(sessionStorage, verifiedAtKey, String(Date.now()));
       lockTimer = window.setTimeout(() => {
         removeStorageValue(sessionStorage, unlockKey);
+        removeStorageValue(sessionStorage, verifiedAtKey);
         setPinInput("");
         setSettingsAccessStatus("locked");
         setMessage("Settings ถูกล็อกอัตโนมัติ กรุณายืนยันสิทธิ์อีกครั้ง");
@@ -119,7 +137,7 @@ export default function BrandSettingsAccessGate({ brandId, children }) {
         window.removeEventListener(eventName, resetLockTimer)
       );
     };
-  }, [settingsAccessStatus, pinKey, unlockKey]);
+  }, [settingsAccessStatus, pinKey, unlockKey, verifiedAtKey]);
 
   const unlockSettings = (event) => {
     event.preventDefault();
@@ -133,7 +151,14 @@ export default function BrandSettingsAccessGate({ brandId, children }) {
 
     if (pinInput === savedPin) {
       const unlocked = writeStorageValue(sessionStorage, unlockKey, "true");
-      if (!unlocked) {
+      const verifiedAtSaved = writeStorageValue(
+        sessionStorage,
+        verifiedAtKey,
+        String(Date.now())
+      );
+      if (!unlocked || !verifiedAtSaved) {
+        removeStorageValue(sessionStorage, unlockKey);
+        removeStorageValue(sessionStorage, verifiedAtKey);
         setMessage("ไม่สามารถบันทึกสถานะยืนยันสิทธิ์ได้ กรุณาลองใหม่อีกครั้ง");
         return;
       }

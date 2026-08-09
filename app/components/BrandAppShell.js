@@ -19,6 +19,8 @@ import {
 } from "@/app/lib/sidebarCounts";
 
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const SERVER_SESSION_RECHECK_MS = 30 * 1000;
+const SERVER_SESSION_TIMEOUT_MS = 10 * 1000;
 const SIDEBAR_REMOTE_CACHE_TTL_MS = 30 * 1000;
 const sidebarRemoteCountsCache = new Map();
 const AUTH_SESSION_STORAGE_KEYS = [
@@ -45,11 +47,19 @@ const getStoredLastActivity = () => {
   return Number.isFinite(storedValue) ? storedValue : Date.now();
 };
 
-const createSessionError = (message, status) => {
+const createSessionError = (message, status, code = "AUTH_CHECK_FAILED") => {
   const error = new Error(message);
   error.status = status;
+  error.code = code;
   error.isInvalidSession = INVALID_SESSION_STATUSES.has(status);
   return error;
+};
+
+const getRouteDeniedFallback = (currentUser, brandId) => {
+  if (isAdminRole(currentUser?.role)) return `/${brandId}/dashboard`;
+
+  const [allowedBrand] = normalizeBrandList(currentUser?.brands);
+  return allowedBrand ? `/${allowedBrand}/dashboard` : "/login";
 };
 
 const Icon = ({ name, className = "h-5 w-5" }) => {
@@ -581,6 +591,7 @@ export default function BrandAppShell({ brandId, children }) {
   const [authRetryKey, setAuthRetryKey] = useState(0);
   const authStatusRef = useRef("checking");
   const verifyRequestRef = useRef(0);
+  const lastServerSessionCheckRef = useRef(0);
 
   const setVerifiedStatus = useCallback((nextStatus) => {
     authStatusRef.current = nextStatus;
@@ -592,9 +603,12 @@ export default function BrandAppShell({ brandId, children }) {
     const requestId = verifyRequestRef.current + 1;
     verifyRequestRef.current = requestId;
     const abortController = new AbortController();
+    let serverSessionTimeoutId = 0;
+    let serverSessionTimedOut = false;
 
+    const isLatestRequest = () => verifyRequestRef.current === requestId;
     const isCurrentRequest = () =>
-      verifyRequestRef.current === requestId && !abortController.signal.aborted;
+      isLatestRequest() && !abortController.signal.aborted;
 
     const denyAccess = () => {
       if (!isCurrentRequest()) return;
@@ -604,11 +618,11 @@ export default function BrandAppShell({ brandId, children }) {
       window.location.replace(`/login?next=${encodeURIComponent(pathname)}`);
     };
 
-    const denyRouteAccess = (redirectTo) => {
+    const denyRouteAccess = (currentUser) => {
       if (!isCurrentRequest()) return;
       setVerifiedStatus("denied");
       setAuthError("");
-      window.location.replace(redirectTo || `/${brandId}/dashboard`);
+      window.location.replace(getRouteDeniedFallback(currentUser, brandId));
     };
 
     const checkAccess = (currentUser, activeBrand) => {
@@ -646,16 +660,47 @@ export default function BrandAppShell({ brandId, children }) {
     };
 
     const restoreServerSession = async () => {
-      const response = await fetch("/api/auth/session", {
-        cache: "no-store",
-        signal: abortController.signal,
-      });
-      const result = await response.json().catch(() => ({}));
+      window.clearTimeout(serverSessionTimeoutId);
+      serverSessionTimedOut = false;
+      serverSessionTimeoutId = window.setTimeout(() => {
+        serverSessionTimedOut = true;
+        abortController.abort();
+      }, SERVER_SESSION_TIMEOUT_MS);
 
-      if (!response.ok || !result?.success || !result.user) {
+      let response;
+      try {
+        response = await fetch("/api/auth/session", {
+          cache: "no-store",
+          signal: abortController.signal,
+        });
+      } finally {
+        window.clearTimeout(serverSessionTimeoutId);
+        serverSessionTimeoutId = 0;
+      }
+
+      const result = await response.json().catch(() => {
+        throw createSessionError(
+          "Cannot parse session response",
+          0,
+          "AUTH_SESSION_PARSE_ERROR"
+        );
+      });
+
+      if (!response.ok) {
         throw createSessionError(
           "No active server session",
-          response.ok ? 401 : response.status
+          response.status,
+          INVALID_SESSION_STATUSES.has(response.status)
+            ? "AUTH_INVALID"
+            : "AUTH_SERVER_ERROR"
+        );
+      }
+
+      if (!result?.success || !result.user) {
+        throw createSessionError(
+          "Malformed session response",
+          response.status,
+          "AUTH_SESSION_MALFORMED"
         );
       }
 
@@ -673,10 +718,10 @@ export default function BrandAppShell({ brandId, children }) {
       sessionStorage.setItem("currentUser", JSON.stringify(result.user));
       sessionStorage.setItem("lastActivity", String(Date.now()));
       sessionStorage.setItem("activeBrand", nextActiveBrand);
+      lastServerSessionCheckRef.current = Date.now();
       return {
         currentUser: result.user,
         activeBrand: nextActiveBrand,
-        redirectTo: result.redirectTo,
       };
     };
 
@@ -691,6 +736,14 @@ export default function BrandAppShell({ brandId, children }) {
 
         if (localAccess.allowed) {
           allowAccess();
+          const serverSessionIsFresh =
+            Date.now() - lastServerSessionCheckRef.current <
+            SERVER_SESSION_RECHECK_MS;
+
+          if (serverSessionIsFresh) {
+            return;
+          }
+
           const restoredSession = await restoreServerSession();
           if (!restoredSession || !isCurrentRequest()) return;
 
@@ -702,7 +755,7 @@ export default function BrandAppShell({ brandId, children }) {
           if (restoredAccess.allowed) {
             allowAccess();
           } else if (restoredAccess.reason === "route-denied") {
-            denyRouteAccess(restoredSession.redirectTo);
+            denyRouteAccess(restoredSession.currentUser);
           } else {
             denyAccess();
           }
@@ -724,12 +777,24 @@ export default function BrandAppShell({ brandId, children }) {
         if (restoredAccess.allowed) {
           allowAccess();
         } else if (restoredAccess.reason === "route-denied") {
-          denyRouteAccess(restoredSession.redirectTo);
+          denyRouteAccess(restoredSession.currentUser);
         } else {
           denyAccess();
         }
       } catch (error) {
-        if (!isCurrentRequest() || error?.name === "AbortError") return;
+        if (!isLatestRequest()) return;
+
+        if (error?.name === "AbortError") {
+          if (!serverSessionTimedOut) return;
+
+          setAuthError(
+            "ไม่สามารถตรวจสอบเซสชันได้ กรุณาลองอีกครั้ง"
+          );
+          if (authStatusRef.current !== "allowed") {
+            setVerifiedStatus("error");
+          }
+          return;
+        }
 
         if (error?.isInvalidSession) {
           denyAccess();
@@ -748,6 +813,7 @@ export default function BrandAppShell({ brandId, children }) {
     verifyAccess();
 
     return () => {
+      window.clearTimeout(serverSessionTimeoutId);
       abortController.abort();
     };
   }, [brandId, pathname, authRetryKey, setVerifiedStatus]);
