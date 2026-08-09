@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   MEMBER_GENDERS,
   MEMBER_POSITIONS,
@@ -49,6 +49,7 @@ const DEFAULT_FORM = {
 
 const SORT_OPTIONS = [
   ["newest", "วันที่เพิ่มล่าสุด"],
+  ["oldest", "วันที่เพิ่มเก่าสุด"],
   ["code_desc", "รหัสสมาชิกล่าสุด"],
   ["code_asc", "รหัสสมาชิกเก่าสุด"],
   ["name_asc", "ชื่อ ก-ฮ"],
@@ -66,11 +67,22 @@ const FORM_FIELD_ORDER = [
   "email",
   "emergencyContactPhone",
   "addressPostalCode",
+  "bankName",
   "bankNameOther",
+  "bankAccountName",
+  "bankAccountNumber",
   "position",
   "positionOther",
   "status",
 ];
+
+const BANK_REQUIRED_FIELDS = ["bankName", "bankAccountName", "bankAccountNumber"];
+
+const revokeObjectUrl = (url) => {
+  if (url?.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
+  }
+};
 
 const Icon = ({ name, className = "h-5 w-5" }) => {
   const paths = {
@@ -246,7 +258,34 @@ const compressImageFile = async (file) => {
     throw new Error("รูปโปรไฟล์ต้องมีขนาดไม่เกิน 5 MB");
   }
 
-  const bitmap = await createImageBitmap(file);
+  const imageUrl = URL.createObjectURL(file);
+  const bitmap = await new Promise((resolve, reject) => {
+    if (typeof createImageBitmap === "function") {
+      createImageBitmap(file)
+        .then((imageBitmap) => {
+          URL.revokeObjectURL(imageUrl);
+          resolve(imageBitmap);
+        })
+        .catch(() => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = () => {
+            URL.revokeObjectURL(imageUrl);
+            reject(new Error("ไม่สามารถอ่านรูปโปรไฟล์ได้"));
+          };
+          image.src = imageUrl;
+        });
+      return;
+    }
+
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl);
+      reject(new Error("ไม่สามารถอ่านรูปโปรไฟล์ได้"));
+    };
+    image.src = imageUrl;
+  });
   const maxSide = 960;
   const ratio = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const width = Math.max(1, Math.round(bitmap.width * ratio));
@@ -255,11 +294,19 @@ const compressImageFile = async (file) => {
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d");
-  context.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close?.();
+  if (!context) {
+    URL.revokeObjectURL(imageUrl);
+    throw new Error("ไม่สามารถเตรียมรูปโปรไฟล์ได้");
+  }
+  try {
+    context.drawImage(bitmap, 0, 0, width, height);
+  } finally {
+    bitmap.close?.();
+    URL.revokeObjectURL(imageUrl);
+  }
 
   const type = file.type === "image/png" ? "image/png" : "image/webp";
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, 0.82));
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, 0.88));
   if (!blob) throw new Error("ไม่สามารถเตรียมรูปโปรไฟล์ได้");
   return new File([blob], file.name.replace(/\.[^.]+$/, type === "image/webp" ? ".webp" : ".png"), {
     type,
@@ -291,6 +338,24 @@ const validateMemberForm = (form) => {
   if (form.addressPostalCode && !/^\d{5}$/.test(form.addressPostalCode)) {
     errors.addressPostalCode = "รหัสไปรษณีย์ต้องเป็นตัวเลข 5 หลัก";
   }
+  const hasBankInfo = [
+    form.bankName,
+    form.bankNameOther,
+    form.bankAccountName,
+    form.bankAccountNumber,
+  ].some((value) => String(value || "").trim());
+  if (hasBankInfo) {
+    BANK_REQUIRED_FIELDS.forEach((fieldKey) => {
+      if (!String(form[fieldKey] || "").trim()) {
+        errors[fieldKey] =
+          fieldKey === "bankName"
+            ? "กรุณาเลือกธนาคาร"
+            : fieldKey === "bankAccountName"
+              ? "กรุณากรอกชื่อบัญชี"
+              : "กรุณากรอกเลขบัญชีธนาคาร";
+      }
+    });
+  }
   if (form.bankName === "อื่นๆ" && !String(form.bankNameOther || "").trim()) {
     errors.bankNameOther = "กรุณาระบุชื่อธนาคาร";
   }
@@ -307,16 +372,28 @@ const validateMemberForm = (form) => {
   return errors;
 };
 
-const Field = ({ label, children, required, error, className = "" }) => (
-  <label className={`block ${className}`}>
-    <span className="mb-1.5 block text-[13px] font-bold text-zinc-700">
-      {label}
-      {required && <span className="text-red-500"> *</span>}
-    </span>
-    {children}
-    {error && <span className="mt-1 block text-xs font-bold text-red-600">{error}</span>}
-  </label>
-);
+const Field = ({ label, children, required, error, fieldKey, className = "" }) => {
+  const errorId = fieldKey && error ? `member-${fieldKey}-error` : undefined;
+  const describedChildren =
+    errorId && isValidElement(children)
+      ? cloneElement(children, { "aria-describedby": errorId })
+      : children;
+
+  return (
+    <label className={`block ${className}`}>
+      <span className="mb-1.5 block text-[13px] font-bold text-zinc-700">
+        {label}
+        {required && <span className="text-red-500"> *</span>}
+      </span>
+      {describedChildren}
+      {error && (
+        <span id={errorId} className="mt-1 block text-xs font-bold text-red-600">
+          {error}
+        </span>
+      )}
+    </label>
+  );
+};
 
 const inputClassName = (error, className = "") =>
   `h-[46px] w-full rounded-xl border bg-white px-3.5 text-sm font-semibold text-zinc-800 outline-none transition focus:border-[var(--brand-accent)] focus:ring-4 focus:ring-amber-100 disabled:bg-zinc-50 max-md:h-12 max-md:text-base ${
@@ -725,25 +802,202 @@ export default function BrandMembersPage({ brandId }) {
     }
   };
 
-  const handleImageChange = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const [imageCropSource, setImageCropSource] = useState("");
+  const [imageCropFileName, setImageCropFileName] = useState("profile.jpg");
+  const [imageCropZoom, setImageCropZoom] = useState(1);
+  const [imageCropOffset, setImageCropOffset] = useState({ x: 0, y: 0 });
+  const [imageCropDragging, setImageCropDragging] = useState(false);
+  const [imageCropDragStart, setImageCropDragStart] = useState({ x: 0, y: 0 });
+  const [imageCropSaving, setImageCropSaving] = useState(false);
+
+  const imageCropImageRef = useRef(null);
+  const imageCropViewportRef = useRef(null);
+  const imageCropSourceRef = useRef("");
+
+  useEffect(() => {
+    imageCropSourceRef.current = imageCropSource;
+  }, [imageCropSource]);
+
+  useEffect(
+    () => () => {
+      revokeObjectUrl(imageCropSourceRef.current);
+    },
+    []
+  );
+
+  const closeImageCrop = () => {
+    revokeObjectUrl(imageCropSource);
+
+    setImageCropSource("");
+    setImageCropFileName("profile.jpg");
+    setImageCropZoom(1);
+    setImageCropOffset({ x: 0, y: 0 });
+    setImageCropDragging(false);
+    setImageCropSaving(false);
+  };
+
+  const handleImageCropPointerDown = (event) => {
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setImageCropDragging(true);
+    setImageCropDragStart({
+      x: event.clientX - imageCropOffset.x,
+      y: event.clientY - imageCropOffset.y,
+    });
+  };
+
+  const handleImageCropPointerMove = (event) => {
+    if (!imageCropDragging) return;
+
+    setImageCropOffset({
+      x: event.clientX - imageCropDragStart.x,
+      y: event.clientY - imageCropDragStart.y,
+    });
+  };
+
+  const handleImageCropPointerUp = (event) => {
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    setImageCropDragging(false);
+  };
+
+  const confirmImageCrop = async () => {
+    const image = imageCropImageRef.current;
+    const viewport = imageCropViewportRef.current;
+
+    if (!image || !viewport || !image.naturalWidth || !image.naturalHeight) {
+      setError("ไม่สามารถอ่านรูปสำหรับจัดกรอบได้");
+      return;
+    }
 
     try {
-      const compressedFile = await compressImageFile(file);
+      setImageCropSaving(true);
+
+      const viewportSize = viewport.clientWidth;
+      const naturalWidth = image.naturalWidth;
+      const naturalHeight = image.naturalHeight;
+
+      const coverScale = Math.max(
+        viewportSize / naturalWidth,
+        viewportSize / naturalHeight
+      );
+
+      const renderedScale = coverScale * imageCropZoom;
+      const renderedWidth = naturalWidth * renderedScale;
+      const renderedHeight = naturalHeight * renderedScale;
+
+      const imageLeft =
+        (viewportSize - renderedWidth) / 2 + imageCropOffset.x;
+      const imageTop =
+        (viewportSize - renderedHeight) / 2 + imageCropOffset.y;
+
+      let sourceX = (0 - imageLeft) / renderedScale;
+      let sourceY = (0 - imageTop) / renderedScale;
+      let sourceSize = viewportSize / renderedScale;
+
+      sourceX = Math.max(0, Math.min(sourceX, naturalWidth - sourceSize));
+      sourceY = Math.max(0, Math.min(sourceY, naturalHeight - sourceSize));
+      sourceSize = Math.min(
+        sourceSize,
+        naturalWidth - sourceX,
+        naturalHeight - sourceY
+      );
+
+      const outputSize = 720;
+      const canvas = document.createElement("canvas");
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        throw new Error("ไม่สามารถสร้างรูปโปรไฟล์ได้");
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+
+      context.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        sourceSize,
+        sourceSize,
+        0,
+        0,
+        outputSize,
+        outputSize
+      );
+
+      const croppedBlob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error("ไม่สามารถครอปรูปโปรไฟล์ได้"));
+            }
+          },
+          "image/jpeg",
+          0.9
+        );
+      });
+
+      const cleanName =
+        imageCropFileName.replace(/\.[^.]+$/, "") || "profile";
+
+      const croppedFile = new File(
+        [croppedBlob],
+        `${cleanName}-cropped.jpg`,
+        { type: "image/jpeg" }
+      );
+
+      const compressedFile = await compressImageFile(croppedFile);
+
       resetImagePreview();
-      const url = URL.createObjectURL(compressedFile);
-      previewUrlRef.current = url;
-      setPreviewUrl(url);
+
+      const previewObjectUrl = URL.createObjectURL(compressedFile);
+      previewUrlRef.current = previewObjectUrl;
+
+      setPreviewUrl(previewObjectUrl);
       setPendingImageFile(compressedFile);
       setFormValue("profileImageUrl", "");
-    } catch (imageError) {
-      setError(imageError?.message || "รูปโปรไฟล์ไม่ถูกต้อง");
-      window.setTimeout(() => setError(""), 2600);
-      event.target.value = "";
+      closeImageCrop();
+      setError("");
+    } catch (cropError) {
+      setError(cropError?.message || "ไม่สามารถจัดกรอบรูปโปรไฟล์ได้");
+      window.setTimeout(() => setError(""), 3200);
+      setImageCropSaving(false);
     }
   };
 
+  const handleImageChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setError("รองรับเฉพาะรูป JPG, PNG และ WebP");
+      window.setTimeout(() => setError(""), 2600);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("รูปโปรไฟล์ต้องมีขนาดไม่เกิน 5 MB");
+      window.setTimeout(() => setError(""), 2600);
+      return;
+    }
+
+    revokeObjectUrl(imageCropSource);
+
+    const sourceUrl = URL.createObjectURL(file);
+
+    setImageCropSource(sourceUrl);
+    setImageCropFileName(file.name || "profile.jpg");
+    setImageCropZoom(1);
+    setImageCropOffset({ x: 0, y: 0 });
+    setImageCropDragging(false);
+    setError("");
+  };
   const copyText = async (value, successMessage) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -790,12 +1044,12 @@ export default function BrandMembersPage({ brandId }) {
     }
 
     return (
-      <div className="flex flex-nowrap items-center justify-center gap-2">
+      <div className="grid w-full grid-cols-3 gap-2">
         <button
           type="button"
           onClick={() => openDetail(member)}
           disabled={pendingActionId === `detail:${member.id}`}
-          className={`${baseClass} text-white disabled:opacity-50`}
+          className={`${baseClass} w-full whitespace-nowrap px-2 text-white disabled:opacity-50`}
           style={brandChrome.actionView}
         >
           ดู
@@ -804,7 +1058,7 @@ export default function BrandMembersPage({ brandId }) {
           type="button"
           onClick={() => openEditForm(member)}
           disabled={pendingActionId === `edit:${member.id}`}
-          className={`${baseClass} border bg-white text-zinc-700 hover:bg-zinc-50 disabled:opacity-50`}
+          className={`${baseClass} w-full whitespace-nowrap border bg-white px-2 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50`}
           style={{ borderColor: brandChrome.theme.border }}
         >
           แก้ไข
@@ -813,7 +1067,7 @@ export default function BrandMembersPage({ brandId }) {
           type="button"
           onClick={() => deleteMember(member)}
           disabled={pendingActionId === `delete:${member.id}`}
-          className={`${baseClass} border border-red-100 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50`}
+          className={`${baseClass} w-full whitespace-nowrap border border-red-100 bg-red-50 px-2 text-red-600 hover:bg-red-100 disabled:opacity-50`}
         >
           ลบ
         </button>
@@ -1198,11 +1452,11 @@ export default function BrandMembersPage({ brandId }) {
                   </div>
                 </div>
               </Field>
-              <Field label="ชื่อ" required error={formErrors.firstName}><TextInput value={form.firstName} onChange={(event) => setFormValue("firstName", event.target.value)} error={formErrors.firstName} inputRef={(node) => { formFieldRefs.current.firstName = node; }} /></Field>
-              <Field label="นามสกุล" required error={formErrors.lastName}><TextInput value={form.lastName} onChange={(event) => setFormValue("lastName", event.target.value)} error={formErrors.lastName} inputRef={(node) => { formFieldRefs.current.lastName = node; }} /></Field>
+              <Field label="ชื่อ" required error={formErrors.firstName} fieldKey="firstName"><TextInput value={form.firstName} onChange={(event) => setFormValue("firstName", event.target.value)} error={formErrors.firstName} inputRef={(node) => { formFieldRefs.current.firstName = node; }} /></Field>
+              <Field label="นามสกุล" required error={formErrors.lastName} fieldKey="lastName"><TextInput value={form.lastName} onChange={(event) => setFormValue("lastName", event.target.value)} error={formErrors.lastName} inputRef={(node) => { formFieldRefs.current.lastName = node; }} /></Field>
               <Field label="ชื่อเล่น"><TextInput value={form.nickname} onChange={(event) => setFormValue("nickname", event.target.value)} /></Field>
               <Field label="รหัสสมาชิก" className="xl:col-span-1"><TextInput value={form.memberCode || "สร้างอัตโนมัติหลังบันทึก"} disabled /></Field>
-              <Field label="วันเดือนปีเกิด" error={formErrors.birthDate}><TextInput type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthDate || ""} onChange={(event) => setFormValue("birthDate", event.target.value)} error={formErrors.birthDate} inputRef={(node) => { formFieldRefs.current.birthDate = node; }} /></Field>
+              <Field label="วันเดือนปีเกิด" error={formErrors.birthDate} fieldKey="birthDate"><TextInput type="date" max={new Date().toISOString().slice(0, 10)} value={form.birthDate || ""} onChange={(event) => setFormValue("birthDate", event.target.value)} error={formErrors.birthDate} inputRef={(node) => { formFieldRefs.current.birthDate = node; }} /></Field>
               <Field label="อายุ"><TextInput value={calculateAge(form.birthDate)} readOnly /></Field>
               <Field label="เพศ">
                 <SelectInput value={form.gender} onChange={(event) => setFormValue("gender", event.target.value)}>
@@ -1214,13 +1468,13 @@ export default function BrandMembersPage({ brandId }) {
             </Section>
 
             <Section title="ช่องทางติดต่อ" icon="phone" gridClassName="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <Field label="เบอร์โทรศัพท์" error={formErrors.phone}><TextInput inputMode="tel" placeholder="081-234-5678" value={form.phone} onChange={(event) => setFormValue("phone", event.target.value)} error={formErrors.phone} inputRef={(node) => { formFieldRefs.current.phone = node; }} /></Field>
-              <Field label="อีเมล" error={formErrors.email}><TextInput type="email" placeholder="example@email.com" value={form.email} onChange={(event) => setFormValue("email", event.target.value)} error={formErrors.email} inputRef={(node) => { formFieldRefs.current.email = node; }} /></Field>
+              <Field label="เบอร์โทรศัพท์" error={formErrors.phone} fieldKey="phone"><TextInput inputMode="tel" placeholder="081-234-5678" value={form.phone} onChange={(event) => setFormValue("phone", event.target.value)} error={formErrors.phone} inputRef={(node) => { formFieldRefs.current.phone = node; }} /></Field>
+              <Field label="อีเมล" error={formErrors.email} fieldKey="email"><TextInput type="email" placeholder="example@email.com" value={form.email} onChange={(event) => setFormValue("email", event.target.value)} error={formErrors.email} inputRef={(node) => { formFieldRefs.current.email = node; }} /></Field>
               <Field label="LINE ID"><TextInput placeholder="yourlineid" value={form.lineId} onChange={(event) => setFormValue("lineId", event.target.value)} /></Field>
               <Field label="Facebook"><TextInput placeholder="facebook.com/username" value={form.facebook} onChange={(event) => setFormValue("facebook", event.target.value)} /></Field>
               <Field label="ชื่อผู้ติดต่อฉุกเฉิน" className="xl:col-span-1"><TextInput placeholder="กรอกชื่อผู้ติดต่อ" value={form.emergencyContactName} onChange={(event) => setFormValue("emergencyContactName", event.target.value)} /></Field>
               <Field label="ความสัมพันธ์"><TextInput placeholder="เช่น พ่อ, แม่, พี่ชาย" value={form.emergencyContactRelationship} onChange={(event) => setFormValue("emergencyContactRelationship", event.target.value)} /></Field>
-              <Field label="เบอร์ผู้ติดต่อฉุกเฉิน" error={formErrors.emergencyContactPhone}><TextInput inputMode="tel" placeholder="081-234-5678" value={form.emergencyContactPhone} onChange={(event) => setFormValue("emergencyContactPhone", event.target.value)} error={formErrors.emergencyContactPhone} inputRef={(node) => { formFieldRefs.current.emergencyContactPhone = node; }} /></Field>
+              <Field label="เบอร์ผู้ติดต่อฉุกเฉิน" error={formErrors.emergencyContactPhone} fieldKey="emergencyContactPhone"><TextInput inputMode="tel" placeholder="081-234-5678" value={form.emergencyContactPhone} onChange={(event) => setFormValue("emergencyContactPhone", event.target.value)} error={formErrors.emergencyContactPhone} inputRef={(node) => { formFieldRefs.current.emergencyContactPhone = node; }} /></Field>
             </Section>
 
             <Section title="ที่อยู่" icon="map" gridClassName="space-y-3">
@@ -1240,36 +1494,36 @@ export default function BrandMembersPage({ brandId }) {
                     {THAI_PROVINCES.map((province) => <option key={province} value={province}>{province}</option>)}
                   </SelectInput>
                 </Field>
-                <Field label="รหัสไปรษณีย์" error={formErrors.addressPostalCode}><TextInput inputMode="numeric" maxLength={5} placeholder="10240" value={form.addressPostalCode} onChange={(event) => setFormValue("addressPostalCode", event.target.value.replace(/\D/g, "").slice(0, 5))} error={formErrors.addressPostalCode} inputRef={(node) => { formFieldRefs.current.addressPostalCode = node; }} /></Field>
+                <Field label="รหัสไปรษณีย์" error={formErrors.addressPostalCode} fieldKey="addressPostalCode"><TextInput inputMode="numeric" maxLength={5} placeholder="10240" value={form.addressPostalCode} onChange={(event) => setFormValue("addressPostalCode", event.target.value.replace(/\D/g, "").slice(0, 5))} error={formErrors.addressPostalCode} inputRef={(node) => { formFieldRefs.current.addressPostalCode = node; }} /></Field>
               </div>
             </Section>
 
             <div className="grid gap-3 xl:grid-cols-2">
               <Section title="ข้อมูลบัญชีธนาคาร" icon="bank" gridClassName="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <Field label="ธนาคาร">
-                  <SelectInput value={form.bankName} onChange={(event) => setFormValue("bankName", event.target.value)}>
+                <Field label="ธนาคาร" error={formErrors.bankName} fieldKey="bankName">
+                  <SelectInput value={form.bankName} onChange={(event) => setFormValue("bankName", event.target.value)} error={formErrors.bankName} inputRef={(node) => { formFieldRefs.current.bankName = node; }}>
                     <option value="">เลือกธนาคาร</option>
                     {THAI_BANKS.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
                   </SelectInput>
                 </Field>
-                {form.bankName === "อื่นๆ" && <Field label="ระบุชื่อธนาคาร" required error={formErrors.bankNameOther}><TextInput value={form.bankNameOther} onChange={(event) => setFormValue("bankNameOther", event.target.value)} error={formErrors.bankNameOther} inputRef={(node) => { formFieldRefs.current.bankNameOther = node; }} /></Field>}
-                <Field label="ชื่อบัญชี"><TextInput value={form.bankAccountName} onChange={(event) => setFormValue("bankAccountName", event.target.value)} /></Field>
-                <Field label="เลขบัญชีธนาคาร"><TextInput inputMode="numeric" value={form.bankAccountNumber || ""} onChange={(event) => setFormValue("bankAccountNumber", event.target.value)} /></Field>
+                {form.bankName === "อื่นๆ" && <Field label="ระบุชื่อธนาคาร" required error={formErrors.bankNameOther} fieldKey="bankNameOther"><TextInput value={form.bankNameOther} onChange={(event) => setFormValue("bankNameOther", event.target.value)} error={formErrors.bankNameOther} inputRef={(node) => { formFieldRefs.current.bankNameOther = node; }} /></Field>}
+                <Field label="ชื่อบัญชี" error={formErrors.bankAccountName} fieldKey="bankAccountName"><TextInput value={form.bankAccountName} onChange={(event) => setFormValue("bankAccountName", event.target.value)} error={formErrors.bankAccountName} inputRef={(node) => { formFieldRefs.current.bankAccountName = node; }} /></Field>
+                <Field label="เลขบัญชีธนาคาร" error={formErrors.bankAccountNumber} fieldKey="bankAccountNumber"><TextInput inputMode="numeric" value={form.bankAccountNumber || ""} onChange={(event) => setFormValue("bankAccountNumber", event.target.value)} error={formErrors.bankAccountNumber} inputRef={(node) => { formFieldRefs.current.bankAccountNumber = node; }} /></Field>
               </Section>
 
               <Section title="ข้อมูลการทำงาน" icon="briefcase" gridClassName="grid gap-3 md:grid-cols-2">
-                <Field label="ตำแหน่ง" required error={formErrors.position}>
+                <Field label="ตำแหน่ง" required error={formErrors.position} fieldKey="position">
                   <SelectInput value={form.position} onChange={(event) => setFormValue("position", event.target.value)} error={formErrors.position} inputRef={(node) => { formFieldRefs.current.position = node; }}>
                     <option value="">เลือกตำแหน่ง</option>
                     {MEMBER_POSITIONS.map((position) => <option key={position} value={position}>{position}</option>)}
                   </SelectInput>
                 </Field>
-                <Field label="สถานะสมาชิก" required error={formErrors.status}>
+                <Field label="สถานะสมาชิก" required error={formErrors.status} fieldKey="status">
                   <SelectInput value={form.status} onChange={(event) => setFormValue("status", event.target.value)} error={formErrors.status} inputRef={(node) => { formFieldRefs.current.status = node; }}>
                     {MEMBER_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
                   </SelectInput>
                 </Field>
-                {form.position === "อื่นๆ" && <Field label="ระบุตำแหน่ง" required error={formErrors.positionOther} className="md:col-span-2"><TextInput value={form.positionOther} onChange={(event) => setFormValue("positionOther", event.target.value)} error={formErrors.positionOther} inputRef={(node) => { formFieldRefs.current.positionOther = node; }} /></Field>}
+                {form.position === "อื่นๆ" && <Field label="ระบุตำแหน่ง" required error={formErrors.positionOther} fieldKey="positionOther" className="md:col-span-2"><TextInput value={form.positionOther} onChange={(event) => setFormValue("positionOther", event.target.value)} error={formErrors.positionOther} inputRef={(node) => { formFieldRefs.current.positionOther = node; }} /></Field>}
               </Section>
             </div>
 
@@ -1313,6 +1567,120 @@ export default function BrandMembersPage({ brandId }) {
           </form>
         </div>
       )}
+      {imageCropSource ? (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/75 p-3 sm:p-6">
+          <div className="w-full max-w-[620px] overflow-hidden rounded-[26px] bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-zinc-200 px-5 py-4 sm:px-6">
+              <div>
+                <h3 className="text-lg font-black text-zinc-900">
+                  จัดกรอบรูปโปรไฟล์
+                </h3>
+                <p className="mt-1 text-sm font-medium text-zinc-500">
+                  ลากรูปเพื่อเลือกตำแหน่ง และเลื่อนแถบเพื่อซูม
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={closeImageCrop}
+                disabled={imageCropSaving}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-xl font-bold text-zinc-600 transition hover:bg-zinc-200 disabled:opacity-50"
+                aria-label="ปิดหน้าจัดกรอบรูป"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="bg-zinc-950 p-4 sm:p-6">
+              <div
+                ref={imageCropViewportRef}
+                className="relative mx-auto aspect-square w-full max-w-[460px] cursor-move touch-none select-none overflow-hidden rounded-2xl bg-zinc-900"
+                onPointerDown={handleImageCropPointerDown}
+                onPointerMove={handleImageCropPointerMove}
+                onPointerUp={handleImageCropPointerUp}
+                onPointerCancel={handleImageCropPointerUp}
+              >
+                <img
+                  ref={imageCropImageRef}
+                  src={imageCropSource}
+                  alt="ตัวอย่างการจัดกรอบรูปโปรไฟล์"
+                  draggable={false}
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full max-w-none select-none object-cover"
+                  style={{
+                    transform: `translate(calc(-50% + ${imageCropOffset.x}px), calc(-50% + ${imageCropOffset.y}px)) scale(${imageCropZoom})`,
+                    transformOrigin: "center",
+                  }}
+                />
+
+                <div className="pointer-events-none absolute inset-0 rounded-2xl border-2 border-white/90 shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.12)]" />
+
+                <div className="pointer-events-none absolute left-1/3 top-0 h-full w-px bg-white/30" />
+                <div className="pointer-events-none absolute left-2/3 top-0 h-full w-px bg-white/30" />
+                <div className="pointer-events-none absolute left-0 top-1/3 h-px w-full bg-white/30" />
+                <div className="pointer-events-none absolute left-0 top-2/3 h-px w-full bg-white/30" />
+              </div>
+            </div>
+
+            <div className="space-y-5 px-5 py-5 sm:px-6">
+              <label className="block">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-extrabold text-zinc-800">
+                    ซูมรูป
+                  </span>
+                  <span className="text-xs font-bold text-zinc-500">
+                    {Math.round(imageCropZoom * 100)}%
+                  </span>
+                </div>
+
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.01"
+                  value={imageCropZoom}
+                  onChange={(event) =>
+                    setImageCropZoom(Number(event.target.value))
+                  }
+                  className="w-full cursor-pointer"
+                />
+              </label>
+
+              <div className="flex flex-col-reverse gap-2 border-t border-zinc-200 pt-4 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageCropZoom(1);
+                    setImageCropOffset({ x: 0, y: 0 });
+                  }}
+                  disabled={imageCropSaving}
+                  className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-extrabold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  จัดกึ่งกลางใหม่
+                </button>
+
+                <button
+                  type="button"
+                  onClick={closeImageCrop}
+                  disabled={imageCropSaving}
+                  className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-extrabold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+                >
+                  ยกเลิก
+                </button>
+
+                <button
+                  type="button"
+                  onClick={confirmImageCrop}
+                  disabled={imageCropSaving}
+                  className="min-h-11 rounded-xl bg-[#103A2D] px-6 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#0A2D23] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {imageCropSaving ? "กำลังจัดรูป..." : "ใช้รูปนี้"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
     </main>
   );
 }

@@ -41,7 +41,9 @@ export async function POST(request) {
   const formData = await request.formData().catch(() => null);
   const file = formData?.get("file");
   const brand = normalizeBrand(formData?.get("brand"));
-  const memberId = sanitizeText(formData?.get("memberId"), 120) || "new";
+  const memberId =
+    sanitizeText(formData?.get("memberId"), 120).replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80) ||
+    "new";
 
   if (!brand) {
     return Response.json({ success: false, error: "ไม่พบแบรนด์" }, { status: 400 });

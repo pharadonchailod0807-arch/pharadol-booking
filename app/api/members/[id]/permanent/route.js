@@ -11,6 +11,26 @@ import { rejectCrossSiteRequest, sanitizeText } from "@/lib/security";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const MEMBER_PROFILE_PUBLIC_SEGMENT = "/storage/v1/object/public/member-profiles/";
+
+const getMemberProfileStoragePath = (profileImageUrl, brand, memberId) => {
+  if (!profileImageUrl) return "";
+
+  try {
+    const { pathname } = new URL(profileImageUrl);
+    const markerIndex = pathname.indexOf(MEMBER_PROFILE_PUBLIC_SEGMENT);
+    if (markerIndex === -1) return "";
+
+    const path = decodeURIComponent(
+      pathname.slice(markerIndex + MEMBER_PROFILE_PUBLIC_SEGMENT.length)
+    );
+    const expectedPrefix = `${brand}/${memberId}/`;
+    return path.startsWith(expectedPrefix) ? path : "";
+  } catch {
+    return "";
+  }
+};
+
 export async function DELETE(request, context) {
   const blockedCrossSite = rejectCrossSiteRequest(request);
   if (blockedCrossSite) return blockedCrossSite;
@@ -26,7 +46,7 @@ export async function DELETE(request, context) {
   const { id } = await context.params;
   const { data: row, error: findError } = await supabase
     .from("members")
-    .select("id,brand")
+    .select("id,brand,profile_image_url")
     .eq("id", sanitizeText(id, 120))
     .maybeSingle();
 
@@ -55,6 +75,31 @@ export async function DELETE(request, context) {
       metadata: { reason: getMemberReadableError(error) },
     });
     return Response.json({ success: false, error: getMemberReadableError(error) }, { status: 500 });
+  }
+
+  const profileStoragePath = getMemberProfileStoragePath(
+    row.profile_image_url,
+    row.brand,
+    row.id
+  );
+
+  if (profileStoragePath) {
+    const { error: storageError } = await supabase.storage
+      .from("member-profiles")
+      .remove([profileStoragePath]);
+
+    if (storageError) {
+      await writeAuditLog({
+        request,
+        user,
+        brand: row.brand,
+        action: "MEMBER_PROFILE_CLEANUP_FAILED",
+        resourceType: "member",
+        resourceId: row.id,
+        result: "failure",
+        metadata: { reason: getMemberReadableError(storageError) },
+      });
+    }
   }
 
   await writeAuditLog({

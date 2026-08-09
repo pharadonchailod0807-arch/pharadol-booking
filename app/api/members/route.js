@@ -28,6 +28,7 @@ export const dynamic = "force-dynamic";
 
 const SORTS = {
   newest: { column: "created_at", ascending: false },
+  oldest: { column: "created_at", ascending: true },
   code_desc: { column: "member_code", ascending: false },
   code_asc: { column: "member_code", ascending: true },
   name_asc: { column: "first_name", ascending: true },
