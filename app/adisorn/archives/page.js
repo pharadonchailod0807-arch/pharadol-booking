@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
+import { safeGetArray, safeGetObject, safeSetJson } from "@/app/lib/safeStorage";
 
 const BRAND_ID = "adisorn";
 const ARCHIVES_KEY = "adisorn_archives";
@@ -11,15 +12,10 @@ const PAYMENT_RECEIPTS_KEY = "adisorn_paymentReceipts";
 const SELECTED_BOOKING_KEY = "adisorn_selectedBooking";
 const CURRENT_BOOKING_KEY = "adisorn_currentBooking";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const BOOKING_LIST_PAGE_SIZE = 30;
 
 const readArray = (key) => {
-  try {
-    const value = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(value) ? value : [];
-  } catch (error) {
-    console.error(`Cannot read ${key}`, error);
-    return [];
-  }
+  return safeGetArray(key);
 };
 
 const formatMoney = (value) =>
@@ -40,21 +36,21 @@ const formatSavedDate = (value) => {
 };
 
 const normalizeBookingRow = (row) => {
-  const bookingData = row?.booking_data || {};
+  const bookingData = row?.booking_data || row || {};
 
   return {
     ...bookingData,
-    supabaseId: row.id,
-    brandId: bookingData.brandId || "",
-    bookingNumber: bookingData.bookingNumber || row.booking_number || "",
-    customerName: bookingData.customerName || row.customer_name || "",
+    supabaseId: row.id || row.supabaseId || "",
+    brandId: bookingData.brandId || row.brandId || row.brand || "",
+    bookingNumber: bookingData.bookingNumber || row.booking_number || row.bookingNumber || "",
+    customerName: bookingData.customerName || row.customer_name || row.customerName || "",
     phone: bookingData.phone || row.phone || "",
     email: bookingData.email || row.email || "",
     service: bookingData.service || row.service || "",
     location: bookingData.location || row.location || "",
-    eventDate: bookingData.eventDate || row.event_date || "",
-    jobStatus: row.job_status || bookingData.jobStatus || "รอยืนยัน",
-    status: row.job_status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
+    eventDate: bookingData.eventDate || row.event_date || row.eventDate || "",
+    jobStatus: row.job_status || row.jobStatus || bookingData.jobStatus || "รอยืนยัน",
+    status: row.job_status || row.status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
   };
 };
 
@@ -75,18 +71,48 @@ export default function ArchivesPage() {
   const [sortDirection, setSortDirection] = useState("desc");
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [listPage, setListPage] = useState(0);
+  const [hasMoreBookings, setHasMoreBookings] = useState(false);
+  const [isLoadingMoreBookings, setIsLoadingMoreBookings] = useState(false);
+
+  const fetchBookingListPage = useCallback(async (page = 0) => {
+    const params = new URLSearchParams({
+      mode: "list",
+      brand: BRAND_ID,
+      status: "archived",
+      page: String(page),
+      pageSize: String(BOOKING_LIST_PAGE_SIZE),
+    });
+    const response = await fetch(`/api/bookings?${params.toString()}`, {
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "โหลดข้อมูลคลังไม่สำเร็จ");
+    }
+
+    return {
+      bookings: Array.isArray(result.bookings)
+        ? result.bookings.map(normalizeBookingRow)
+        : [],
+      page: Number(result.page || 0),
+      hasMore: Boolean(result.hasMore),
+    };
+  }, []);
 
   useEffect(() => {
     const verifyAccess = () => {
       try {
         const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-        const currentUser = JSON.parse(
-          sessionStorage.getItem("currentUser") || "null"
-        );
+        const currentUser = safeGetObject("currentUser", {
+          storage: "session",
+          maxBytes: 64 * 1024,
+        });
         const activeBrand = sessionStorage.getItem("activeBrand");
-        const users = JSON.parse(
-          localStorage.getItem("central_admin_users") || "[]"
-        );
+        const users = safeGetArray("central_admin_users", {
+          maxBytes: 256 * 1024,
+        });
         const latestAccount = Array.isArray(users)
           ? users.find((user) => user.id === currentUser?.id)
           : null;
@@ -158,27 +184,21 @@ export default function ArchivesPage() {
     };
   }, []);
 
-  const loadArchives = async () => {
+  const loadArchives = useCallback(async () => {
     let bookingItems = [];
 
     try {
-      const { data, error } = await supabase
-        .from("bookings")
-        .select("*")
-        .eq("archived", true)
-        .eq("deleted", false)
-        .order("booking_number", { ascending: false });
-
-      if (error) throw error;
-
-      bookingItems = (Array.isArray(data) ? data : [])
-        .map(normalizeBookingRow)
-        .filter((item) => item.brandId === BRAND_ID);
+      const result = await fetchBookingListPage(0);
+      bookingItems = result.bookings;
+      setListPage(result.page);
+      setHasMoreBookings(result.hasMore);
+      safeSetJson(ARCHIVES_KEY, bookingItems);
     } catch (error) {
       console.error("Cannot load archived bookings from Supabase", error);
-      bookingItems = readArray(ARCHIVES_KEY).filter(
-        (item) => item?.archiveType !== "payment-receipt"
-      );
+      bookingItems = readArray(ARCHIVES_KEY)
+        .filter((item) => item?.archiveType !== "payment-receipt")
+        .slice(0, BOOKING_LIST_PAGE_SIZE);
+      setHasMoreBookings(false);
     }
 
     const savedArchives = readArray(ARCHIVES_KEY);
@@ -219,7 +239,7 @@ export default function ArchivesPage() {
           new Date(a.savedAt || 0).getTime()
       )
     );
-  };
+  }, [fetchBookingListPage]);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -264,7 +284,7 @@ export default function ArchivesPage() {
       document.removeEventListener("visibilitychange", handlePageVisible);
       supabase.removeChannel(bookingsChannel);
     };
-  }, [isAuthorized]);
+  }, [isAuthorized, loadArchives]);
 
   const filteredBookings = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -341,16 +361,41 @@ export default function ArchivesPage() {
     const receiptItems = readArray(ARCHIVES_KEY).filter(
       (item) => item?.archiveType === "payment-receipt"
     );
-    localStorage.setItem(
-      ARCHIVES_KEY,
-      JSON.stringify([...items, ...receiptItems])
-    );
+    safeSetJson(ARCHIVES_KEY, [...items, ...receiptItems]);
     setBookings(items);
   };
 
+  const loadMoreBookings = async () => {
+    if (isLoadingMoreBookings || !hasMoreBookings) return;
+
+    setIsLoadingMoreBookings(true);
+    try {
+      const result = await fetchBookingListPage(listPage + 1);
+      const nextBookings = [
+        ...bookings,
+        ...result.bookings.filter(
+          (booking) =>
+            !bookings.some(
+              (item) =>
+                (booking.supabaseId && item.supabaseId === booking.supabaseId) ||
+                item.bookingNumber === booking.bookingNumber
+            )
+        ),
+      ];
+      saveBookings(nextBookings);
+      setListPage(result.page);
+      setHasMoreBookings(result.hasMore);
+    } catch (error) {
+      console.error("Cannot load more archived bookings", error);
+      window.alert(error?.message || "โหลดข้อมูลคลังเพิ่มไม่สำเร็จ");
+    } finally {
+      setIsLoadingMoreBookings(false);
+    }
+  };
+
   const openBooking = (booking) => {
-    localStorage.setItem(SELECTED_BOOKING_KEY, JSON.stringify(booking));
-    localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(booking));
+    safeSetJson(SELECTED_BOOKING_KEY, booking);
+    safeSetJson(CURRENT_BOOKING_KEY, booking);
     router.push("/adisorn?view=customer", { scroll: false });
   };
 
@@ -437,8 +482,8 @@ export default function ArchivesPage() {
         )
     );
 
-    localStorage.setItem(PAYMENT_RECEIPTS_KEY, JSON.stringify(nextReceipts));
-    localStorage.setItem(ARCHIVES_KEY, JSON.stringify(nextArchives));
+    safeSetJson(PAYMENT_RECEIPTS_KEY, nextReceipts);
+    safeSetJson(ARCHIVES_KEY, nextArchives);
     setSelectedReceipt(null);
     loadArchives();
   };
@@ -1177,6 +1222,19 @@ export default function ArchivesPage() {
               )}
             </div>
           </div>
+
+            {hasMoreBookings && (
+              <div className="mt-5 flex justify-center">
+                <button
+                  type="button"
+                  onClick={loadMoreBookings}
+                  disabled={isLoadingMoreBookings}
+                  className="min-h-11 rounded-xl border border-zinc-300 bg-white px-5 text-sm font-bold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isLoadingMoreBookings ? "กำลังโหลด..." : "โหลดเพิ่ม"}
+                </button>
+              </div>
+            )}
           </>
         ) : (
           <>

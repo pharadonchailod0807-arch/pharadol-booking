@@ -150,10 +150,7 @@ export default function TrashPage() {
   useEffect(() => {
     const loadMailTrashData = () => {
       try {
-        const savedMailTrash = JSON.parse(
-          localStorage.getItem(MAIL_TRASH_KEY) || "[]"
-        );
-        setMailTrash(Array.isArray(savedMailTrash) ? savedMailTrash : []);
+        setMailTrash(safeGetArray(MAIL_TRASH_KEY));
       } catch {
         setMailTrash([]);
       }
@@ -421,10 +418,7 @@ export default function TrashPage() {
       (_, index) => index !== originalIndex
     );
 
-    localStorage.setItem(
-      TRASH_KEY,
-      JSON.stringify(updatedTrash)
-    );
+    safeSetJson(TRASH_KEY, updatedTrash);
 
     setTrash(updatedTrash);
 
@@ -492,10 +486,7 @@ export default function TrashPage() {
       (_, index) => index !== originalIndex
     );
 
-    localStorage.setItem(
-      TRASH_KEY,
-      JSON.stringify(updatedTrash)
-    );
+    safeSetJson(TRASH_KEY, updatedTrash);
     setTrash(updatedTrash);
 
     const calendarError = await deleteCalendarEventSafely(customer);
@@ -525,7 +516,7 @@ export default function TrashPage() {
       return;
     }
 
-    localStorage.setItem(TRASH_KEY, "[]");
+    safeSetJson(TRASH_KEY, []);
     setTrash([]);
 
     const calendarResults = await Promise.all(
@@ -544,7 +535,7 @@ export default function TrashPage() {
     const updatedMailTrash = mailTrash.filter(
       (_, index) => index !== originalIndex
     );
-    localStorage.setItem(MAIL_TRASH_KEY, JSON.stringify(updatedMailTrash));
+    safeSetJson(MAIL_TRASH_KEY, updatedMailTrash);
     setMailTrash(updatedMailTrash);
     alert("กู้คืนอีเมลกลับหน้าเมลเรียบร้อย");
   };
@@ -555,7 +546,7 @@ export default function TrashPage() {
     const updatedMailTrash = mailTrash.filter(
       (_, index) => index !== originalIndex
     );
-    localStorage.setItem(MAIL_TRASH_KEY, JSON.stringify(updatedMailTrash));
+    safeSetJson(MAIL_TRASH_KEY, updatedMailTrash);
     setMailTrash(updatedMailTrash);
     alert("ลบอีเมลออกจากขยะเมลถาวรเรียบร้อย");
   };
@@ -563,7 +554,7 @@ export default function TrashPage() {
   const clearMailTrash = () => {
     if (!window.confirm("ยืนยันการล้างขยะเมลทั้งหมด ?")) return;
 
-    localStorage.setItem(MAIL_TRASH_KEY, "[]");
+    safeSetJson(MAIL_TRASH_KEY, []);
     setMailTrash([]);
     alert("ล้างขยะเมลเรียบร้อย");
   };

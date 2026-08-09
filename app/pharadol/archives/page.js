@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
-import { safeGetArray, safeSetJson } from "@/app/lib/safeStorage";
+import { safeGetArray, safeGetObject, safeSetJson } from "@/app/lib/safeStorage";
 
 const BRAND_ID = "pharadol";
 const ARCHIVES_KEY = "pharadol_archives";
@@ -105,13 +105,14 @@ export default function ArchivesPage() {
     const verifyAccess = () => {
       try {
         const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-        const currentUser = JSON.parse(
-          sessionStorage.getItem("currentUser") || "null"
-        );
+        const currentUser = safeGetObject("currentUser", {
+          storage: "session",
+          maxBytes: 64 * 1024,
+        });
         const activeBrand = sessionStorage.getItem("activeBrand");
-        const users = JSON.parse(
-          localStorage.getItem("central_admin_users") || "[]"
-        );
+        const users = safeGetArray("central_admin_users", {
+          maxBytes: 256 * 1024,
+        });
         const latestAccount = Array.isArray(users)
           ? users.find((user) => user.id === currentUser?.id)
           : null;
@@ -393,8 +394,8 @@ export default function ArchivesPage() {
   };
 
   const openBooking = (booking) => {
-    localStorage.setItem(SELECTED_BOOKING_KEY, JSON.stringify(booking));
-    localStorage.setItem(CURRENT_BOOKING_KEY, JSON.stringify(booking));
+    safeSetJson(SELECTED_BOOKING_KEY, booking);
+    safeSetJson(CURRENT_BOOKING_KEY, booking);
     router.push("/pharadol?view=customer", { scroll: false });
   };
 
@@ -481,8 +482,8 @@ export default function ArchivesPage() {
         )
     );
 
-    localStorage.setItem(PAYMENT_RECEIPTS_KEY, JSON.stringify(nextReceipts));
-    localStorage.setItem(ARCHIVES_KEY, JSON.stringify(nextArchives));
+    safeSetJson(PAYMENT_RECEIPTS_KEY, nextReceipts);
+    safeSetJson(ARCHIVES_KEY, nextArchives);
     setSelectedReceipt(null);
     loadArchives();
   };

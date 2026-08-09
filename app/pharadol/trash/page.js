@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 import { deleteBookingGoogleCalendarEvent } from "@/app/lib/googleCalendarClient";
-import { safeGetArray, safeSetJson } from "@/app/lib/safeStorage";
+import { safeGetArray, safeGetObject, safeSetJson } from "@/app/lib/safeStorage";
 
 const BRAND_ID = "pharadol";
 const TRASH_KEY = "pharadol_trash";
@@ -115,9 +115,10 @@ export default function TrashPage() {
     const verifyAccess = () => {
       try {
         const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-        const currentUser = JSON.parse(
-          sessionStorage.getItem("currentUser") || "null"
-        );
+        const currentUser = safeGetObject("currentUser", {
+          storage: "session",
+          maxBytes: 64 * 1024,
+        });
         const activeBrand = sessionStorage.getItem("activeBrand");
         const accountIsActive = currentUser?.active !== false;
         const brandIsCorrect = activeBrand === "pharadol";
@@ -222,10 +223,7 @@ export default function TrashPage() {
 
     const loadMailTrashData = () => {
       try {
-        const savedMailTrash = JSON.parse(
-          localStorage.getItem(MAIL_TRASH_KEY) || "[]"
-        );
-        setMailTrash(Array.isArray(savedMailTrash) ? savedMailTrash : []);
+        setMailTrash(safeGetArray(MAIL_TRASH_KEY));
       } catch {
         setMailTrash([]);
       }
@@ -495,10 +493,7 @@ export default function TrashPage() {
       (_, index) => index !== originalIndex
     );
 
-    localStorage.setItem(
-      TRASH_KEY,
-      JSON.stringify(updatedTrash)
-    );
+    safeSetJson(TRASH_KEY, updatedTrash);
 
     setTrash(updatedTrash);
 
@@ -566,10 +561,7 @@ export default function TrashPage() {
       (_, index) => index !== originalIndex
     );
 
-    localStorage.setItem(
-      TRASH_KEY,
-      JSON.stringify(updatedTrash)
-    );
+    safeSetJson(TRASH_KEY, updatedTrash);
     setTrash(updatedTrash);
 
     const calendarError = await deleteCalendarEventSafely(customer);
@@ -599,7 +591,7 @@ export default function TrashPage() {
       return;
     }
 
-    localStorage.setItem(TRASH_KEY, "[]");
+    safeSetJson(TRASH_KEY, []);
     setTrash([]);
 
     const calendarResults = await Promise.all(
@@ -618,7 +610,7 @@ export default function TrashPage() {
     const updatedMailTrash = mailTrash.filter(
       (_, index) => index !== originalIndex
     );
-    localStorage.setItem(MAIL_TRASH_KEY, JSON.stringify(updatedMailTrash));
+    safeSetJson(MAIL_TRASH_KEY, updatedMailTrash);
     setMailTrash(updatedMailTrash);
     alert("กู้คืนอีเมลกลับหน้าเมลเรียบร้อย");
   };
@@ -629,7 +621,7 @@ export default function TrashPage() {
     const updatedMailTrash = mailTrash.filter(
       (_, index) => index !== originalIndex
     );
-    localStorage.setItem(MAIL_TRASH_KEY, JSON.stringify(updatedMailTrash));
+    safeSetJson(MAIL_TRASH_KEY, updatedMailTrash);
     setMailTrash(updatedMailTrash);
     alert("ลบอีเมลออกจากขยะเมลถาวรเรียบร้อย");
   };
@@ -637,7 +629,7 @@ export default function TrashPage() {
   const clearMailTrash = () => {
     if (!window.confirm("ยืนยันการล้างขยะเมลทั้งหมด ?")) return;
 
-    localStorage.setItem(MAIL_TRASH_KEY, "[]");
+    safeSetJson(MAIL_TRASH_KEY, []);
     setMailTrash([]);
     alert("ล้างขยะเมลเรียบร้อย");
   };
