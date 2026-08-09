@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import BrandSettingsAccessGate from "@/app/components/BrandSettingsAccessGate";
 
 const CUSTOM_BOOKING_NUMBER_KEY = "pharadol_customBookingNumber";
 const BOOKING_NUMBER_HISTORY_KEY = "pharadol_bookingNumberHistory";
@@ -1080,7 +1081,9 @@ export default function SettingsPage() {
         </main>
       }
     >
-      <SettingsContent />
+      <BrandSettingsAccessGate brandId="pharadol">
+        <SettingsContent />
+      </BrandSettingsAccessGate>
     </Suspense>
   );
 }

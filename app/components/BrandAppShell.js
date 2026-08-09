@@ -621,9 +621,6 @@ export default function BrandAppShell({ brandId, children }) {
       const hasBrandAccess = normalizedBrands.includes(brandId);
       const brandIsCorrect =
         activeBrand === brandId && (accountIsAdmin || hasBrandAccess);
-      const settingsRequiresAdmin =
-        pathname === `/${brandId}/settings` ||
-        pathname.startsWith(`/${brandId}/settings/`);
 
       if (
         !loggedIn ||
@@ -634,7 +631,7 @@ export default function BrandAppShell({ brandId, children }) {
         return { allowed: false, reason: "invalid-session" };
       }
 
-      if (!brandIsCorrect || (settingsRequiresAdmin && !accountIsAdmin)) {
+      if (!brandIsCorrect) {
         return { allowed: false, reason: "route-denied" };
       }
 

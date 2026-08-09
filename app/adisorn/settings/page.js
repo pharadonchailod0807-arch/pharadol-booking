@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import BrandSettingsAccessGate from "@/app/components/BrandSettingsAccessGate";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 
 const CUSTOM_BOOKING_NUMBER_KEY = "adisorn_customBookingNumber";
@@ -1044,7 +1045,9 @@ export default function SettingsPage() {
         </main>
       }
     >
-      <SettingsContent />
+      <BrandSettingsAccessGate brandId="adisorn">
+        <SettingsContent />
+      </BrandSettingsAccessGate>
     </Suspense>
   );
 }
