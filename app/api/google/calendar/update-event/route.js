@@ -2,6 +2,7 @@ import {
   getReadableCalendarError,
   syncBookingToGoogleCalendar,
 } from "@/lib/google-calendar";
+import { requireApiPermission } from "@/lib/server-auth";
 import {
   normalizeBrand,
   rejectCrossSiteRequest,
@@ -27,6 +28,15 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
+    const auth = requireApiPermission({
+      request,
+      permission: "bookings.edit",
+      brandId,
+      missingBrandMessage: "ไม่พบแบรนด์สำหรับ Google Calendar",
+      deniedMessage: "ไม่มีสิทธิ์ซิงก์ Google Calendar ของแบรนด์นี้",
+    });
+    if (auth.response) return auth.response;
 
     const result = await syncBookingToGoogleCalendar({
       brandId,

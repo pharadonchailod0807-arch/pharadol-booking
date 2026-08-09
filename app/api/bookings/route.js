@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { writeAuditLog } from "@/lib/audit-log";
+import { requireApiPermission } from "@/lib/server-auth";
 import {
   getClientIp,
   normalizeBrand,
@@ -372,6 +374,17 @@ export async function GET(request) {
       );
     }
 
+    const auth = requireApiPermission({
+      request,
+      permission: ["detail", "list", "counts"].includes(mode)
+        ? "bookings.view"
+        : "bookings.create",
+      brandId,
+      missingBrandMessage: "ไม่พบแบรนด์ของใบจอง",
+      deniedMessage: "ไม่มีสิทธิ์เข้าถึงใบจองแบรนด์นี้",
+    });
+    if (auth.response) return auth.response;
+
     if (mode === "detail") {
       const bookingId = sanitizeText(requestUrl.searchParams.get("id"), 120);
       const bookingNumber = sanitizeText(
@@ -569,6 +582,15 @@ export async function POST(request) {
       );
     }
 
+    const auth = requireApiPermission({
+      request,
+      permission: "bookings.create",
+      brandId,
+      missingBrandMessage: "ไม่พบแบรนด์ของใบจอง",
+      deniedMessage: "ไม่มีสิทธิ์สร้างใบจองแบรนด์นี้",
+    });
+    if (auth.response) return auth.response;
+
     if (booking.bookingNumber) {
       return Response.json(
         {
@@ -605,6 +627,17 @@ export async function POST(request) {
 
       if (!error) {
         const normalizedBooking = normalizeBookingRow(data);
+
+        await writeAuditLog({
+          request,
+          user: auth.user,
+          brand: brandId,
+          action: "BOOKING_CREATED",
+          resourceType: "booking",
+          resourceId: data?.id,
+          result: "success",
+          metadata: { bookingNumber },
+        });
 
         return Response.json({
           success: true,
@@ -673,6 +706,15 @@ export async function PATCH(request) {
       );
     }
 
+    const auth = requireApiPermission({
+      request,
+      permission: "bookings.edit",
+      brandId,
+      missingBrandMessage: "ไม่พบแบรนด์ของใบจอง",
+      deniedMessage: "ไม่มีสิทธิ์แก้ไขใบจองแบรนด์นี้",
+    });
+    if (auth.response) return auth.response;
+
     if (!bookingId && !bookingNumber) {
       return Response.json(
         { success: false, error: "ไม่พบเลขหรือ ID ของใบจองที่ต้องการแก้ไข" },
@@ -707,6 +749,17 @@ export async function PATCH(request) {
       .single();
 
     if (error) throw error;
+
+    await writeAuditLog({
+      request,
+      user: auth.user,
+      brand: brandId,
+      action: "BOOKING_UPDATED",
+      resourceType: "booking",
+      resourceId: existingRow.id,
+      result: "success",
+      metadata: { bookingNumber: data?.booking_number || bookingNumber },
+    });
 
     return Response.json({
       success: true,

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import puppeteerCore from "puppeteer-core";
+import { requireApiPermission } from "@/lib/server-auth";
 import {
   getClientIp,
   rateLimit,
@@ -144,8 +145,15 @@ export async function POST(request) {
     const blockedCrossSite = rejectCrossSiteRequest(request);
     if (blockedCrossSite) return blockedCrossSite;
 
+    const auth = requireApiPermission({
+      request,
+      permission: "bookings.view",
+      deniedMessage: "ไม่มีสิทธิ์สร้าง PDF ใบจอง",
+    });
+    if (auth.response) return auth.response;
+
     const limited = rateLimit({
-      key: `vector-pdf:${getClientIp(request)}`,
+      key: `vector-pdf:${auth.user?.id || auth.user?.username}:${getClientIp(request)}`,
       limit: 20,
       windowMs: 10 * 60 * 1000,
       message: "สร้าง PDF บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",

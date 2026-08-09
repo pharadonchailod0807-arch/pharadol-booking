@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireApiPermission } from "@/lib/server-auth";
 import {
   getClientIp,
   normalizeBrand,
@@ -89,8 +90,17 @@ export async function POST(request) {
       );
     }
 
+    const auth = requireApiPermission({
+      request,
+      permission: "bookings.view",
+      brandId: brand,
+      missingBrandMessage: "ไม่พบแบรนด์สำหรับสร้างลิงก์เอกสาร",
+      deniedMessage: "ไม่มีสิทธิ์สร้างลิงก์เอกสารของแบรนด์นี้",
+    });
+    if (auth.response) return auth.response;
+
     const limited = rateLimit({
-      key: `booking-document-link:${brand}:${getClientIp(request)}`,
+      key: `booking-document-link:${brand}:${auth.user?.id || auth.user?.username}:${getClientIp(request)}`,
       limit: 12,
       windowMs: 10 * 60 * 1000,
       message: "สร้างลิงก์เอกสารบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
@@ -115,6 +125,14 @@ export async function POST(request) {
       return NextResponse.json(
         { error: "ไฟล์ PDF มีขนาดใหญ่เกินไป กรุณาลองใหม่อีกครั้ง" },
         { status: 413 }
+      );
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    if (fileBuffer.subarray(0, 4).toString("ascii") !== "%PDF") {
+      return NextResponse.json(
+        { error: "เนื้อหาไฟล์ไม่ใช่ PDF ที่ถูกต้อง" },
+        { status: 400 }
       );
     }
 
@@ -155,7 +173,7 @@ export async function POST(request) {
           `${JSON.stringify(metadata)}\r\n`,
         `--${boundary}\r\n` +
           "Content-Type: application/pdf\r\n\r\n",
-        await file.arrayBuffer(),
+        fileBuffer,
         `\r\n--${boundary}--`,
       ],
       {

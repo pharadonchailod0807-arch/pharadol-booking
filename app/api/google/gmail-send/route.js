@@ -1,4 +1,6 @@
 import { google } from "googleapis";
+import { writeAuditLog } from "@/lib/audit-log";
+import { requireApiPermission } from "@/lib/server-auth";
 import {
   getClientIp,
   normalizeBrand,
@@ -251,8 +253,17 @@ export async function POST(request) {
       );
     }
 
+    const auth = requireApiPermission({
+      request,
+      permission: "email.send",
+      brandId,
+      missingBrandMessage: "ไม่พบแบรนด์สำหรับส่งอีเมลผ่าน Gmail",
+      deniedMessage: "ไม่มีสิทธิ์ส่งอีเมลของแบรนด์นี้",
+    });
+    if (auth.response) return auth.response;
+
     const limited = rateLimit({
-      key: `gmail-send:${brandId}:${getClientIp(request)}`,
+      key: `gmail-send:${brandId}:${auth.user?.id || auth.user?.username}:${getClientIp(request)}`,
       limit: 10,
       windowMs: 10 * 60 * 1000,
       message: "ส่งอีเมลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
@@ -359,6 +370,16 @@ export async function POST(request) {
 
     const messageId = sentMessage.data.id || "";
     const threadId = sentMessage.data.threadId || "";
+
+    await writeAuditLog({
+      request,
+      user: auth.user,
+      brand: brandId,
+      action: "EMAIL_SENT",
+      resourceType: "gmail",
+      resourceId: messageId,
+      result: "success",
+    });
 
     return Response.json({
       success: true,

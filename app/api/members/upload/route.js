@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { supabase } from "@/lib/supabase";
 import { canAccessMemberBrand, getSessionUserFromRequest } from "@/lib/members";
+import { can } from "@/lib/rbac";
 import { normalizeBrand, rejectCrossSiteRequest, sanitizeText } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -12,6 +13,20 @@ const EXTENSIONS = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+};
+
+const fileSignatureMatches = (buffer, mimeType) => {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12) return false;
+  if (mimeType === "image/jpeg") {
+    return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
+  if (mimeType === "image/png") {
+    return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  if (mimeType === "image/webp") {
+    return buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  }
+  return false;
 };
 
 export async function POST(request) {
@@ -34,6 +49,10 @@ export async function POST(request) {
   if (!canAccessMemberBrand(user, brand)) {
     return Response.json({ success: false, error: "ไม่มีสิทธิ์อัปโหลดรูปโปรไฟล์แบรนด์นี้" }, { status: 403 });
   }
+  const requiredPermission = memberId === "new" ? "members.create" : "members.edit";
+  if (!can(user, requiredPermission, { brandId: brand })) {
+    return Response.json({ success: false, error: "ไม่มีสิทธิ์อัปโหลดรูปโปรไฟล์แบรนด์นี้" }, { status: 403 });
+  }
   if (!file || typeof file.arrayBuffer !== "function") {
     return Response.json({ success: false, error: "ไม่พบไฟล์รูปโปรไฟล์" }, { status: 400 });
   }
@@ -45,6 +64,10 @@ export async function POST(request) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  if (!fileSignatureMatches(buffer, file.type)) {
+    return Response.json({ success: false, error: "ชนิดไฟล์รูปโปรไฟล์ไม่ตรงกับเนื้อหาไฟล์" }, { status: 400 });
+  }
+
   const extension = EXTENSIONS[file.type] || "jpg";
   const path = `${brand}/${memberId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 

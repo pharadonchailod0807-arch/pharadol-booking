@@ -17,17 +17,7 @@ const AUTH_SESSION_STORAGE_KEYS = [
   "activeBrand",
 ];
 
-const defaultUsers = [
-  {
-    id: "admin-1",
-    name: "ผู้ดูแลระบบ",
-    username: "Admin",
-    password: "1234",
-    role: "ADMIN",
-    brands: ["adisorn", "pharadol"],
-    active: true,
-  },
-];
+const defaultUsers = [];
 
 const userToRow = (user) => ({
   id: user.id,

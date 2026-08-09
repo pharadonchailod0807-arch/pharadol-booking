@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { writeAuditLog } from "@/lib/audit-log";
 import {
   canAccessMemberBrand,
   canPermanentlyDeleteMember,
@@ -8,6 +9,7 @@ import {
   MEMBER_SELECT_COLUMNS,
   validateMemberPayload,
 } from "@/lib/members";
+import { can } from "@/lib/rbac";
 import {
   rejectCrossSiteRequest,
   rejectDocumentNavigation,
@@ -47,8 +49,32 @@ export async function GET(request, context) {
   if (!row) {
     return Response.json({ success: false, error: "ไม่พบข้อมูลสมาชิกหรือไม่มีสิทธิ์เข้าถึง" }, { status: 404 });
   }
+  if (!can(user, "members.view", { brandId: row.brand })) {
+    return Response.json({ success: false, error: "ไม่มีสิทธิ์เข้าถึงข้อมูลสมาชิกแบรนด์นี้" }, { status: 403 });
+  }
 
-  return Response.json({ success: true, member: mapMemberRow(row, { includeSensitive: true }) }, { headers: { "Cache-Control": "no-store" } });
+  const includeSensitive = can(user, "sensitive.bank_account.view", { brandId: row.brand });
+  if (includeSensitive && row.bank_account_number) {
+    await writeAuditLog({
+      request,
+      user,
+      brand: row.brand,
+      action: "BANK_ACCOUNT_VIEWED",
+      resourceType: "member",
+      resourceId: row.id,
+      result: "success",
+    });
+  }
+
+  return Response.json(
+    {
+      success: true,
+      member: mapMemberRow(row, {
+        includeSensitive,
+      }),
+    },
+    { headers: { "Cache-Control": "no-store" } }
+  );
 }
 
 export async function PATCH(request, context) {
@@ -68,6 +94,9 @@ export async function PATCH(request, context) {
   }
   if (!row) {
     return Response.json({ success: false, error: "ไม่พบข้อมูลสมาชิกหรือไม่มีสิทธิ์เข้าถึง" }, { status: 404 });
+  }
+  if (!can(user, "members.edit", { brandId: row.brand })) {
+    return Response.json({ success: false, error: "ไม่มีสิทธิ์แก้ไขข้อมูลสมาชิกแบรนด์นี้" }, { status: 403 });
   }
 
   const payload = await request.json().catch(() => null);
@@ -94,10 +123,35 @@ export async function PATCH(request, context) {
     .single();
 
   if (error) {
+    await writeAuditLog({
+      request,
+      user,
+      brand: row.brand,
+      action: "MEMBER_UPDATED",
+      resourceType: "member",
+      resourceId: row.id,
+      result: "failure",
+      metadata: { reason: getMemberReadableError(error) },
+    });
     return Response.json({ success: false, error: getMemberReadableError(error) }, { status: 500 });
   }
 
-  return Response.json({ success: true, member: mapMemberRow(data, { includeSensitive: true }) });
+  await writeAuditLog({
+    request,
+    user,
+    brand: row.brand,
+    action: "MEMBER_UPDATED",
+    resourceType: "member",
+    resourceId: row.id,
+    result: "success",
+  });
+
+  return Response.json({
+    success: true,
+    member: mapMemberRow(data, {
+      includeSensitive: can(user, "sensitive.bank_account.view", { brandId: row.brand }),
+    }),
+  });
 }
 
 export async function DELETE(request, context) {
@@ -123,6 +177,9 @@ export async function DELETE(request, context) {
   if (!row) {
     return Response.json({ success: false, error: "ไม่พบข้อมูลสมาชิกหรือไม่มีสิทธิ์เข้าถึง" }, { status: 404 });
   }
+  if (!can(user, "members.delete", { brandId: row.brand })) {
+    return Response.json({ success: false, error: "ไม่มีสิทธิ์ลบข้อมูลสมาชิกแบรนด์นี้" }, { status: 403 });
+  }
 
   const { data, error } = await supabase
     .from("members")
@@ -138,8 +195,28 @@ export async function DELETE(request, context) {
     .single();
 
   if (error) {
+    await writeAuditLog({
+      request,
+      user,
+      brand: row.brand,
+      action: "MEMBER_DELETED",
+      resourceType: "member",
+      resourceId: row.id,
+      result: "failure",
+      metadata: { reason: getMemberReadableError(error) },
+    });
     return Response.json({ success: false, error: getMemberReadableError(error) }, { status: 500 });
   }
+
+  await writeAuditLog({
+    request,
+    user,
+    brand: row.brand,
+    action: "MEMBER_DELETED",
+    resourceType: "member",
+    resourceId: row.id,
+    result: "success",
+  });
 
   return Response.json({ success: true, member: mapMemberRow(data) });
 }

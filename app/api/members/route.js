@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { writeAuditLog } from "@/lib/audit-log";
 import {
   canAccessMemberBrand,
   getMemberReadableError,
@@ -12,6 +13,7 @@ import {
   resolveAuthorizedBrand,
   validateMemberPayload,
 } from "@/lib/members";
+import { can } from "@/lib/rbac";
 import {
   getClientIp,
   normalizeBrand,
@@ -162,7 +164,7 @@ export async function GET(request) {
   const requestedBrand = normalizeBrand(searchParams.get("brand"));
   const authorizedBrand = resolveAuthorizedBrand(user, requestedBrand);
 
-  if (authorizedBrand === null) {
+  if (authorizedBrand === null || (authorizedBrand && !can(user, "members.view", { brandId: authorizedBrand }))) {
     return Response.json({ success: false, error: "ไม่มีสิทธิ์เข้าถึงข้อมูลสมาชิกแบรนด์นี้" }, { status: 403 });
   }
 
@@ -253,7 +255,7 @@ export async function POST(request) {
     return Response.json({ success: false, error: "ไม่มีสิทธิ์เพิ่มสมาชิกแบรนด์นี้" }, { status: 403 });
   }
 
-  if (!canAccessMemberBrand(user, brand)) {
+  if (!canAccessMemberBrand(user, brand) || !can(user, "members.create", { brandId: brand })) {
     return Response.json({ success: false, error: "ไม่มีสิทธิ์เพิ่มสมาชิกแบรนด์นี้" }, { status: 403 });
   }
 
@@ -269,8 +271,32 @@ export async function POST(request) {
       actor: sanitizeText(user.username || user.name || user.id, 160),
     });
 
-    return Response.json({ success: true, member: mapMemberRow(row, { includeSensitive: true }) });
+    await writeAuditLog({
+      request,
+      user,
+      brand,
+      action: "MEMBER_CREATED",
+      resourceType: "member",
+      resourceId: row?.id,
+      result: "success",
+    });
+
+    return Response.json({
+      success: true,
+      member: mapMemberRow(row, {
+        includeSensitive: can(user, "sensitive.bank_account.view", { brandId: brand }),
+      }),
+    });
   } catch (error) {
+    await writeAuditLog({
+      request,
+      user,
+      brand,
+      action: "MEMBER_CREATED",
+      resourceType: "member",
+      result: "failure",
+      metadata: { reason: getMemberReadableError(error) },
+    });
     return Response.json({ success: false, error: getMemberReadableError(error) }, { status: 500 });
   }
 }

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { writeAuditLog } from "@/lib/audit-log";
 import {
   canAccessMemberBrand,
   canPermanentlyDeleteMember,
@@ -43,8 +44,28 @@ export async function DELETE(request, context) {
     .eq("brand", row.brand);
 
   if (error) {
+    await writeAuditLog({
+      request,
+      user,
+      brand: row.brand,
+      action: "MEMBER_PERMANENT_DELETED",
+      resourceType: "member",
+      resourceId: row.id,
+      result: "failure",
+      metadata: { reason: getMemberReadableError(error) },
+    });
     return Response.json({ success: false, error: getMemberReadableError(error) }, { status: 500 });
   }
+
+  await writeAuditLog({
+    request,
+    user,
+    brand: row.brand,
+    action: "MEMBER_PERMANENT_DELETED",
+    resourceType: "member",
+    resourceId: row.id,
+    result: "success",
+  });
 
   return Response.json({ success: true });
 }

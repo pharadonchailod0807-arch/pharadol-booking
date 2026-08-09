@@ -6,6 +6,7 @@ import {
   mapMemberRow,
   MEMBER_SELECT_COLUMNS,
 } from "@/lib/members";
+import { can } from "@/lib/rbac";
 import { rejectCrossSiteRequest, sanitizeText } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -32,6 +33,9 @@ export async function POST(request, context) {
   }
   if (!row || !canAccessMemberBrand(user, row.brand)) {
     return Response.json({ success: false, error: "ไม่พบข้อมูลสมาชิกหรือไม่มีสิทธิ์เข้าถึง" }, { status: 404 });
+  }
+  if (!can(user, "members.edit", { brandId: row.brand })) {
+    return Response.json({ success: false, error: "ไม่มีสิทธิ์กู้คืนสมาชิกแบรนด์นี้" }, { status: 403 });
   }
 
   const { data, error } = await supabase

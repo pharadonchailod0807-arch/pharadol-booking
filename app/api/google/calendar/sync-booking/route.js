@@ -2,6 +2,7 @@ import {
   getReadableCalendarError,
   syncBookingToGoogleCalendar,
 } from "@/lib/google-calendar";
+import { requireApiPermission } from "@/lib/server-auth";
 import {
   getClientIp,
   normalizeBrand,
@@ -33,8 +34,17 @@ export async function POST(request) {
       );
     }
 
+    const auth = requireApiPermission({
+      request,
+      permission: "bookings.edit",
+      brandId,
+      missingBrandMessage: "ไม่พบแบรนด์สำหรับ Google Calendar",
+      deniedMessage: "ไม่มีสิทธิ์ซิงก์ Google Calendar ของแบรนด์นี้",
+    });
+    if (auth.response) return auth.response;
+
     const limited = rateLimit({
-      key: `calendar-sync:${brandId}:${getClientIp(request)}`,
+      key: `calendar-sync:${brandId}:${auth.user?.id || auth.user?.username}:${getClientIp(request)}`,
       limit: 30,
       windowMs: 10 * 60 * 1000,
       message: "ซิงก์ Google Calendar บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",

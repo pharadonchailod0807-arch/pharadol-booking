@@ -1,5 +1,6 @@
 import { google } from "googleapis";
 import { Readable } from "node:stream";
+import { requireApiPermission } from "@/lib/server-auth";
 import {
   getClientIp,
   normalizeBrand,
@@ -54,6 +55,23 @@ const BRAND_CONFIG = {
     folderId:
       process.env.ADISORN_GOOGLE_DRIVE_FOLDER_ID,
   },
+};
+
+const fileSignatureMatches = (buffer, mimeType) => {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12) return false;
+  if (mimeType === "application/pdf") {
+    return buffer.subarray(0, 4).toString("ascii") === "%PDF";
+  }
+  if (mimeType === "image/jpeg") {
+    return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
+  if (mimeType === "image/png") {
+    return buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  }
+  if (mimeType === "image/webp") {
+    return buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  }
+  return false;
 };
 
 const getFolderId = (value) => {
@@ -281,9 +299,18 @@ const handleJsonAction = async (
     );
   }
 
+  const authz = requireApiPermission({
+    request,
+    permission: "email.send",
+    brandId: brand,
+    missingBrandMessage: "ไม่พบแบรนด์",
+    deniedMessage: "ไม่มีสิทธิ์ส่งงานลูกค้าของแบรนด์นี้",
+  });
+  if (authz.response) return authz.response;
+
   const limited = rateLimit({
     key:
-      `google-delivery:${brand}:` +
+      `google-delivery:${brand}:${authz.user?.id || authz.user?.username}:` +
       getClientIp(request),
     limit: 120,
     windowMs:
@@ -721,6 +748,15 @@ const handleLegacyUpload = async (
     );
   }
 
+  const authz = requireApiPermission({
+    request,
+    permission: "email.send",
+    brandId: brand,
+    missingBrandMessage: "ไม่พบแบรนด์",
+    deniedMessage: "ไม่มีสิทธิ์อัปโหลดไฟล์ส่งงานของแบรนด์นี้",
+  });
+  if (authz.response) return authz.response;
+
   const file =
     formData.get("file");
 
@@ -780,6 +816,18 @@ const handleLegacyUpload = async (
   const buffer = Buffer.from(
     await file.arrayBuffer()
   );
+
+  if (!fileSignatureMatches(buffer, file.type || "")) {
+    return Response.json(
+      {
+        success: false,
+        error: "ชนิดไฟล์ไม่ตรงกับเนื้อหาไฟล์",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
 
   const { data } =
     await drive.files.create({

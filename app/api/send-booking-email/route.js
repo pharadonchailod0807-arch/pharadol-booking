@@ -1,3 +1,5 @@
+import { writeAuditLog } from "@/lib/audit-log";
+import { requireApiPermission } from "@/lib/server-auth";
 import {
   getClientIp,
   normalizeBrand,
@@ -89,18 +91,6 @@ const estimateBase64Bytes = (value) =>
   Math.floor((String(value || "").replace(/\s/g, "").length * 3) / 4);
 
 export async function POST(request) {
-  const apiKey = process.env.RESEND_API_KEY;
-
-  if (!apiKey) {
-    return Response.json(
-      {
-        error:
-          "ยังไม่ได้ตั้งค่า RESEND_API_KEY ใน .env.local จึงยังส่งอีเมลจากระบบไม่ได้",
-      },
-      { status: 500 }
-    );
-  }
-
   const blockedCrossSite = rejectCrossSiteRequest(request);
   if (blockedCrossSite) return blockedCrossSite;
 
@@ -124,8 +114,29 @@ export async function POST(request) {
     return Response.json({ error: "ไม่พบแบรนด์สำหรับส่งอีเมล" }, { status: 400 });
   }
 
+  const auth = requireApiPermission({
+    request,
+    permission: "email.send",
+    brandId: brand,
+    missingBrandMessage: "ไม่พบแบรนด์สำหรับส่งอีเมล",
+    deniedMessage: "ไม่มีสิทธิ์ส่งอีเมลของแบรนด์นี้",
+  });
+  if (auth.response) return auth.response;
+
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    return Response.json(
+      {
+        error:
+          "ยังไม่ได้ตั้งค่า RESEND_API_KEY ใน .env.local จึงยังส่งอีเมลจากระบบไม่ได้",
+      },
+      { status: 500 }
+    );
+  }
+
   const limited = rateLimit({
-    key: `send-booking-email:${brand}:${getClientIp(request)}`,
+    key: `send-booking-email:${brand}:${auth.user?.id || auth.user?.username}:${getClientIp(request)}`,
     limit: 10,
     windowMs: 10 * 60 * 1000,
     message: "ส่งอีเมลบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
@@ -230,6 +241,15 @@ export async function POST(request) {
   const result = await resendResponse.json().catch(() => ({}));
 
   if (!resendResponse.ok) {
+    await writeAuditLog({
+      request,
+      user: auth.user,
+      brand,
+      action: "EMAIL_SENT",
+      resourceType: "booking_email",
+      result: "failure",
+      metadata: { status: resendResponse.status },
+    });
     return Response.json(
       {
         error:
@@ -241,6 +261,16 @@ export async function POST(request) {
       { status: resendResponse.status }
     );
   }
+
+  await writeAuditLog({
+    request,
+    user: auth.user,
+    brand,
+    action: "EMAIL_SENT",
+    resourceType: "booking_email",
+    resourceId: result.id || "",
+    result: "success",
+  });
 
   return Response.json({ id: result.id || null, ok: true });
 }

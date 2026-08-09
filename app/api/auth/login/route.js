@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { writeAuditLog } from "@/lib/audit-log";
 import {
   AUTH_LOGIN_ERROR,
   createAuthSuccessResponse,
@@ -70,6 +71,13 @@ export async function POST(request) {
       rateLimitMs,
       totalMs: getElapsedMs(startedAt),
     });
+    await writeAuditLog({
+      request,
+      action: "LOGIN_FAILED",
+      resourceType: "auth",
+      result: "failure",
+      metadata: { reason: "missing_credentials" },
+    });
     return NextResponse.json(
       { success: false, error: AUTH_LOGIN_ERROR },
       { status: 401 }
@@ -91,6 +99,13 @@ export async function POST(request) {
       lookupMs,
       totalMs: getElapsedMs(startedAt),
     });
+    await writeAuditLog({
+      request,
+      action: "LOGIN_FAILED",
+      resourceType: "auth",
+      result: "failure",
+      metadata: { reason: "invalid_credentials", identifierPresent: Boolean(identifier) },
+    });
     return NextResponse.json(
       { success: false, error: AUTH_LOGIN_ERROR },
       { status: 401 }
@@ -107,6 +122,14 @@ export async function POST(request) {
       lookupMs,
       totalMs: getElapsedMs(startedAt),
     });
+    await writeAuditLog({
+      request,
+      user: sessionUser,
+      action: "LOGIN_FAILED",
+      resourceType: "auth",
+      result: "failure",
+      metadata: { reason: "invalid_brand_count" },
+    });
     return NextResponse.json(
       { success: false, error: "บัญชีนี้ต้องได้รับสิทธิ์เพียงหนึ่งแบรนด์เท่านั้น" },
       { status: 403 }
@@ -118,6 +141,14 @@ export async function POST(request) {
     sessionUser,
     redirectTo,
     users: publicUsers,
+  });
+  await writeAuditLog({
+    request,
+    user: sessionUser,
+    brand: sessionUser.brands?.[0] || "",
+    action: "LOGIN_SUCCESS",
+    resourceType: "auth",
+    result: "success",
   });
   logLoginTiming({
     result: "success",

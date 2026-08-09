@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabase";
+import { writeAuditLog } from "@/lib/audit-log";
+import { requireApiPermission } from "@/lib/server-auth";
 import {
   getClientIp,
   normalizeBrand,
@@ -94,6 +96,15 @@ export async function GET(request) {
       { status: 400 }
     );
   }
+
+  const auth = requireApiPermission({
+    request,
+    permission: "customers.view",
+    brandId: brand,
+    missingBrandMessage: "ไม่พบแบรนด์",
+    deniedMessage: "ไม่มีสิทธิ์เข้าถึงคำขอลูกค้าแบรนด์นี้",
+  });
+  if (auth.response) return auth.response;
 
   let query = supabase
     .from("customer_requests")
@@ -241,6 +252,15 @@ export async function PATCH(request) {
     );
   }
 
+  const auth = requireApiPermission({
+    request,
+    permission: "customers.edit",
+    brandId: brand,
+    missingBrandMessage: "ไม่พบแบรนด์",
+    deniedMessage: "ไม่มีสิทธิ์แก้ไขคำขอลูกค้าแบรนด์นี้",
+  });
+  if (auth.response) return auth.response;
+
   const updatePayload = isRestore
     ? {
         deleted_at: null,
@@ -267,11 +287,31 @@ export async function PATCH(request) {
     .single();
 
   if (error) {
+    await writeAuditLog({
+      request,
+      user: auth.user,
+      brand,
+      action: isRestore ? "CUSTOMER_REQUEST_RESTORED" : "CUSTOMER_UPDATED",
+      resourceType: "customer_request",
+      resourceId: id,
+      result: "failure",
+      metadata: { reason: getReadableError(error) },
+    });
     return Response.json(
       { success: false, error: getReadableError(error) },
       { status: 500 }
     );
   }
+
+  await writeAuditLog({
+    request,
+    user: auth.user,
+    brand,
+    action: isRestore ? "CUSTOMER_REQUEST_RESTORED" : "CUSTOMER_UPDATED",
+    resourceType: "customer_request",
+    resourceId: id,
+    result: "success",
+  });
 
   return Response.json({
     success: true,
@@ -294,6 +334,17 @@ export async function DELETE(request) {
       { status: 400 }
     );
   }
+
+  const auth = requireApiPermission({
+    request,
+    permission: permanent ? "customers.permanent_delete" : "customers.delete",
+    brandId: brand,
+    missingBrandMessage: "ไม่พบแบรนด์",
+    deniedMessage: permanent
+      ? "ไม่มีสิทธิ์ลบคำขอลูกค้าถาวร"
+      : "ไม่มีสิทธิ์ลบคำขอลูกค้าแบรนด์นี้",
+  });
+  if (auth.response) return auth.response;
 
   let data;
   let error;
@@ -327,11 +378,31 @@ export async function DELETE(request) {
   }
 
   if (error) {
+    await writeAuditLog({
+      request,
+      user: auth.user,
+      brand,
+      action: permanent ? "CUSTOMER_PERMANENT_DELETED" : "CUSTOMER_DELETED",
+      resourceType: "customer_request",
+      resourceId: id,
+      result: "failure",
+      metadata: { reason: getReadableError(error) },
+    });
     return Response.json(
       { success: false, error: getReadableError(error) },
       { status: 500 }
     );
   }
+
+  await writeAuditLog({
+    request,
+    user: auth.user,
+    brand,
+    action: permanent ? "CUSTOMER_PERMANENT_DELETED" : "CUSTOMER_DELETED",
+    resourceType: "customer_request",
+    resourceId: id,
+    result: "success",
+  });
 
   return Response.json({
     success: true,

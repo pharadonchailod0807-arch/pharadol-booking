@@ -6,6 +6,7 @@ import {
   getPublicAdminUsers,
   verifySessionToken,
 } from "@/lib/auth";
+import { getClientIp, rateLimit } from "@/lib/security";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,14 @@ const getElapsedMs = (startedAt) =>
 
 export async function GET(request) {
   const startedAt = performance.now();
+  const limited = rateLimit({
+    key: `auth-session:${getClientIp(request)}`,
+    limit: 120,
+    windowMs: 60_000,
+    message: "ตรวจสอบ session บ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่",
+  });
+  if (limited) return limited;
+
   const token = request.cookies.get(AUTH_SESSION_COOKIE)?.value || "";
   const user = verifySessionToken(token);
 
