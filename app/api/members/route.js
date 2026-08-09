@@ -14,6 +14,7 @@ import {
   validateMemberPayload,
 } from "@/lib/members";
 import { can } from "@/lib/rbac";
+import { permissionDeniedResponse } from "@/lib/server-auth";
 import {
   getClientIp,
   normalizeBrand,
@@ -166,7 +167,14 @@ export async function GET(request) {
   const authorizedBrand = resolveAuthorizedBrand(user, requestedBrand);
 
   if (authorizedBrand === null || (authorizedBrand && !can(user, "members.view", { brandId: authorizedBrand }))) {
-    return Response.json({ success: false, error: "ไม่มีสิทธิ์เข้าถึงข้อมูลสมาชิกแบรนด์นี้" }, { status: 403 });
+    return permissionDeniedResponse({
+      request,
+      user,
+      brand: requestedBrand || authorizedBrand || "",
+      permission: authorizedBrand === null ? "brand.access" : "members.view",
+      resourceType: "member",
+      deniedMessage: "ไม่มีสิทธิ์เข้าถึงข้อมูลสมาชิกแบรนด์นี้",
+    });
   }
 
   const page = parseMemberPage(searchParams.get("page"));
@@ -253,11 +261,25 @@ export async function POST(request) {
   const brand = resolveAuthorizedBrand(user, requestedBrand);
 
   if (!brand) {
-    return Response.json({ success: false, error: "ไม่มีสิทธิ์เพิ่มสมาชิกแบรนด์นี้" }, { status: 403 });
+    return permissionDeniedResponse({
+      request,
+      user,
+      brand: requestedBrand,
+      permission: "brand.access",
+      resourceType: "member",
+      deniedMessage: "ไม่มีสิทธิ์เพิ่มสมาชิกแบรนด์นี้",
+    });
   }
 
   if (!canAccessMemberBrand(user, brand) || !can(user, "members.create", { brandId: brand })) {
-    return Response.json({ success: false, error: "ไม่มีสิทธิ์เพิ่มสมาชิกแบรนด์นี้" }, { status: 403 });
+    return permissionDeniedResponse({
+      request,
+      user,
+      brand,
+      permission: "members.create",
+      resourceType: "member",
+      deniedMessage: "ไม่มีสิทธิ์เพิ่มสมาชิกแบรนด์นี้",
+    });
   }
 
   const validation = validateMemberPayload(payload);

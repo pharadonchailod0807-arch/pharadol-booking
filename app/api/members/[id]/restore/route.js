@@ -7,6 +7,7 @@ import {
   MEMBER_SELECT_COLUMNS,
 } from "@/lib/members";
 import { can } from "@/lib/rbac";
+import { permissionDeniedResponse } from "@/lib/server-auth";
 import { rejectCrossSiteRequest, sanitizeText } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -34,8 +35,16 @@ export async function POST(request, context) {
   if (!row || !canAccessMemberBrand(user, row.brand)) {
     return Response.json({ success: false, error: "ไม่พบข้อมูลสมาชิกหรือไม่มีสิทธิ์เข้าถึง" }, { status: 404 });
   }
-  if (!can(user, "members.edit", { brandId: row.brand })) {
-    return Response.json({ success: false, error: "ไม่มีสิทธิ์กู้คืนสมาชิกแบรนด์นี้" }, { status: 403 });
+  if (!can(user, "trash.restore", { brandId: row.brand })) {
+    return permissionDeniedResponse({
+      request,
+      user,
+      brand: row.brand,
+      permission: "trash.restore",
+      resourceType: "member",
+      resourceId: row.id,
+      deniedMessage: "ไม่มีสิทธิ์กู้คืนสมาชิกแบรนด์นี้",
+    });
   }
 
   const { data, error } = await supabase

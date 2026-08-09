@@ -11,6 +11,9 @@ import {
 } from "@/lib/members";
 import { can } from "@/lib/rbac";
 import {
+  permissionDeniedResponse,
+} from "@/lib/server-auth";
+import {
   rejectCrossSiteRequest,
   rejectDocumentNavigation,
   sanitizeText,
@@ -50,7 +53,15 @@ export async function GET(request, context) {
     return Response.json({ success: false, error: "ไม่พบข้อมูลสมาชิกหรือไม่มีสิทธิ์เข้าถึง" }, { status: 404 });
   }
   if (!can(user, "members.view", { brandId: row.brand })) {
-    return Response.json({ success: false, error: "ไม่มีสิทธิ์เข้าถึงข้อมูลสมาชิกแบรนด์นี้" }, { status: 403 });
+    return permissionDeniedResponse({
+      request,
+      user,
+      brand: row.brand,
+      permission: "members.view",
+      resourceType: "member",
+      resourceId: row.id,
+      deniedMessage: "ไม่มีสิทธิ์เข้าถึงข้อมูลสมาชิกแบรนด์นี้",
+    });
   }
 
   const includeSensitive = can(user, "sensitive.bank_account.view", { brandId: row.brand });
@@ -96,7 +107,15 @@ export async function PATCH(request, context) {
     return Response.json({ success: false, error: "ไม่พบข้อมูลสมาชิกหรือไม่มีสิทธิ์เข้าถึง" }, { status: 404 });
   }
   if (!can(user, "members.edit", { brandId: row.brand })) {
-    return Response.json({ success: false, error: "ไม่มีสิทธิ์แก้ไขข้อมูลสมาชิกแบรนด์นี้" }, { status: 403 });
+    return permissionDeniedResponse({
+      request,
+      user,
+      brand: row.brand,
+      permission: "members.edit",
+      resourceType: "member",
+      resourceId: row.id,
+      deniedMessage: "ไม่มีสิทธิ์แก้ไขข้อมูลสมาชิกแบรนด์นี้",
+    });
   }
 
   const payload = await request.json().catch(() => null);
@@ -165,7 +184,14 @@ export async function DELETE(request, context) {
 
   const { searchParams } = new URL(request.url);
   if (searchParams.get("permanent") === "1" && !canPermanentlyDeleteMember(user)) {
-    return Response.json({ success: false, error: "ไม่มีสิทธิ์ลบสมาชิกถาวร" }, { status: 403 });
+    return permissionDeniedResponse({
+      request,
+      user,
+      permission: "members.permanent_delete",
+      resourceType: "member",
+      resourceId: sanitizeText(id, 120),
+      deniedMessage: "ไม่มีสิทธิ์ลบสมาชิกถาวร",
+    });
   }
 
   const { id } = await context.params;
@@ -178,7 +204,15 @@ export async function DELETE(request, context) {
     return Response.json({ success: false, error: "ไม่พบข้อมูลสมาชิกหรือไม่มีสิทธิ์เข้าถึง" }, { status: 404 });
   }
   if (!can(user, "members.delete", { brandId: row.brand })) {
-    return Response.json({ success: false, error: "ไม่มีสิทธิ์ลบข้อมูลสมาชิกแบรนด์นี้" }, { status: 403 });
+    return permissionDeniedResponse({
+      request,
+      user,
+      brand: row.brand,
+      permission: "members.delete",
+      resourceType: "member",
+      resourceId: row.id,
+      deniedMessage: "ไม่มีสิทธิ์ลบข้อมูลสมาชิกแบรนด์นี้",
+    });
   }
 
   const { data, error } = await supabase

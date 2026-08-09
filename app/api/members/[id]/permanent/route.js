@@ -6,6 +6,7 @@ import {
   getMemberReadableError,
   getSessionUserFromRequest,
 } from "@/lib/members";
+import { permissionDeniedResponse } from "@/lib/server-auth";
 import { rejectCrossSiteRequest, sanitizeText } from "@/lib/security";
 
 export const runtime = "nodejs";
@@ -39,11 +40,19 @@ export async function DELETE(request, context) {
   if (!user) {
     return Response.json({ success: false, error: "กรุณาเข้าสู่ระบบ" }, { status: 401 });
   }
+  const { id } = await context.params;
+
   if (!canPermanentlyDeleteMember(user)) {
-    return Response.json({ success: false, error: "ไม่มีสิทธิ์ลบสมาชิกถาวร" }, { status: 403 });
+    return permissionDeniedResponse({
+      request,
+      user,
+      permission: "members.permanent_delete",
+      resourceType: "member",
+      resourceId: sanitizeText(id, 120),
+      deniedMessage: "ไม่มีสิทธิ์ลบสมาชิกถาวร",
+    });
   }
 
-  const { id } = await context.params;
   const { data: row, error: findError } = await supabase
     .from("members")
     .select("id,brand,profile_image_url")

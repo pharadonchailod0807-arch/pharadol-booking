@@ -254,10 +254,12 @@ export async function PATCH(request) {
 
   const auth = requireApiPermission({
     request,
-    permission: "customers.edit",
+    permission: isRestore ? "trash.restore" : "customers.edit",
     brandId: brand,
     missingBrandMessage: "ไม่พบแบรนด์",
-    deniedMessage: "ไม่มีสิทธิ์แก้ไขคำขอลูกค้าแบรนด์นี้",
+    deniedMessage: isRestore
+      ? "ไม่มีสิทธิ์กู้คืนคำขอลูกค้าแบรนด์นี้"
+      : "ไม่มีสิทธิ์แก้ไขคำขอลูกค้าแบรนด์นี้",
   });
   if (auth.response) return auth.response;
 
