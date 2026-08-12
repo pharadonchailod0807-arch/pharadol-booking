@@ -2,18 +2,187 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_SOURCE_IMAGE_SIZE = 30 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 2400;
+const JPEG_QUALITY = 0.86;
+const UPLOAD_TIMEOUT_MS = 120 * 1000;
 const SUBMIT_COOLDOWN_MS = 30 * 1000;
 const ALLOWED_FILE_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
+  "image/heic",
+  "image/heif",
   "application/pdf",
 ]);
-const ALLOWED_FILE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "pdf"]);
+const IMAGE_FILE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
+const ALLOWED_FILE_EXTENSIONS = new Set([
+  "jpg",
+  "jpeg",
+  "png",
+  "webp",
+  "heic",
+  "heif",
+  "pdf",
+]);
+const WORKING_STATES = new Set([
+  "validating",
+  "preparing_file",
+  "uploading_slip",
+  "saving_request",
+]);
+
+const formatFileSize = (bytes = 0) => {
+  const size = Number(bytes || 0);
+  if (size >= 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  if (size >= 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
+  return `${size} bytes`;
+};
+
+const getFileExtension = (fileName = "") =>
+  String(fileName || "").split(".").pop()?.toLowerCase() || "";
+
+const readAscii = (bytes, start, end) =>
+  Array.from(bytes.slice(start, end))
+    .map((byte) => String.fromCharCode(byte))
+    .join("");
+
+const detectFileType = async (file) => {
+  if (!file) return "";
+  const header = new Uint8Array(await file.slice(0, 32).arrayBuffer());
+  if (header.length < 12) return "";
+
+  if (readAscii(header, 0, 4) === "%PDF") return "application/pdf";
+  if (header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (
+    header[0] === 0x89 &&
+    header[1] === 0x50 &&
+    header[2] === 0x4e &&
+    header[3] === 0x47 &&
+    header[4] === 0x0d &&
+    header[5] === 0x0a &&
+    header[6] === 0x1a &&
+    header[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+  if (readAscii(header, 0, 4) === "RIFF" && readAscii(header, 8, 12) === "WEBP") {
+    return "image/webp";
+  }
+  if (readAscii(header, 4, 8) === "ftyp") {
+    const brands = readAscii(header, 8, header.length);
+    if (/(heic|heix|hevc|hevx)/.test(brands)) return "image/heic";
+    if (/(heif|mif1|msf1)/.test(brands)) return "image/heif";
+  }
+
+  return "";
+};
+
+const loadImageElement = (file) =>
+  new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new window.Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("ไม่สามารถอ่านรูปสลิปนี้ได้"));
+    };
+    image.src = objectUrl;
+  });
+
+const canvasToBlob = (canvas, type, quality) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("ไม่สามารถเตรียมรูปสลิปนี้ได้"));
+      },
+      type,
+      quality
+    );
+  });
+
+const buildPreparedFileName = (fileName = "") => {
+  const baseName =
+    String(fileName || "payment-slip")
+      .replace(/\.[^.]+$/, "")
+      .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
+      .replace(/\s+/g, "-")
+      .slice(0, 80) || "payment-slip";
+  return `${baseName}.jpg`;
+};
+
+const prepareImageFile = async (file, detectedType) => {
+  if (!IMAGE_FILE_TYPES.has(detectedType)) return file;
+  if (file.size > MAX_SOURCE_IMAGE_SIZE) {
+    throw new Error("รูปสลิปมีขนาดใหญ่เกินไป กรุณาเลือกรูปอื่น");
+  }
+
+  const mustConvert = detectedType === "image/heic" || detectedType === "image/heif";
+  const image = await loadImageElement(file);
+  const needsResize = Math.max(image.width, image.height) > MAX_IMAGE_DIMENSION;
+  const needsCompression = file.size > MAX_FILE_SIZE * 0.55;
+
+  if (!mustConvert && !needsResize && !needsCompression) return file;
+
+  const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(image.width, image.height));
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { alpha: false });
+
+  if (!context) throw new Error("ไม่สามารถเตรียมรูปสลิปนี้ได้");
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  let blob = null;
+  for (const quality of [JPEG_QUALITY, 0.8, 0.72]) {
+    blob = await canvasToBlob(canvas, "image/jpeg", quality);
+    if (blob.size <= MAX_FILE_SIZE) break;
+  }
+
+  if (!blob || blob.size > MAX_FILE_SIZE) {
+    throw new Error("รูปสลิปมีขนาดใหญ่เกินไป กรุณาเลือกรูปอื่น");
+  }
+
+  return new File([blob], buildPreparedFileName(file.name), {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+};
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = UPLOAD_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+};
 
 const BRAND_CONFIG = {
   pharadol: {
@@ -67,11 +236,30 @@ export default function CustomerRequestFormPage({ brand }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const [qrImageAvailable, setQrImageAvailable] = useState(true);
   const [file, setFile] = useState(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState("");
   const [fileError, setFileError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [qrActionMessage, setQrActionMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [completion, setCompletion] = useState(null);
+  const [savedRequest, setSavedRequest] = useState(null);
+  const [submitState, setSubmitState] = useState("idle");
+  const submitLockRef = useRef(false);
+  const fileSelectionRef = useRef(0);
+  const filePreviewUrlRef = useRef("");
+  const isSubmitting = WORKING_STATES.has(submitState);
+
+  useEffect(
+    () => () => {
+      if (filePreviewUrlRef.current) URL.revokeObjectURL(filePreviewUrlRef.current);
+    },
+    []
+  );
+
+  const updateFilePreviewUrl = (nextUrl = "") => {
+    if (filePreviewUrlRef.current) URL.revokeObjectURL(filePreviewUrlRef.current);
+    filePreviewUrlRef.current = nextUrl;
+    setFilePreviewUrl(nextUrl);
+  };
 
   const updateField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -111,72 +299,142 @@ export default function CustomerRequestFormPage({ brand }) {
     setStep(2);
   };
 
-  const validateFile = (nextFile) => {
-    if (!nextFile) return "";
-    const extension = String(nextFile.name || "")
-      .split(".")
-      .pop()
-      ?.toLowerCase();
-
-    if (!ALLOWED_FILE_TYPES.has(nextFile.type) || !ALLOWED_FILE_EXTENSIONS.has(extension)) {
-      return "รองรับเฉพาะไฟล์ JPG, PNG, WEBP หรือ PDF เท่านั้น";
-    }
-
-    if (nextFile.size > MAX_FILE_SIZE) {
-      return "ไฟล์สลิปมีขนาดใหญ่เกิน 10MB";
-    }
-
-    return "";
+  const clearSlipFile = () => {
+    setFile(null);
+    setFileError("");
+    updateFilePreviewUrl("");
   };
 
-  const handleFileChange = (event) => {
+  const validateFile = async (nextFile) => {
+    if (!nextFile) return { error: "", detectedType: "" };
+
+    const extension = getFileExtension(nextFile.name);
+    const detectedType = await detectFileType(nextFile);
+
+    if (
+      !detectedType ||
+      !ALLOWED_FILE_TYPES.has(detectedType) ||
+      (extension && !ALLOWED_FILE_EXTENSIONS.has(extension))
+    ) {
+      return {
+        error: "รองรับเฉพาะไฟล์ JPG, PNG, WEBP, HEIC, HEIF หรือ PDF เท่านั้น",
+        detectedType,
+      };
+    }
+
+    if (detectedType === "application/pdf" && nextFile.size > MAX_FILE_SIZE) {
+      return {
+        error: "รูปสลิปมีขนาดใหญ่เกินไป กรุณาเลือกรูปอื่น",
+        detectedType,
+      };
+    }
+
+    return { error: "", detectedType };
+  };
+
+  const handleFileChange = async (event) => {
     const nextFile = event.target.files?.[0] || null;
-    const nextError = validateFile(nextFile);
+    const selectionId = fileSelectionRef.current + 1;
+    fileSelectionRef.current = selectionId;
+    setSubmitError("");
+    setCompletion((current) =>
+      current?.status === "partial_success" ? current : null
+    );
 
-    setFileError(nextError);
-    setFile(nextError ? null : nextFile);
+    if (!nextFile) {
+      clearSlipFile();
+      return;
+    }
 
-    if (nextError) {
+    setSubmitState("preparing_file");
+    setFileError("");
+
+    try {
+      const { error, detectedType } = await validateFile(nextFile);
+      if (selectionId !== fileSelectionRef.current) return;
+
+      if (error) {
+        clearSlipFile();
+        setFileError(error);
+        event.target.value = "";
+        return;
+      }
+
+      const preparedFile = await prepareImageFile(nextFile, detectedType);
+      if (selectionId !== fileSelectionRef.current) return;
+
+      if (preparedFile.size > MAX_FILE_SIZE) {
+        clearSlipFile();
+        setFileError("รูปสลิปมีขนาดใหญ่เกินไป กรุณาเลือกรูปอื่น");
+        event.target.value = "";
+        return;
+      }
+
+      const previewUrl = IMAGE_FILE_TYPES.has(preparedFile.type)
+        ? URL.createObjectURL(preparedFile)
+        : "";
+
+      updateFilePreviewUrl(previewUrl);
+      setFile(preparedFile);
+    } catch (error) {
+      clearSlipFile();
+      setFileError(error.message || "ไม่สามารถเตรียมรูปสลิปนี้ได้");
       event.target.value = "";
+    } finally {
+      if (selectionId === fileSelectionRef.current) {
+        setSubmitState("idle");
+      }
     }
   };
 
-  const uploadSlip = async () => {
-    if (!file) return { slipUrl: "", slipFileName: "", slipFileType: "" };
+  const uploadSlip = async (requestRecord = savedRequest) => {
+    if (!file || !requestRecord?.id) {
+      return { slipUrl: "", slipFileName: "", slipFileType: "" };
+    }
 
     const formData = new FormData();
-    formData.append("brandId", brand);
-    formData.append("expectedBrandId", brand);
+    formData.append("brand", brand);
+    formData.append("phone", requestRecord.phone || form.phone);
     formData.append("file", file, file.name);
 
-    const response = await fetch("/api/google/upload", {
-      method: "POST",
-      body: formData,
-    });
+    const response = await fetchWithTimeout(
+      `/api/customer-requests/${encodeURIComponent(requestRecord.id)}/slip`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok || !result.success) {
-      throw new Error(result.error || "แนบสลิปไม่สำเร็จ");
+      const fallbackMessage =
+        response.status === 413
+          ? "รูปสลิปมีขนาดใหญ่เกินไป กรุณาเลือกรูปอื่น"
+          : response.status === 415
+            ? "รองรับเฉพาะไฟล์ JPG, PNG, WEBP, HEIC, HEIF หรือ PDF"
+            : response.status >= 500
+              ? "ไม่สามารถแนบสลิปได้ในขณะนี้ กรุณาลองใหม่"
+              : "การเชื่อมต่อขัดข้อง กรุณาลองอัปโหลดสลิปอีกครั้ง";
+      throw new Error(result.error || fallbackMessage);
     }
 
     return {
-      slipUrl:
-        file.type === "application/pdf"
-          ? result.driveViewUrl || result.driveDownloadUrl || ""
-          : result.driveDownloadUrl || result.driveViewUrl || "",
-      slipFileName: file.name,
-      slipFileType: file.type,
+      slipUrl: result.url || result.request?.slipUrl || "",
+      slipFileName: result.fileName || file.name,
+      slipFileType: result.fileType || file.type,
     };
   };
 
-  const submitRequest = async (slipData) => {
+  const submitRequest = async () => {
     const response = await fetch("/api/customer-requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         brand,
         ...form,
-        ...slipData,
+        slipUrl: "",
+        slipFileName: "",
+        slipFileType: "",
       }),
     });
     const result = await response.json().catch(() => ({}));
@@ -216,55 +474,113 @@ export default function CustomerRequestFormPage({ brand }) {
 const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitError("");
-    setSuccessMessage("");
+    setCompletion(null);
 
-    if (isSubmitting) return;
-
-    if (step !== 2) return;
-    if (!validateStepOne()) {
-      setStep(1);
-      return;
-    }
-
-    if (fileError) return;
-
-    const cooldownKey = `${brand}_customer_request_last_submit`;
-    const lastSubmittedAt = Number(localStorage.getItem(cooldownKey) || 0);
-    const cooldownRemaining = SUBMIT_COOLDOWN_MS - (Date.now() - lastSubmittedAt);
-
-    if (cooldownRemaining > 0) {
-      setSubmitError("ส่งข้อมูลเร็วเกินไป กรุณารอสักครู่แล้วลองใหม่");
-      return;
-    }
-
-    setIsSubmitting(true);
+    if (submitLockRef.current || isSubmitting) return;
+    submitLockRef.current = true;
 
     try {
-      let slipData = { slipUrl: "", slipFileName: "", slipFileType: "" };
-      let slipUploadFailed = false;
+      setSubmitState("validating");
 
-      try {
-        slipData = await uploadSlip();
-      } catch (slipError) {
-        slipUploadFailed = Boolean(file);
-        console.error("Cannot upload customer slip", slipError);
+      if (step !== 2) return;
+      if (!validateStepOne()) {
+        setStep(1);
+        return;
       }
 
-      await submitRequest(slipData);
+      if (fileError) return;
+
+      const cooldownKey = `${brand}_customer_request_last_submit`;
+      const lastSubmittedAt = Number(localStorage.getItem(cooldownKey) || 0);
+      const cooldownRemaining = SUBMIT_COOLDOWN_MS - (Date.now() - lastSubmittedAt);
+
+      if (cooldownRemaining > 0) {
+        setSubmitError("ส่งข้อมูลเร็วเกินไป กรุณารอสักครู่แล้วลองใหม่");
+        return;
+      }
+
+      if (submitState === "preparing_file") {
+        setSubmitError("ระบบกำลังเตรียมรูปสลิป กรุณารอสักครู่");
+        return;
+      }
+
+      setSubmitState("saving_request");
+      const requestRecord = await submitRequest();
+      setSavedRequest(requestRecord);
       localStorage.setItem(cooldownKey, String(Date.now()));
+
+      if (file) {
+        try {
+          setSubmitState("uploading_slip");
+          await uploadSlip(requestRecord);
+        } catch (slipError) {
+          setCompletion({
+            status: "partial_success",
+            message:
+              slipError.message ||
+              "ระบบบันทึกข้อมูลแล้ว แต่ยังแนบสลิปไม่สำเร็จ คุณสามารถลองแนบใหม่ได้โดยไม่ต้องกรอกข้อมูลซ้ำ",
+            request: requestRecord,
+          });
+          return;
+        }
+      }
+
       setForm(initialForm);
       setFieldErrors({});
-      setFile(null);
+      clearSlipFile();
       setStep(1);
-      setSuccessMessage(
-        slipUploadFailed
-          ? "ส่งข้อมูลสำเร็จ แต่แนบสลิปไม่สำเร็จ กรุณาติดต่อทีมงาน"
-          : "ส่งข้อมูลเรียบร้อยแล้ว"
-      );
+      setSavedRequest(null);
+      setCompletion({
+        status: "success",
+        message: "ส่งข้อมูลเรียบร้อยแล้ว",
+        request: requestRecord,
+      });
     } catch (error) {
       setSubmitError(error.message || "ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     } finally {
-      setIsSubmitting(false);
+      submitLockRef.current = false;
+      setSubmitState("idle");
+    }
+  };
+
+  const retrySlipUpload = async () => {
+    if (submitLockRef.current || isSubmitting || !savedRequest?.id || !file) return;
+
+    submitLockRef.current = true;
+    setSubmitError("");
+    setCompletion((current) =>
+      current
+        ? {
+            ...current,
+            message: "กำลังอัปโหลดสลิป...",
+          }
+        : current
+    );
+
+    try {
+      setSubmitState("uploading_slip");
+      await uploadSlip(savedRequest);
+      clearSlipFile();
+      setForm(initialForm);
+      setFieldErrors({});
+      setStep(1);
+      setSavedRequest(null);
+      setCompletion({
+        status: "success",
+        message: "แนบสลิปเรียบร้อยแล้ว",
+        request: savedRequest,
+      });
+    } catch (error) {
+      setCompletion({
+        status: "partial_success",
+        message:
+          error.message ||
+          "ระบบบันทึกข้อมูลแล้ว แต่ยังแนบสลิปไม่สำเร็จ คุณสามารถลองแนบใหม่ได้โดยไม่ต้องกรอกข้อมูลซ้ำ",
+        request: savedRequest,
+      });
+    } finally {
+      submitLockRef.current = false;
+      setSubmitState("idle");
     }
   };
 
@@ -305,6 +621,14 @@ const handleSubmit = async (event) => {
       : "ยอดชำระตามที่ทีมงานแจ้ง";
   const paymentInstruction =
     "กรุณาชำระเงินเพื่อยืนยันการจอง และแนบสลิปหลังโอนสำเร็จ";
+  const submitButtonText =
+    submitState === "saving_request"
+      ? "กำลังบันทึกข้อมูล..."
+      : submitState === "uploading_slip"
+        ? "กำลังอัปโหลดสลิป..."
+        : submitState === "preparing_file"
+          ? "กำลังเตรียมรูป..."
+          : "ส่งข้อมูล";
   const getQrUrl = () =>
     typeof window === "undefined"
       ? config.paymentQr
@@ -415,7 +739,7 @@ const handleSubmit = async (event) => {
               </p>
 
               <p
-                className="m-0 whitespace-nowrap text-[clamp(16px,4.8vw,19px)] font-extrabold leading-none tracking-[-0.3px] sm:text-[23px]"
+                className="m-0 break-words text-[clamp(14px,4vw,19px)] font-extrabold leading-tight sm:text-[23px]"
                 style={{
                   color:
                     config.paymentName === "PHARADOL PRODUCTION"
@@ -444,7 +768,7 @@ const handleSubmit = async (event) => {
             >
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
+                accept="image/*,application/pdf"
                 onChange={handleFileChange}
                 className="sr-only"
               />
@@ -520,7 +844,7 @@ const handleSubmit = async (event) => {
           >
             <input
               type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf"
+              accept="image/*,application/pdf"
               onChange={handleFileChange}
               className="sr-only"
             />
@@ -533,12 +857,29 @@ const handleSubmit = async (event) => {
 
           {file && !fileError && (
             <div className="mx-auto mt-2 max-w-[360px] rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-left sm:hidden">
+              {filePreviewUrl ? (
+                <img
+                  src={filePreviewUrl}
+                  alt="ตัวอย่างสลิป"
+                  className="mb-2 max-h-[180px] w-full rounded-lg object-contain"
+                />
+              ) : null}
               <p className="text-xs font-black text-emerald-700">
                 แนบสลิปแล้ว
               </p>
               <p className="mt-0.5 truncate text-xs font-semibold text-emerald-700/80">
                 {file.name}
               </p>
+              <p className="mt-0.5 text-xs font-semibold text-emerald-700/80">
+                {formatFileSize(file.size)}
+              </p>
+              <button
+                type="button"
+                onClick={clearSlipFile}
+                className="mt-2 min-h-8 rounded-full bg-white px-3 text-xs font-black text-emerald-700"
+              >
+                ลบรูป
+              </button>
             </div>
           )}
 
@@ -556,7 +897,9 @@ const handleSubmit = async (event) => {
     </div>
   );
 
-  if (successMessage) {
+  if (completion) {
+    const partialSuccess = completion.status === "partial_success";
+
     return (
       <main
         className="min-h-screen px-4 py-6 text-zinc-950 sm:px-6 sm:py-10"
@@ -592,16 +935,17 @@ const handleSubmit = async (event) => {
             </div>
 
             <p className="mt-5 text-[11px] font-black uppercase tracking-[0.3em] text-zinc-400">
-              ส่งข้อมูลสำเร็จ
+              {partialSuccess ? "บันทึกข้อมูลแล้ว" : "ส่งข้อมูลสำเร็จ"}
             </p>
 
             <h1 className="mt-3 text-[30px] font-black leading-tight tracking-[-0.03em] text-zinc-950 sm:text-4xl">
-              ส่งข้อมูลเรียบร้อยแล้ว
+              {partialSuccess ? "ยังแนบสลิปไม่สำเร็จ" : "ส่งข้อมูลเรียบร้อยแล้ว"}
             </h1>
 
             <p className="mx-auto mt-4 max-w-md text-[15px] font-medium leading-7 text-zinc-600 sm:text-base">
-              ขอบคุณสำหรับข้อมูลและสลิปการโอน ทีมงานได้รับข้อมูลแล้ว
-              และจะติดต่อกลับโดยเร็วที่สุด
+              {partialSuccess
+                ? "ระบบบันทึกข้อมูลแล้ว คุณสามารถลองแนบสลิปใหม่ได้โดยไม่ต้องกรอกข้อมูลซ้ำ"
+                : "ขอบคุณสำหรับข้อมูลและสลิปการโอน ทีมงานได้รับข้อมูลแล้ว และจะติดต่อกลับโดยเร็วที่สุด"}
             </p>
 
             <div className="mx-auto mt-6 max-w-md rounded-2xl border border-zinc-100 bg-zinc-50/90 px-4 py-4 text-left">
@@ -627,10 +971,64 @@ const handleSubmit = async (event) => {
               </div>
             </div>
 
-            {successMessage !== "ส่งข้อมูลเรียบร้อยแล้ว" && (
+            {partialSuccess && (
               <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-800">
-                {successMessage}
+                {completion.message ||
+                  "ระบบบันทึกข้อมูลแล้ว แต่ยังแนบสลิปไม่สำเร็จ คุณสามารถลองแนบใหม่ได้โดยไม่ต้องกรอกข้อมูลซ้ำ"}
               </p>
+            )}
+
+            {partialSuccess && (
+              <div className="mx-auto mt-4 max-w-md rounded-2xl border border-zinc-100 bg-white px-4 py-4 text-left">
+                {filePreviewUrl ? (
+                  <img
+                    src={filePreviewUrl}
+                    alt="ตัวอย่างสลิป"
+                    className="mb-3 max-h-[240px] w-full rounded-xl object-contain"
+                  />
+                ) : null}
+
+                {file ? (
+                  <div className="text-sm font-semibold text-zinc-600">
+                    <p className="break-all font-black text-zinc-800">{file.name}</p>
+                    <p className="mt-1">{formatFileSize(file.size)}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm font-semibold text-zinc-600">
+                    กรุณาเลือกรูปสลิปอีกครั้ง
+                  </p>
+                )}
+
+                {fileError && (
+                  <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+                    {fileError}
+                  </p>
+                )}
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={retrySlipUpload}
+                    disabled={isSubmitting || !file || Boolean(fileError)}
+                    className="min-h-[46px] rounded-2xl px-4 text-sm font-black text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{ backgroundColor: config.primary }}
+                  >
+                    {submitState === "uploading_slip"
+                      ? "กำลังอัปโหลดสลิป..."
+                      : "ลองอัปโหลดสลิปใหม่"}
+                  </button>
+
+                  <label className="flex min-h-[46px] cursor-pointer items-center justify-center rounded-2xl border border-zinc-200 bg-white px-4 text-sm font-black text-zinc-700 transition hover:bg-zinc-50">
+                    เปลี่ยนรูป
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleFileChange}
+                      className="sr-only"
+                    />
+                  </label>
+                </div>
+              </div>
             )}
 
             <p className="mt-6 text-xs font-semibold text-zinc-400">
@@ -770,7 +1168,7 @@ const handleSubmit = async (event) => {
                   <input
                     id={slipInputId}
                     type="file"
-                    accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+                    accept="image/*,application/pdf"
                     onChange={handleFileChange}
                     className="sr-only"
                   />
@@ -784,22 +1182,44 @@ const handleSubmit = async (event) => {
                     {file && !fileError ? "แนบสลิปแล้ว" : "แนบสลิปการโอน"}
                   </span>
                   <span className="mt-1 block text-sm font-semibold leading-6 text-zinc-500">
-                    รองรับ JPG, PNG, WEBP, PDF ขนาดไม่เกิน 10MB
+                    รองรับ JPG, PNG, WEBP, HEIC, HEIF และ PDF ขนาดไม่เกิน 10MB
                   </span>
-                  {file && !fileError && (
-                    <div className="mx-auto mt-3 max-w-xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 sm:mt-4">
-                      <p className="text-sm font-black text-emerald-700">
-                        แนบสลิปแล้ว
-                      </p>
-                      <p className="mt-1 break-all text-xs font-semibold text-emerald-700/80">
-                        {file.name}
-                      </p>
-                      <span className="mt-3 inline-flex min-h-8 items-center rounded-full bg-white px-3 text-xs font-black text-emerald-700">
-                        เปลี่ยนไฟล์
-                      </span>
-                    </div>
-                  )}
                 </label>
+                {file && !fileError && (
+                  <div className="mx-auto hidden max-w-xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 sm:mt-1 sm:block">
+                    {filePreviewUrl ? (
+                      <img
+                        src={filePreviewUrl}
+                        alt="ตัวอย่างสลิป"
+                        className="mb-3 max-h-[260px] w-full rounded-xl bg-white object-contain"
+                      />
+                    ) : null}
+                    <p className="text-sm font-black text-emerald-700">
+                      แนบสลิปแล้ว
+                    </p>
+                    <p className="mt-1 break-all text-xs font-semibold text-emerald-700/80">
+                      {file.name}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-emerald-700/80">
+                      {formatFileSize(file.size)}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <label
+                        htmlFor={slipInputId}
+                        className="inline-flex min-h-8 cursor-pointer items-center rounded-full bg-white px-3 text-xs font-black text-emerald-700"
+                      >
+                        เปลี่ยนรูป
+                      </label>
+                      <button
+                        type="button"
+                        onClick={clearSlipFile}
+                        className="inline-flex min-h-8 items-center rounded-full bg-white px-3 text-xs font-black text-zinc-600"
+                      >
+                        ลบรูป
+                      </button>
+                    </div>
+                  </div>
+                )}
                 {fileError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{fileError}</p>}
                 {submitError && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{submitError}</p>}
               </div>
@@ -822,7 +1242,7 @@ const handleSubmit = async (event) => {
                   className="min-h-[48px] rounded-2xl px-3 text-sm font-black text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[56px] sm:px-5 sm:text-base"
                   style={{ backgroundColor: config.primary }}
                 >
-                  {isSubmitting ? "กำลังส่งข้อมูล..." : "ส่งข้อมูล"}
+                  {submitButtonText}
                 </button>
               </div>
             </>
