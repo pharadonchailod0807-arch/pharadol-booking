@@ -5,12 +5,22 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const MAX_SOURCE_IMAGE_SIZE = 30 * 1024 * 1024;
 const MAX_IMAGE_DIMENSION = 2400;
 const JPEG_QUALITY = 0.86;
 const UPLOAD_TIMEOUT_MS = 120 * 1000;
 const SUBMIT_COOLDOWN_MS = 30 * 1000;
+const SLIP_ERROR_MESSAGES = {
+  SLIP_TOO_LARGE: "รูปสลิปมีขนาดใหญ่เกินไป กรุณาเลือกรูปอื่น",
+  SLIP_UNSUPPORTED: "รองรับเฉพาะไฟล์ JPG, PNG, WEBP, HEIC, HEIF หรือ PDF",
+  SLIP_UPLOAD_TIMEOUT: "อัปโหลดสลิปนานเกินไป กรุณาลองใหม่อีกครั้ง",
+  SLIP_STORAGE_AUTH_ERROR: "ระบบเชื่อมต่อพื้นที่เก็บไฟล์ไม่ได้ กรุณาติดต่อทีมงาน",
+  SLIP_STORAGE_PERMISSION_ERROR: "ระบบไม่มีสิทธิ์บันทึกสลิป กรุณาติดต่อทีมงาน",
+  SLIP_STORAGE_ERROR: "ไม่สามารถบันทึกสลิปได้ในขณะนี้ กรุณาลองใหม่",
+  SLIP_ATTACH_ERROR: "บันทึกข้อมูลแล้ว แต่บันทึกลิงก์สลิปไม่สำเร็จ กรุณาติดต่อทีมงาน",
+  SLIP_ENV_MISSING: "ระบบยังตั้งค่าพื้นที่เก็บไฟล์ไม่ครบ กรุณาติดต่อทีมงาน",
+};
 const ALLOWED_FILE_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -182,6 +192,35 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = UPLOAD_TIMEOUT_MS
   } finally {
     window.clearTimeout(timeoutId);
   }
+};
+
+const logSlipUploadClient = (event, payload = {}, level = "info") => {
+  if (process.env.NODE_ENV === "production") return;
+
+  const logger = level === "error" ? console.error : console.info;
+  logger(event, {
+    endpoint: payload.endpoint || "",
+    httpStatus: payload.httpStatus || 0,
+    responseBody: payload.responseBody || null,
+    errorCode: payload.errorCode || "",
+    fileType: payload.fileType || "",
+    fileSize: payload.fileSize || 0,
+    fileName: payload.fileName || "",
+    preparedFileType: payload.preparedFileType || "",
+    preparedFileSize: payload.preparedFileSize || 0,
+    preparedFileName: payload.preparedFileName || "",
+    formDataFields: payload.formDataFields || [],
+    customerRequestId: payload.customerRequestId || "",
+    uploadDurationMs: payload.uploadDurationMs || 0,
+  });
+};
+
+const createSlipUploadError = (code, fallbackMessage) => {
+  const error = new Error(
+    SLIP_ERROR_MESSAGES[code] || fallbackMessage || "การเชื่อมต่อขัดข้อง กรุณาลองอัปโหลดสลิปอีกครั้ง"
+  );
+  error.code = code || "SLIP_UPLOAD_FAILED";
+  return error;
 };
 
 const BRAND_CONFIG = {
@@ -370,6 +409,15 @@ export default function CustomerRequestFormPage({ brand }) {
         return;
       }
 
+      logSlipUploadClient("[SLIP_UPLOAD] step=frontend-file-prepared", {
+        fileName: nextFile.name,
+        fileType: nextFile.type || detectedType,
+        fileSize: nextFile.size,
+        preparedFileName: preparedFile.name,
+        preparedFileType: preparedFile.type,
+        preparedFileSize: preparedFile.size,
+      });
+
       const previewUrl = IMAGE_FILE_TYPES.has(preparedFile.type)
         ? URL.createObjectURL(preparedFile)
         : "";
@@ -397,16 +445,70 @@ export default function CustomerRequestFormPage({ brand }) {
     formData.append("phone", requestRecord.phone || form.phone);
     formData.append("file", file, file.name);
 
-    const response = await fetchWithTimeout(
-      `/api/customer-requests/${encodeURIComponent(requestRecord.id)}/slip`,
-      {
+    const endpoint = `/api/customer-requests/${encodeURIComponent(requestRecord.id)}/slip`;
+    const uploadStartedAt = Date.now();
+    let response = null;
+    let result = {};
+
+    logSlipUploadClient("[SLIP_UPLOAD] step=frontend-formdata-ready", {
+      endpoint,
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      preparedFileName: file.name,
+      preparedFileType: file.type,
+      preparedFileSize: file.size,
+      formDataFields: ["brand", "phone", "file"],
+      customerRequestId: requestRecord.id,
+    });
+
+    try {
+      response = await fetchWithTimeout(endpoint, {
         method: "POST",
         body: formData,
-      }
-    );
-    const result = await response.json().catch(() => ({}));
+      });
+      result = await response.json().catch(() => ({}));
+    } catch (error) {
+      const code =
+        error?.name === "AbortError" ? "SLIP_UPLOAD_TIMEOUT" : "SLIP_UPLOAD_FAILED";
+      logSlipUploadClient(
+        "Customer slip upload request failed",
+        {
+          endpoint,
+          errorCode: code,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          preparedFileName: file.name,
+          preparedFileType: file.type,
+          preparedFileSize: file.size,
+          formDataFields: ["brand", "phone", "file"],
+          customerRequestId: requestRecord.id,
+          uploadDurationMs: Date.now() - uploadStartedAt,
+        },
+        "error"
+      );
+      throw createSlipUploadError(code, error.message);
+    }
+
+    logSlipUploadClient("Customer slip upload response", {
+      endpoint,
+      httpStatus: response.status,
+      responseBody: result,
+      errorCode: result.code || "",
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      preparedFileName: file.name,
+      preparedFileType: file.type,
+      preparedFileSize: file.size,
+      formDataFields: ["brand", "phone", "file"],
+      customerRequestId: requestRecord.id,
+      uploadDurationMs: Date.now() - uploadStartedAt,
+    }, response.ok && result.success ? "info" : "error");
 
     if (!response.ok || !result.success) {
+      const code = result.code || "";
       const fallbackMessage =
         response.status === 413
           ? "รูปสลิปมีขนาดใหญ่เกินไป กรุณาเลือกรูปอื่น"
@@ -414,8 +516,8 @@ export default function CustomerRequestFormPage({ brand }) {
             ? "รองรับเฉพาะไฟล์ JPG, PNG, WEBP, HEIC, HEIF หรือ PDF"
             : response.status >= 500
               ? "ไม่สามารถแนบสลิปได้ในขณะนี้ กรุณาลองใหม่"
-              : "การเชื่อมต่อขัดข้อง กรุณาลองอัปโหลดสลิปอีกครั้ง";
-      throw new Error(result.error || fallbackMessage);
+            : "การเชื่อมต่อขัดข้อง กรุณาลองอัปโหลดสลิปอีกครั้ง";
+      throw createSlipUploadError(code, result.error || fallbackMessage);
     }
 
     return {
@@ -1182,7 +1284,7 @@ const handleSubmit = async (event) => {
                     {file && !fileError ? "แนบสลิปแล้ว" : "แนบสลิปการโอน"}
                   </span>
                   <span className="mt-1 block text-sm font-semibold leading-6 text-zinc-500">
-                    รองรับ JPG, PNG, WEBP, HEIC, HEIF และ PDF ขนาดไม่เกิน 10MB
+                    รองรับ JPG, PNG, WEBP, HEIC, HEIF และ PDF ขนาดไม่เกิน 4MB
                   </span>
                 </label>
                 {file && !fileError && (
