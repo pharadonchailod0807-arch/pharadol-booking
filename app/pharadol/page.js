@@ -6748,9 +6748,17 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                     <span>-฿ {totalDiscount.toLocaleString()}</span>
                   </div>
                 )}
+                <div className="flex justify-between text-zinc-600">
+                  <span>ราคาเต็ม</span>
+                  <span>฿ {finalPrice.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-zinc-600">
+                  <span>ชำระแล้ว</span>
+                  <span>฿ {previewTotalPaid.toLocaleString()}</span>
+                </div>
                 <div className="border-t pt-2 mt-1 flex justify-between items-center font-bold">
-                  <span className="text-2xl">ยอดรวมสุทธิ</span>
-                  <span className="text-2xl">฿ {finalPrice.toLocaleString()}</span>
+                  <span className="text-2xl">ยอดคงเหลือ</span>
+                  <span className="text-2xl">฿ {previewRemainingPayment.toLocaleString()}</span>
                 </div>
               </div>
             </div>
