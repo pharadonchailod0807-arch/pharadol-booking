@@ -218,6 +218,12 @@ const writeBookingStorage = (key, booking) =>
 const getSafeErrorMessage = (error, fallback = "unknown error") =>
   error?.message || error?.error || fallback;
 
+const parseCurrencyAmount = (value) => {
+  const normalizedValue = String(value ?? "").replace(/,/g, "").trim();
+  const amount = Number(normalizedValue || 0);
+  return Number.isFinite(amount) ? amount : 0;
+};
+
 const getPaymentProgress = (totalPaid, finalPrice) => {
   if (totalPaid <= 0) return "ยังไม่ชำระ";
   if (finalPrice > 0 && totalPaid >= finalPrice) return "ชำระครบแล้ว";
@@ -229,6 +235,15 @@ const getPaymentDisplayStatus = (paymentType, paidAmount) => {
   if (paymentType === "เต็มจำนวน") return "ชำระแล้ว";
   if (paymentType === "มัดจำ") return "ชำระแล้ว(มัดจำ)";
   return "ชำระแล้ว";
+};
+
+const getPaymentSummaryLabel = (paymentType, paidAmount) => {
+  if (Number(paidAmount || 0) <= 0) return "ชำระแล้ว";
+
+  const normalizedPaymentType = String(paymentType || "").trim();
+  return normalizedPaymentType
+    ? `ชำระแล้ว (${normalizedPaymentType})`
+    : "ชำระแล้ว";
 };
 
 const getPaymentDisplayStatusClass = (status) => {
@@ -1922,7 +1937,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     0
   );
 
-  const currentPaymentAmount = Number(paymentAmount || 0);
+  const currentPaymentAmount = parseCurrencyAmount(paymentAmount);
   const currentPaymentAlreadyRecorded =
     currentPaymentAmount > 0 &&
     paymentTransactions.some(
@@ -1938,6 +1953,10 @@ const formattedEventDate = formatThaiDateInput(eventDate);
   const previewTotalPaid = Math.min(finalPrice, totalPaid + previewPaymentAmount);
   const remainingPayment = Math.max(finalPrice - totalPaid, 0);
   const previewRemainingPayment = Math.max(finalPrice - previewTotalPaid, 0);
+  const paymentSummaryLabel = getPaymentSummaryLabel(
+    paymentStatus,
+    previewTotalPaid
+  );
   const paymentDisplayStatus = getPaymentDisplayStatus(
     paymentStatus,
     previewTotalPaid
@@ -5889,8 +5908,8 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
             </div>
 
             <input
-              type="number"
-              min="0"
+              type="text"
+              inputMode="numeric"
               placeholder="ยอดชำระ (บาท)"
               value={paymentAmount}
               onChange={(e) =>
@@ -6748,17 +6767,22 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                     <span>-฿ {totalDiscount.toLocaleString()}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-zinc-600">
-                  <span>ราคาเต็ม</span>
-                  <span>฿ {finalPrice.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-zinc-600">
-                  <span>ชำระแล้ว</span>
-                  <span>฿ {previewTotalPaid.toLocaleString()}</span>
-                </div>
+                {previewTotalPaid > 0 && (
+                  <div className="flex justify-between text-zinc-600">
+                    <span>{paymentSummaryLabel}</span>
+                    <span>-฿ {previewTotalPaid.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="border-t pt-2 mt-1 flex justify-between items-center font-bold">
-                  <span className="text-2xl">ยอดคงเหลือ</span>
-                  <span className="text-2xl">฿ {previewRemainingPayment.toLocaleString()}</span>
+                  <span className="text-2xl">
+                    {previewTotalPaid > 0 ? "ยอดคงเหลือ" : "ยอดรวมสุทธิ"}
+                  </span>
+                  <span className="text-2xl">
+                    ฿ {(previewTotalPaid > 0
+                      ? previewRemainingPayment
+                      : finalPrice
+                    ).toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
