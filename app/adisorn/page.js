@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+import BookingTermsPage from "@/app/components/BookingTermsPage";
 import { supabase } from "@/lib/supabase";
 import { getNextBookingSequence } from "@/lib/booking-number";
 import {
@@ -7138,6 +7139,12 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
           </div>
         </div>
         )}
+
+        <BookingTermsPage
+          brandId={BRAND_ID}
+          headerMeta={renderBookingHeaderMeta(documentBookingDate, "-translate-y-4")}
+          signatureDate={documentToday}
+        />
           </>
         )}
 
