@@ -32,14 +32,14 @@ const BRAND_DOCUMENTS = {
 const TERMS = [
   {
     number: "01",
-    icon: "check",
+    icon: "booking",
     title: "การยืนยันการจอง",
     detail:
       "การยืนยันการจองจะถือว่าเสร็จสมบูรณ์ เมื่อลูกค้าชำระเงินมัดจำตามจำนวนที่สตูดิโอกำหนด และได้รับการยืนยันวันและเวลาจากทางสตูดิโอแล้ว",
   },
   {
     number: "02",
-    icon: "package",
+    icon: "camera",
     title: "การเพิ่ม/ลดแพ็กเกจ",
     detail:
       "หากมัดจำและจองแพ็คเกจช่างภาพหรือวีดีโอแล้ว ลูกค้าสามารถเพิ่มแพ็คเกจได้ แต่ไม่สามารถลดแพ็คเกจได้",
@@ -88,7 +88,7 @@ const TERMS = [
   },
   {
     number: "09",
-    icon: "megaphone",
+    icon: "share",
     title: "การนำภาพไปใช้เพื่อประชาสัมพันธ์",
     detail:
       "สตูดิโออาจนำภาพที่ถ่ายไปใช้เพื่อประชาสัมพันธ์ผลงาน เช่น Facebook, Instagram, Website หรือสื่อโฆษณา โดยจะคำนึงถึงความเหมาะสมและความเป็นส่วนตัวของลูกค้าเป็นสำคัญ หากลูกค้าไม่ประสงค์ให้เผยแพร่ภาพ กรุณาแจ้งสตูดิโอก่อนวันถ่ายภาพ",
@@ -99,17 +99,20 @@ const leftTerms = TERMS.slice(0, 5);
 const rightTerms = TERMS.slice(5);
 
 const iconPaths = {
-  check: (
+  booking: (
     <>
-      <path d="M5 12.5 9 16.5 19 6.5" />
-      <path d="M4.5 4.5h15v15h-15z" />
+      <path d="M5 6.5h14v13H5z" />
+      <path d="M5 10h14" />
+      <path d="M8 4.5v4" />
+      <path d="M16 4.5v4" />
+      <path d="m8 15 2 2 5-5" />
     </>
   ),
-  package: (
+  camera: (
     <>
-      <path d="m4.5 8 7.5-4 7.5 4-7.5 4z" />
-      <path d="M4.5 8v8l7.5 4 7.5-4V8" />
-      <path d="M12 12v8" />
+      <path d="M5 8.5h3l1.5-2h5l1.5 2h3v10H5z" />
+      <path d="M12 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+      <path d="M17 11h.01" />
     </>
   ),
   payment: (
@@ -155,43 +158,46 @@ const iconPaths = {
       <path d="M5 20h14" />
     </>
   ),
-  megaphone: (
+  share: (
     <>
-      <path d="M5 13h3l9-5v10l-9-5H5z" />
-      <path d="M8 13l1.5 5" />
-      <path d="M19 10.5c.7.7 1 1.5 1 2.5s-.3 1.8-1 2.5" />
+      <path d="M8 12h8" />
+      <path d="M13 7l5 5-5 5" />
+      <path d="M6 5h4" />
+      <path d="M6 19h4" />
+      <path d="M4 7V5h2" />
+      <path d="M4 17v2h2" />
     </>
   ),
 };
 
 const TermIcon = ({ type }) => (
-  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-900">
+  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-950">
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className="h-4 w-4"
+      className="h-[22px] w-[22px]"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.9"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      {iconPaths[type] || iconPaths.check}
+      {iconPaths[type] || iconPaths.booking}
     </svg>
   </div>
 );
 
 const TermCard = ({ term }) => (
-  <article className="grid grid-cols-[28px_32px_1fr] gap-2 rounded-xl border border-zinc-200 bg-white p-2.5">
-    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-[9px] font-bold leading-none text-white">
+  <article className="grid min-h-[82px] grid-cols-[38px_44px_1fr] gap-3 rounded-xl border border-zinc-200 bg-white p-3.5">
+    <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold leading-none text-white">
       {term.number}
     </div>
     <TermIcon type={term.icon} />
     <div className="min-w-0">
-      <h3 className="text-[10px] font-bold leading-tight text-zinc-950">
+      <h3 className="text-[12px] font-bold leading-tight text-zinc-950">
         {term.title}
       </h3>
-      <p className="mt-1 text-[7.8px] font-medium leading-[1.38] text-zinc-700">
+      <p className="mt-1.5 text-[9.4px] font-medium leading-[1.48] text-zinc-700">
         {term.detail}
       </p>
     </div>
@@ -206,7 +212,7 @@ export default function BookingTermsPage({
   const brand = BRAND_DOCUMENTS[brandId] || BRAND_DOCUMENTS.pharadol;
 
   return (
-    <div className="print-area terms-page bg-white w-[210mm] h-[297mm] mx-auto shadow-2xl px-8 py-7 flex flex-col overflow-hidden mt-10">
+    <div className="print-area terms-page bg-white w-[210mm] h-[297mm] mx-auto shadow-2xl px-7 py-6 flex flex-col overflow-hidden mt-10">
       <div
         className={`flex justify-between ${brand.headerAlignClassName} pb-4 shrink-0`}
       >
@@ -250,49 +256,49 @@ export default function BookingTermsPage({
 
       <div className="-translate-y-5 border-t border-black shrink-0" />
 
-      <section className="text-center pb-3 shrink-0">
-        <h2 className="text-2xl font-bold text-zinc-950">
+      <section className="text-center pb-4 shrink-0">
+        <h2 className="text-[30px] font-bold leading-tight text-zinc-950">
           รายละเอียดและเงื่อนไขการให้บริการ
         </h2>
-        <p className="mt-1 text-[11px] font-semibold text-zinc-500">
+        <p className="mt-1.5 text-[12.5px] font-semibold text-zinc-500">
           กรุณาอ่านรายละเอียดและเงื่อนไขก่อนยืนยันการจอง
         </p>
       </section>
 
-      <section className="grid flex-1 min-h-0 grid-cols-2 gap-3">
-        <div className="flex min-h-0 flex-col gap-2">
+      <section className="grid flex-1 min-h-0 grid-cols-2 gap-4">
+        <div className="flex min-h-0 flex-col justify-between gap-2.5">
           {leftTerms.map((term) => (
             <TermCard key={term.number} term={term} />
           ))}
         </div>
-        <div className="flex min-h-0 flex-col gap-2">
+        <div className="flex min-h-0 flex-col justify-between gap-2.5">
           {rightTerms.map((term) => (
             <TermCard key={term.number} term={term} />
           ))}
         </div>
       </section>
 
-      <section className="mt-3 flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-[9px] leading-relaxed text-zinc-700 shrink-0">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-sm font-black text-zinc-900">
+      <section className="mt-4 flex items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3.5 text-[10px] leading-relaxed text-zinc-700 shrink-0">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-base font-black text-zinc-900">
           !
         </div>
         <div>
-          <p className="font-bold text-zinc-950">หมายเหตุ</p>
+          <p className="text-[12px] font-bold leading-tight text-zinc-950">หมายเหตุ</p>
           <p className="mt-0.5">
             เงื่อนไขข้างต้นสามารถปรับเปลี่ยนได้ตามลักษณะงาน แพ็กเกจ และข้อตกลงระหว่างสตูดิโอกับลูกค้า
           </p>
         </div>
       </section>
 
-      <section className="mt-3 grid grid-cols-2 gap-4 shrink-0">
-        <div className="rounded-xl border border-zinc-200 px-4 py-3 text-center">
+      <section className="mt-4 grid grid-cols-2 gap-4 shrink-0">
+        <div className="rounded-xl border border-zinc-200 px-4 py-3.5 text-center">
           <p className="text-sm font-semibold text-zinc-900">ลูกค้า</p>
           <div className="mt-5 border-b border-zinc-400" />
           <p className="mt-2 text-[10px] text-zinc-500">
             วันที่ ......... / ......... / .........
           </p>
         </div>
-        <div className="rounded-xl border border-zinc-200 px-4 py-3 text-center">
+        <div className="rounded-xl border border-zinc-200 px-4 py-3.5 text-center">
           <p className="text-sm font-semibold text-zinc-900">{brand.name}</p>
           <div className="mt-5 border-b border-zinc-400" />
           <p className="mt-2 text-[10px] text-zinc-500">
