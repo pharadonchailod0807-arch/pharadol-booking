@@ -1786,6 +1786,9 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     paymentStatus,
     previewTotalPaid
   );
+  const paymentSummaryClass = paymentSummaryLabel.includes("มัดจำ")
+    ? "text-red-600"
+    : "text-zinc-600";
   const paymentDisplayStatus = getPaymentDisplayStatus(
     paymentStatus,
     previewTotalPaid
@@ -6556,7 +6559,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   </div>
                 )}
                 {previewTotalPaid > 0 && (
-                  <div className="flex justify-between text-zinc-600">
+                  <div className={`flex justify-between ${paymentSummaryClass}`}>
                     <span>{paymentSummaryLabel}</span>
                     <span>-฿ {previewTotalPaid.toLocaleString()}</span>
                   </div>
