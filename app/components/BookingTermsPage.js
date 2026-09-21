@@ -188,7 +188,7 @@ const TermIcon = ({ type }) => (
 );
 
 const TermCard = ({ term }) => (
-  <article className="grid min-h-[82px] grid-cols-[38px_44px_1fr] gap-3 rounded-xl border border-zinc-200 bg-white p-3.5">
+  <article className="grid h-[118px] grid-cols-[38px_44px_1fr] gap-3 rounded-xl border border-zinc-200 bg-white p-3.5">
     <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-black text-xs font-bold leading-none text-white">
       {term.number}
     </div>
@@ -265,13 +265,13 @@ export default function BookingTermsPage({
         </p>
       </section>
 
-      <section className="grid flex-1 min-h-0 grid-cols-2 gap-4">
-        <div className="flex min-h-0 flex-col justify-between gap-2.5">
+      <section className="grid shrink-0 grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2">
           {leftTerms.map((term) => (
             <TermCard key={term.number} term={term} />
           ))}
         </div>
-        <div className="flex min-h-0 flex-col justify-between gap-2.5">
+        <div className="flex flex-col gap-2">
           {rightTerms.map((term) => (
             <TermCard key={term.number} term={term} />
           ))}
