@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import BookingTermsPage from "@/app/components/BookingTermsPage";
+import { getBrandDocument } from "@/app/lib/brandDocuments";
 import { supabase } from "@/lib/supabase";
 import { getNextBookingSequence } from "@/lib/booking-number";
 import {
@@ -36,6 +37,7 @@ const Barcode = dynamic(() => import("react-barcode"), {
 });
 
 const BRAND_ID = "adisorn";
+const ADISORN_DOCUMENT = getBrandDocument(BRAND_ID);
 const BRAND_BASE_PATH = "/adisorn";
 const ROUTES = {
   home: BRAND_BASE_PATH,
@@ -7076,7 +7078,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   adisornweddingstudio@gmail.com
                 </p>
                 <p className="mt-0.5 text-zinc-600 text-[10px] leading-tight">
-                  121 หมู่ 10 ตำบลไชยมงคล อำเภอเมือง จังหวัดนครราชสีมา 30000
+                  {ADISORN_DOCUMENT.address}
                 </p>
               </div>
             </div>
