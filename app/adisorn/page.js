@@ -6376,7 +6376,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                 </p>
 
                 <p className="mt-0.5 text-zinc-600 text-[10px] leading-tight">
-                  โทร. 082 141 9633
+                  {ADISORN_DOCUMENT.address}
                 </p>
 
               </div>
@@ -6627,7 +6627,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   adisornweddingstudio@gmail.com
                 </p>
                 <p className="mt-0.5 text-zinc-600 text-[10px] leading-tight">
-                  โทร. 082 141 9633
+                  {ADISORN_DOCUMENT.address}
                 </p>
               </div>
             </div>
@@ -6861,7 +6861,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   adisornweddingstudio@gmail.com
                 </p>
                 <p className="mt-0.5 text-zinc-600 text-[10px] leading-tight">
-                  โทร. 082 141 9633
+                  {ADISORN_DOCUMENT.address}
                 </p>
               </div>
             </div>
