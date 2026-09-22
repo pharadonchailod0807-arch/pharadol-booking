@@ -6372,11 +6372,11 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                 </h1>
 
                 <p className="mt-1 text-zinc-600 text-[10px] leading-tight">
-                  adisornweddingstudio@gmail.com
+                  {ADISORN_DOCUMENT.address}
                 </p>
 
                 <p className="mt-0.5 text-zinc-600 text-[10px] leading-tight">
-                  {ADISORN_DOCUMENT.address}
+                  {ADISORN_DOCUMENT.email} | โทร. {ADISORN_DOCUMENT.phone}
                 </p>
 
               </div>
@@ -6624,10 +6624,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   Adisorn Wedding Studio
                 </h1>
                 <p className="mt-1 text-zinc-600 text-[10px] leading-tight">
-                  adisornweddingstudio@gmail.com
+                  {ADISORN_DOCUMENT.address}
                 </p>
                 <p className="mt-0.5 text-zinc-600 text-[10px] leading-tight">
-                  {ADISORN_DOCUMENT.address}
+                  {ADISORN_DOCUMENT.email} | โทร. {ADISORN_DOCUMENT.phone}
                 </p>
               </div>
             </div>
@@ -6858,10 +6858,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   Adisorn Wedding Studio
                 </h1>
                 <p className="mt-1 text-zinc-600 text-[10px] leading-tight">
-                  adisornweddingstudio@gmail.com
+                  {ADISORN_DOCUMENT.address}
                 </p>
                 <p className="mt-0.5 text-zinc-600 text-[10px] leading-tight">
-                  {ADISORN_DOCUMENT.address}
+                  {ADISORN_DOCUMENT.email} | โทร. {ADISORN_DOCUMENT.phone}
                 </p>
               </div>
             </div>
@@ -7075,10 +7075,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   Adisorn Wedding Studio
                 </h1>
                 <p className="mt-1 text-zinc-600 text-[10px] leading-tight">
-                  adisornweddingstudio@gmail.com
+                  {ADISORN_DOCUMENT.address}
                 </p>
                 <p className="mt-0.5 text-zinc-600 text-[10px] leading-tight">
-                  {ADISORN_DOCUMENT.address}
+                  {ADISORN_DOCUMENT.email} | โทร. {ADISORN_DOCUMENT.phone}
                 </p>
               </div>
             </div>
