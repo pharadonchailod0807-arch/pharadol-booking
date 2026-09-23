@@ -77,9 +77,10 @@ const MAX_STORAGE_BYTES = 2 * 1024 * 1024;
 const TRAVEL_SERVICE_NAME = "ค่าเดินทาง";
 const ACCOMMODATION_SERVICE_NAME = "ค่าที่พัก";
 const PRE_WEDDING_SERVICE_NAME = "แพ็กเกจ Pre Wedding";
-const PRE_WEDDING_PACKAGE_CODES = Array.from({ length: 26 }, (_, index) =>
-  String.fromCharCode(65 + index)
-);
+const PRE_WEDDING_PACKAGE_CODES = [
+  "Special",
+  ...Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index)),
+];
 const CUSTOM_ROOM_QUANTITY_VALUE = "other";
 const DEFAULT_CALENDAR_COLOR = "#111827";
 const CALENDAR_COLOR_OPTIONS = [
