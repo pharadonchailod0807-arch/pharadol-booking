@@ -73,6 +73,9 @@ const TERMS = [
 const leftTerms = TERMS.slice(0, 5);
 const rightTerms = TERMS.slice(5);
 
+const ADISORN_POSTPONE_TERM_DETAIL =
+  "หากลูกค้ามีความจำเป็นต้องเลื่อนวันถ่ายภาพ กรุณาแจ้งล่วงหน้าอย่างน้อย 2 - 3 สัปดาห์ โดยสามารถเลื่อนได้ตามคิวว่างของสตูดิโอ ทั้งนี้ วันใหม่จะต้องได้รับการยืนยันจากทางสตูดิโอก่อนทุกครั้ง";
+
 const iconPaths = {
   booking: (
     <>
@@ -187,6 +190,10 @@ export default function BookingTermsPage({
   const brand = getBrandDocument(brandId);
   const headerBrandName =
     brandId === "adisorn" ? "Adisorn Wedding Studio" : brand.name;
+  const getTermForBrand = (term) =>
+    brandId === "adisorn" && term.number === "04"
+      ? { ...term, detail: ADISORN_POSTPONE_TERM_DETAIL }
+      : term;
 
   return (
     <div className="print-area terms-page bg-white w-[210mm] h-[297mm] mx-auto shadow-2xl px-7 py-6 flex flex-col overflow-hidden mt-10">
@@ -245,7 +252,7 @@ export default function BookingTermsPage({
       <section className="grid shrink-0 grid-cols-2 gap-4">
         <div className="flex flex-col gap-2">
           {leftTerms.map((term) => (
-            <TermCard key={term.number} term={term} />
+            <TermCard key={term.number} term={getTermForBrand(term)} />
           ))}
         </div>
         <div className="flex flex-col gap-2">
