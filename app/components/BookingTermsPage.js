@@ -185,6 +185,8 @@ export default function BookingTermsPage({
   signatureDate,
 }) {
   const brand = getBrandDocument(brandId);
+  const headerBrandName =
+    brandId === "adisorn" ? "Adisorn Wedding Studio" : brand.name;
 
   return (
     <div className="print-area terms-page bg-white w-[210mm] h-[297mm] mx-auto shadow-2xl px-7 py-6 flex flex-col overflow-hidden mt-10">
@@ -211,7 +213,7 @@ export default function BookingTermsPage({
             <h1
               className={`${brand.titleClassName} font-bold leading-tight whitespace-nowrap`}
             >
-              {brand.name}
+              {headerBrandName}
             </h1>
             <p
               className={`mt-1 max-w-[310px] text-zinc-600 ${brand.contactClassName} leading-tight`}
