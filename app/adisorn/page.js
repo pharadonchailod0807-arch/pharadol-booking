@@ -7371,18 +7371,6 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   ))}
                 </select>
 
-                <label className="block font-semibold mb-2">จำนวน</label>
-                <select
-                  value="1"
-                  disabled
-                  className={editableInputClass(
-                    "selectedServiceQuantity",
-                    "1",
-                    "mb-4 px-4 py-4"
-                  )}
-                >
-                  <option value="1">1</option>
-                </select>
               </>
             )}
 
