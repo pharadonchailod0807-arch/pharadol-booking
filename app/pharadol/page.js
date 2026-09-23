@@ -80,6 +80,10 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const MAX_STORAGE_BYTES = 2 * 1024 * 1024;
 const TRAVEL_SERVICE_NAME = "ค่าเดินทาง";
 const ACCOMMODATION_SERVICE_NAME = "ค่าที่พัก";
+const PRE_WEDDING_SERVICE_NAME = "แพ็กเกจ Pre Wedding";
+const PRE_WEDDING_PACKAGE_CODES = Array.from({ length: 26 }, (_, index) =>
+  String.fromCharCode(65 + index)
+);
 const CUSTOM_ROOM_QUANTITY_VALUE = "other";
 const DEFAULT_CALENDAR_COLOR = "#111827";
 const CALENDAR_COLOR_OPTIONS = [
@@ -606,6 +610,7 @@ const regularServiceOptions = [
   "ช่างภาพแคนดิด",
   "ช่างภาพวิดีโอ",
   "ผู้ช่วยช่างภาพ",
+  PRE_WEDDING_SERVICE_NAME,
   "QR Code",
   "Video Guestbook",
   "Photo Booth",
@@ -652,7 +657,25 @@ const personnelServices = [
 ];
 
 const isPackageServiceName = (serviceName) =>
-  packageServiceOptions.includes(serviceName);
+  packageServiceOptions.includes(serviceName) ||
+  isPreWeddingServiceName(serviceName);
+
+const getPreWeddingPackageCode = (serviceName = "") => {
+  const normalizedName = String(serviceName || "").trim();
+  const prefix = `${PRE_WEDDING_SERVICE_NAME} `;
+  const code = normalizedName.startsWith(prefix)
+    ? normalizedName.slice(prefix.length).trim()
+    : "";
+
+  return PRE_WEDDING_PACKAGE_CODES.includes(code) ? code : "";
+};
+
+const isPreWeddingServiceName = (serviceName) =>
+  serviceName === PRE_WEDDING_SERVICE_NAME ||
+  Boolean(getPreWeddingPackageCode(serviceName));
+
+const getPreWeddingDisplayName = (packageCode) =>
+  `${PRE_WEDDING_SERVICE_NAME} ${packageCode}`;
 
 const isTravelServiceName = (serviceName) =>
   serviceName === TRAVEL_SERVICE_NAME;
@@ -683,9 +706,11 @@ const [selectedServiceName, setSelectedServiceName] = useState("");
 const [selectedServiceType, setSelectedServiceType] = useState("service");
 const [selectedServicePrice, setSelectedServicePrice] = useState("");
 const [selectedServiceQuantity, setSelectedServiceQuantity] = useState("1");
+const [selectedPreWeddingPackage, setSelectedPreWeddingPackage] = useState("");
 const [selectedTravelDetail, setSelectedTravelDetail] = useState("");
 const [selectedRoomQuantity, setSelectedRoomQuantity] = useState("1");
 const [selectedCustomRoomQuantity, setSelectedCustomRoomQuantity] = useState("");
+const [editingServiceItemId, setEditingServiceItemId] = useState("");
 const [discountPercent, setDiscountPercent] = useState("");
 const [discountAmount, setDiscountAmount] = useState("");
 
@@ -2146,14 +2171,24 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     setSelectedServiceType(serviceType);
     setSelectedServicePrice("");
     setSelectedServiceQuantity("1");
+    setSelectedPreWeddingPackage("");
     setSelectedTravelDetail("");
     setSelectedRoomQuantity("1");
     setSelectedCustomRoomQuantity("");
+    setEditingServiceItemId("");
   };
 
   const addServiceItem = () => {
     if (!selectedServiceName) {
       alert("กรุณาเลือกรายการบริการ");
+      return;
+    }
+
+    const isPreWeddingPackage =
+      selectedServiceName === PRE_WEDDING_SERVICE_NAME;
+
+    if (isPreWeddingPackage && !selectedPreWeddingPackage) {
+      alert("กรุณาเลือกแพ็กเกจ");
       return;
     }
 
@@ -2187,22 +2222,76 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     const description = isTravelServiceName(selectedServiceName)
       ? selectedTravelDetail.trim()
       : packageDescriptions[selectedServiceName] || "";
+    const resolvedServiceName = isPreWeddingPackage
+      ? getPreWeddingDisplayName(selectedPreWeddingPackage)
+      : selectedServiceName;
+    const nextServiceItemPayload = {
+      name: resolvedServiceName,
+      description,
+      quantity,
+      unitLabel,
+      unitPrice,
+      price: unitPrice * quantity,
+      ...(isPreWeddingPackage
+        ? {
+            serviceType: PRE_WEDDING_SERVICE_NAME,
+            packageCode: selectedPreWeddingPackage,
+          }
+        : {}),
+    };
 
-    setServiceItems((currentItems) => [
-      ...currentItems,
-      {
-        id: `${Date.now()}-${Math.random()}`,
-        name: selectedServiceName,
-        description,
-        quantity,
-        unitLabel,
-        unitPrice,
-        price: unitPrice * quantity,
-      },
-    ]);
+    setServiceItems((currentItems) =>
+      editingServiceItemId
+        ? currentItems.map((item) =>
+            item.id === editingServiceItemId
+              ? { ...nextServiceItemPayload, id: editingServiceItemId }
+              : item
+          )
+        : [
+            ...currentItems,
+            {
+              ...nextServiceItemPayload,
+              id: `${Date.now()}-${Math.random()}`,
+            },
+          ]
+    );
     markFieldEdited("serviceItems");
 
     closeServiceModal();
+  };
+
+  const editServiceItem = (item) => {
+    const preWeddingPackageCode =
+      item.packageCode || getPreWeddingPackageCode(item.name);
+    const isPreWeddingItem = Boolean(preWeddingPackageCode);
+    const normalizedServiceName = isPreWeddingItem
+      ? PRE_WEDDING_SERVICE_NAME
+      : item.name || "";
+    const isAccommodation = isAccommodationServiceName(normalizedServiceName);
+    const itemQuantity = String(item.quantity || 1);
+
+    setEditingServiceItemId(item.id || "");
+    setSelectedServiceType(
+      packageServiceOptions.includes(normalizedServiceName)
+        ? "package"
+        : "service"
+    );
+    setSelectedServiceName(normalizedServiceName);
+    setSelectedPreWeddingPackage(preWeddingPackageCode);
+    setSelectedServicePrice(String(item.unitPrice ?? item.price ?? ""));
+    setSelectedServiceQuantity(itemQuantity);
+    setSelectedTravelDetail(
+      isTravelServiceName(normalizedServiceName) && typeof item.description === "string"
+        ? item.description
+        : ""
+    );
+    setSelectedRoomQuantity(
+      isAccommodation && Number(item.quantity || 1) >= 1
+        ? String(item.quantity || 1)
+        : "1"
+    );
+    setSelectedCustomRoomQuantity("");
+    setShowServiceModal(true);
   };
 
   const removeServiceItem = (id) => {
@@ -5783,13 +5872,23 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => removeServiceItem(item.id)}
-                      className="text-red-600 font-semibold"
-                    >
-                      ลบ
-                    </button>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => editServiceItem(item)}
+                        className="font-semibold text-zinc-700"
+                      >
+                        แก้ไข
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => removeServiceItem(item.id)}
+                        className="font-semibold text-red-600"
+                      >
+                        ลบ
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -7375,7 +7474,9 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
       {showServiceModal && (
         <div className="no-print fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
           <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white p-5 shadow-2xl md:p-6">
-            <h2 className="text-2xl font-bold mb-1">เพิ่มรายการบริการ</h2>
+            <h2 className="text-2xl font-bold mb-1">
+              {editingServiceItemId ? "แก้ไขรายการบริการ" : "เพิ่มรายการบริการ"}
+            </h2>
             <p className="text-zinc-500 mb-5">
               เลือกรายการและกรอกราคา
             </p>
@@ -7419,11 +7520,15 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
             <select
               value={selectedServiceName}
               onChange={(e) => {
+                const nextServiceName = e.target.value;
                 updateEditableField(
                   "selectedServiceName",
                   setSelectedServiceName,
-                  e.target.value
+                  nextServiceName
                 );
+                if (nextServiceName !== PRE_WEDDING_SERVICE_NAME) {
+                  setSelectedPreWeddingPackage("");
+                }
                 setSelectedTravelDetail("");
                 setSelectedRoomQuantity("1");
                 setSelectedCustomRoomQuantity("");
@@ -7458,6 +7563,47 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   {packageDescriptions[selectedServiceName]}
                 </p>
               </div>
+            )}
+
+            {selectedServiceName === PRE_WEDDING_SERVICE_NAME && (
+              <>
+                <label className="block font-semibold mb-2">แพ็กเกจ</label>
+                <select
+                  value={selectedPreWeddingPackage}
+                  onChange={(e) =>
+                    updateEditableField(
+                      "selectedPreWeddingPackage",
+                      setSelectedPreWeddingPackage,
+                      e.target.value
+                    )
+                  }
+                  className={editableInputClass(
+                    "selectedPreWeddingPackage",
+                    selectedPreWeddingPackage,
+                    "mb-4 px-4 py-4"
+                  )}
+                >
+                  <option value="">เลือกแพ็กเกจ</option>
+                  {PRE_WEDDING_PACKAGE_CODES.map((packageCode) => (
+                    <option key={packageCode} value={packageCode}>
+                      {packageCode}
+                    </option>
+                  ))}
+                </select>
+
+                <label className="block font-semibold mb-2">จำนวน</label>
+                <select
+                  value="1"
+                  disabled
+                  className={editableInputClass(
+                    "selectedServiceQuantity",
+                    "1",
+                    "mb-4 px-4 py-4"
+                  )}
+                >
+                  <option value="1">1</option>
+                </select>
+              </>
             )}
 
             {personnelServices.includes(selectedServiceName) && (
@@ -7618,7 +7764,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                 onClick={addServiceItem}
                 className="bg-black text-white rounded-2xl py-4 font-semibold"
               >
-                ตกลง
+                {editingServiceItemId ? "บันทึก" : "ตกลง"}
               </button>
             </div>
           </div>
