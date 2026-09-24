@@ -17,6 +17,19 @@ export const dynamic = "force-dynamic";
 const MAX_CREATE_RETRIES = 20;
 const DEFAULT_LIST_PAGE_SIZE = 30;
 const MAX_LIST_PAGE_SIZE = 50;
+const CUSTOMER_SOURCE_VALUES = new Set([
+  "facebook",
+  "instagram",
+  "tiktok",
+  "google_search",
+  "friend_referral",
+  "existing_customer_referral",
+  "repeat_customer",
+  "event_portfolio",
+  "planner_organizer",
+  "venue_referral",
+  "other",
+]);
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -84,6 +97,9 @@ const normalizeBookingRow = (row) => {
     location: bookingData.location || row?.location || "",
     eventDate: bookingData.eventDate || row?.event_date || "",
     jobStatus: bookingData.jobStatus || row?.job_status || "รอยืนยัน",
+    status: bookingData.status || bookingData.jobStatus || row?.job_status || "รอยืนยัน",
+    customerSource: bookingData.customerSource || null,
+    customerSourceDetail: bookingData.customerSourceDetail || "",
   };
 };
 
@@ -127,6 +143,8 @@ const normalizeBookingSummary = (row) => {
     createdAt: row?.created_at || bookingData.createdAt || "",
     updatedAt: row?.updated_at || bookingData.updatedAt || "",
     hasSlip: Boolean(slipImage),
+    customerSource: bookingData.customerSource || null,
+    customerSourceDetail: bookingData.customerSourceDetail || "",
   };
 };
 
@@ -377,6 +395,22 @@ const getDeletedBookingRowsForPermanentDelete = async ({
   if (error) throw error;
 
   return (Array.isArray(data) ? data : []).filter((row) => getBookingBrand(row) === brandId);
+};
+
+const updateCustomerSourcePayload = ({ existingRow, brandId, source, detail }) => {
+  const bookingData =
+    existingRow?.booking_data && typeof existingRow.booking_data === "object"
+      ? existingRow.booking_data
+      : {};
+
+  return {
+    booking_data: {
+      ...bookingData,
+      brandId,
+      customerSource: source || null,
+      customerSourceDetail: source === "other" ? detail : "",
+    },
+  };
 };
 
 export async function GET(request) {
@@ -722,6 +756,7 @@ export async function PATCH(request) {
     const brandId = normalizeBrand(payload?.brandId);
     const bookingId = sanitizeText(payload?.bookingId, 120);
     const bookingNumber = sanitizeText(payload?.bookingNumber, 120);
+    const action = sanitizeText(payload?.action, 80);
     const booking = payload?.booking && typeof payload.booking === "object"
       ? payload.booking
       : {};
@@ -762,11 +797,34 @@ export async function PATCH(request) {
       );
     }
 
-    const bookingPayload = updateBookingPayload({
-      booking,
-      existingRow,
-      brandId,
-    });
+    let bookingPayload;
+    let auditAction = "BOOKING_UPDATED";
+
+    if (action === "customerSource") {
+      const customerSource = sanitizeText(payload?.customerSource, 80);
+      const customerSourceDetail = sanitizeText(payload?.customerSourceDetail, 180);
+
+      if (customerSource && !CUSTOMER_SOURCE_VALUES.has(customerSource)) {
+        return Response.json(
+          { success: false, error: "ช่องทางที่ลูกค้ารู้จักเราไม่ถูกต้อง" },
+          { status: 400 }
+        );
+      }
+
+      bookingPayload = updateCustomerSourcePayload({
+        existingRow,
+        brandId,
+        source: customerSource,
+        detail: customerSourceDetail,
+      });
+      auditAction = "BOOKING_CUSTOMER_SOURCE_UPDATED";
+    } else {
+      bookingPayload = updateBookingPayload({
+        booking,
+        existingRow,
+        brandId,
+      });
+    }
 
     const { data, error } = await supabase
       .from("bookings")
@@ -781,7 +839,7 @@ export async function PATCH(request) {
       request,
       user: auth.user,
       brand: brandId,
-      action: "BOOKING_UPDATED",
+      action: auditAction,
       resourceType: "booking",
       resourceId: existingRow.id,
       result: "success",

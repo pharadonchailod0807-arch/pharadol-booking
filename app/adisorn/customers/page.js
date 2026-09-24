@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import CustomerSourceIndicator from "@/app/components/CustomerSourceIndicator";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
 import { syncBookingGoogleCalendar } from "@/app/lib/googleCalendarClient";
 import { safeGetArray, safeGetObject, safeSetJson } from "@/app/lib/safeStorage";
@@ -70,6 +71,8 @@ export default function CustomersPage() {
       eventDate: bookingData.eventDate || rowData.event_date || rowData.eventDate || "",
       jobStatus: rowData.job_status || bookingData.jobStatus || "รอยืนยัน",
       status: rowData.job_status || bookingData.status || bookingData.jobStatus || "รอยืนยัน",
+      customerSource: bookingData.customerSource || null,
+      customerSourceDetail: bookingData.customerSourceDetail || "",
     };
   }, []);
 
@@ -667,6 +670,40 @@ export default function CustomersPage() {
     }
   };
 
+  const updateCustomerSource = async (customer, source, detail) => {
+    const response = await fetch("/api/bookings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "customerSource",
+        brandId: BRAND_ID,
+        bookingId: customer.supabaseId || customer.bookingId || "",
+        bookingNumber: customer.bookingNumber || "",
+        customerSource: source,
+        customerSourceDetail: detail,
+      }),
+    });
+    const result = await response.json().catch(() => ({}));
+
+    if (!response.ok || !result.success) {
+      throw new Error(result.error || "บันทึกช่องทางที่ลูกค้ารู้จักเราไม่สำเร็จ");
+    }
+
+    const updatedCustomer = normalizeBookingRow(result.booking || {});
+    const nextCustomers = customers.map((item) =>
+      (customer.supabaseId && item.supabaseId === customer.supabaseId) ||
+      item.bookingNumber === customer.bookingNumber
+        ? {
+            ...item,
+            customerSource: updatedCustomer.customerSource || null,
+            customerSourceDetail: updatedCustomer.customerSourceDetail || "",
+          }
+        : item
+    );
+
+    syncCustomers(nextCustomers);
+  };
+
   const getStatusClassName = (status) => {
     const normalizedStatus = String(status || "").trim();
 
@@ -840,10 +877,15 @@ export default function CustomersPage() {
               return (
                 <article
                   key={customer.bookingNumber || index}
-                  className={`rounded-2xl border bg-white p-4 shadow-sm ${
+                  className={`relative rounded-2xl border bg-white p-4 shadow-sm ${
                     isSelected ? "border-[#000000] ring-2 ring-[#F7F7F7]" : "border-zinc-200"
                   }`}
                 >
+                  <CustomerSourceIndicator
+                    customer={customer}
+                    brandChrome={brandChrome}
+                    onChange={updateCustomerSource}
+                  />
                   <div className="flex items-start justify-between gap-3">
                     <label className="flex min-w-0 items-start gap-3">
                       <input
@@ -970,12 +1012,17 @@ export default function CustomersPage() {
                 return (
                   <div
                     key={customer.bookingNumber || index}
-                    className={`grid grid-cols-[44px_1fr_1fr_0.9fr_0.9fr_0.8fr_300px] items-center gap-3 border-t px-4 py-4 text-sm transition lg:gap-4 lg:px-5 ${
+                    className={`relative grid grid-cols-[44px_1fr_1fr_0.9fr_0.9fr_0.8fr_300px] items-center gap-3 border-t px-4 py-4 text-sm transition lg:gap-4 lg:px-5 ${
                       selectedBookingNumbers.includes(customer.bookingNumber)
                         ? "border-[#000000]/60 bg-[#F7F7F7]/45"
                         : "border-zinc-200"
                     }`}
                   >
+                    <CustomerSourceIndicator
+                      customer={customer}
+                      brandChrome={brandChrome}
+                      onChange={updateCustomerSource}
+                    />
                     <div className="flex items-center justify-center">
                       <input
                         type="checkbox"
