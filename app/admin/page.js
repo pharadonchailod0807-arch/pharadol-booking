@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { ADISORN_LOGO_SRC } from "@/app/lib/brandDocuments";
 import { supabase } from "@/lib/supabase";
 
 const ADMIN_USERS_KEY = "central_admin_users";
@@ -434,7 +435,7 @@ export default function AdminPage() {
     () => [
       {
         id: "adisorn",
-        logo: "/adisorn-logo.png",
+        logo: ADISORN_LOGO_SRC,
         name: settings.adisornName,
         description: "ระบบใบจอง ลูกค้า การชำระเงิน และคลังเอกสาร",
         href: "/adisorn",

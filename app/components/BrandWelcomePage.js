@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { ADISORN_LOGO_SRC } from "@/app/lib/brandDocuments";
 import { getBrandTheme } from "@/app/lib/brandThemes";
 
 const welcomeCopy = {
@@ -32,7 +33,7 @@ const welcomeCopy = {
   },
   adisorn: {
     backgroundImage: "/adisorn-wedding-bg.jpg",
-    logo: "/adisorn-logo.png",
+    logo: ADISORN_LOGO_SRC,
     eyebrow: "ADISORN WEDDING STUDIO BOOKING MANAGEMENT",
     subEyebrow: "WEDDING STUDIO",
     title: "Adisorn Wedding Studio",

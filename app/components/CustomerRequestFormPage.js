@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { ADISORN_LOGO_SRC } from "@/app/lib/brandDocuments";
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const MAX_SOURCE_IMAGE_SIZE = 30 * 1024 * 1024;
@@ -243,7 +244,7 @@ const BRAND_CONFIG = {
   },
   adisorn: {
     name: "Adisorn Wedding Studio",
-    logo: "/adisorn-logo.png",
+    logo: ADISORN_LOGO_SRC,
     primary: "#4A2E22",
     deep: "#2B1A14",
     accent: "#C9A46A",

@@ -1,3 +1,5 @@
+import { ADISORN_LOGO_SRC } from "@/app/lib/brandDocuments";
+
 export const pharadolTheme = {
   id: "pharadol",
   name: "PHARADOL PRODUCTION",
@@ -33,7 +35,7 @@ export const adisornTheme = {
   name: "Adisorn Wedding Studio",
   shortName: "ADISORN",
   tagline: "WEDDING STUDIO",
-  logo: "/adisorn-logo.png",
+  logo: ADISORN_LOGO_SRC,
   primary: "#4A2E22",
   primaryDark: "#2B1A14",
   accent: "#C9A46A",

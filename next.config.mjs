@@ -28,6 +28,11 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  images: {
+    localPatterns: [
+      { pathname: "/**", search: "" },
+    ],
+  },
   turbopack: {
     root: process.cwd(),
   },

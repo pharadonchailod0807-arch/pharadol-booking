@@ -1,3 +1,5 @@
+export const ADISORN_LOGO_SRC = "/adisorn-logo.png";
+
 export const BRAND_DOCUMENTS = {
   pharadol: {
     name: "PHARADOL PRODUCTION",
@@ -14,7 +16,7 @@ export const BRAND_DOCUMENTS = {
   adisorn: {
     name: "ADISORN WEDDING STUDIO",
     eyebrow: "",
-    logo: "/logo.png",
+    logo: ADISORN_LOGO_SRC,
     logoClassName: "h-24 w-24 rounded-full object-cover",
     address: "55/27 ต.ในเมือง อ.เมืองนครราชสีมา จ.นครราชสีมา 30000",
     email: "adisornweddingstudio@gmail.com",
