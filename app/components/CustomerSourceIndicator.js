@@ -23,7 +23,7 @@ export const CUSTOMER_SOURCE_VALUES = new Set(
 export const getCustomerSourceOption = (source) =>
   CUSTOMER_SOURCE_OPTIONS.find((option) => option.value === source) || null;
 
-const DEFAULT_SOURCE_COLOR = "#D4D4D8";
+const DEFAULT_SOURCE_COLOR = "#D1D5DB";
 
 export default function CustomerSourceIndicator({
   customer,
@@ -82,7 +82,7 @@ export default function CustomerSourceIndicator({
           setError("");
           setIsOpen((current) => !current);
         }}
-        className="h-full w-[6px] cursor-pointer rounded-l-2xl transition-[width,filter] hover:w-[10px] hover:brightness-95 focus:w-[10px] focus:outline-none focus:ring-2 focus:ring-black/20"
+        className="block h-full w-[5px] cursor-pointer rounded-none transition-[width,filter] hover:w-[7px] hover:brightness-95 focus:w-[7px] focus:outline-none focus:ring-2 focus:ring-black/20"
         style={{ backgroundColor: selectedOption?.color || DEFAULT_SOURCE_COLOR }}
       />
 
