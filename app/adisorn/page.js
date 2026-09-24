@@ -6456,7 +6456,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
             <div className="flex -translate-y-4 items-center gap-4">
 
               <img
-                src="/logo.png"
+                src={ADISORN_DOCUMENT.logo}
                 alt="logo"
                 width="96"
                 height="96"
@@ -6710,7 +6710,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
           <div className="flex justify-between items-start pb-6 shrink-0">
             <div className="flex -translate-y-4 items-center gap-4">
               <img
-                src="/logo.png"
+                src={ADISORN_DOCUMENT.logo}
                 alt="logo"
                 width="96"
                 height="96"
@@ -6944,7 +6944,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
           <div className="flex justify-between items-start pb-6 shrink-0">
             <div className="flex -translate-y-4 items-center gap-4">
               <img
-                src="/logo.png"
+                src={ADISORN_DOCUMENT.logo}
                 alt="logo"
                 width="96"
                 height="96"
@@ -7161,7 +7161,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
           <div className="flex justify-between items-start pb-6 shrink-0">
             <div className="flex -translate-y-4 items-center gap-4">
               <img
-                src="/logo.png"
+                src={ADISORN_DOCUMENT.logo}
                 alt="logo"
                 width="96"
                 height="96"
