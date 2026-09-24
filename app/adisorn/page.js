@@ -665,23 +665,23 @@ const editableInputClass = (fieldName, value, extraClasses = "") => {
 };
 
 const actionDownloadButtonClass =
-  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#4A2E22] bg-[#4A2E22] px-4 py-2.5 text-sm font-bold text-white shadow-[0_10px_22px_rgba(74,46,34,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5A3828] hover:shadow-[0_12px_26px_rgba(74,46,34,0.20)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#000000] bg-[#000000] px-4 py-2.5 text-sm font-bold text-white shadow-[0_10px_22px_rgba(17,17,17,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#222222] hover:shadow-[0_12px_26px_rgba(17,17,17,0.20)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionSaveButtonClass =
-  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#4A2E22] bg-[#4A2E22] px-4 py-2.5 text-sm font-bold text-white shadow-[0_10px_22px_rgba(74,46,34,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#5A3828] hover:shadow-[0_12px_26px_rgba(74,46,34,0.20)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#000000] bg-[#000000] px-4 py-2.5 text-sm font-bold text-white shadow-[0_10px_22px_rgba(17,17,17,0.16)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#222222] hover:shadow-[0_12px_26px_rgba(17,17,17,0.20)] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionCreateButtonClass =
-  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#C9A46A] bg-[#C9A46A] px-4 py-2.5 text-sm font-bold text-[#111111] shadow-[0_10px_22px_rgba(201,164,106,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#B88F52] hover:shadow-[0_12px_26px_rgba(201,164,106,0.26)] sm:min-w-[145px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#000000] bg-[#000000] px-4 py-2.5 text-sm font-bold text-white shadow-[0_10px_22px_rgba(17,17,17,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#222222] hover:shadow-[0_12px_26px_rgba(17,17,17,0.26)] sm:min-w-[145px]";
 const actionSendButtonClass =
-  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#E9DCCB] bg-[#F3E6CF] px-4 py-2.5 text-sm font-bold text-[#2B1A14] shadow-[0_8px_18px_rgba(43,26,20,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9A46A] hover:bg-[#EAD7B8] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#E5E5E5] bg-[#F7F7F7] px-4 py-2.5 text-sm font-bold text-[#111111] shadow-[0_8px_18px_rgba(17,17,17,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#000000] hover:bg-[#E5E5E5] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionEditButtonClass =
-  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#C9A46A] bg-white px-4 py-2.5 text-sm font-bold text-[#2B1A14] shadow-[0_8px_18px_rgba(43,26,20,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#F3E6CF] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#000000] bg-white px-4 py-2.5 text-sm font-bold text-[#111111] shadow-[0_8px_18px_rgba(17,17,17,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#F7F7F7] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionSecondaryButtonClass =
-  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#E9DCCB] bg-white px-4 py-2.5 text-sm font-bold text-[#2B1A14] shadow-[0_8px_18px_rgba(43,26,20,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9A46A] hover:bg-[#F3E6CF] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
+  "flex min-h-[48px] min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#E5E5E5] bg-white px-4 py-2.5 text-sm font-bold text-[#111111] shadow-[0_8px_18px_rgba(17,17,17,0.07)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#000000] hover:bg-[#F7F7F7] disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60 sm:min-w-[145px]";
 const actionDangerButtonClass =
   "flex min-h-[48px] items-center justify-center gap-2 rounded-[20px] border border-red-300 bg-red-50 px-5 py-3 text-sm font-extrabold text-red-700 shadow-sm transition-all duration-200 hover:bg-red-100";
 const actionMenuButtonClass =
-  "flex min-h-[48px] items-center justify-center gap-2 rounded-[20px] border border-[#E9DCCB] bg-white px-5 py-3 text-sm font-extrabold text-[#2B1A14] shadow-[0_10px_22px_rgba(43,26,20,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9A46A] hover:bg-[#F3E6CF]";
+  "flex min-h-[48px] items-center justify-center gap-2 rounded-[20px] border border-[#E5E5E5] bg-white px-5 py-3 text-sm font-extrabold text-[#111111] shadow-[0_10px_22px_rgba(17,17,17,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#000000] hover:bg-[#F7F7F7]";
 const actionMenuSmallButtonClass =
-  "flex min-h-[46px] items-center justify-center gap-2 rounded-[20px] border border-[#E9DCCB] bg-white px-5 py-2.5 text-sm font-extrabold text-[#2B1A14] shadow-[0_10px_22px_rgba(43,26,20,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9A46A] hover:bg-[#F3E6CF]";
+  "flex min-h-[46px] items-center justify-center gap-2 rounded-[20px] border border-[#E5E5E5] bg-white px-5 py-2.5 text-sm font-extrabold text-[#111111] shadow-[0_10px_22px_rgba(17,17,17,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#000000] hover:bg-[#F7F7F7]";
 
 const slipIsPdf = Boolean(slipImage) && isPdfSlipFile(slipImage, slipFileType, slipFileName);
 const slipIsImage = Boolean(slipImage) && isImageSlipFile(slipImage, slipFileType, slipFileName);
@@ -2782,7 +2782,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
           <main class="page">
             <header class="header">
               <div class="brand-wrap">
-                <img class="brand-logo" src="/logo.png" alt="Adisorn Wedding Studio" />
+                <img class="brand-logo" src="${ADISORN_DOCUMENT.logo}" alt="Adisorn Wedding Studio" />
                 <div class="brand">
                   <h1>Adisorn Wedding Studio</h1>
                   <p>adisornweddingstudio@gmail.com</p>
@@ -5246,44 +5246,44 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
         isViewMode ? "booking-workspace-view" : ""
       } ${isSidebarCollapsed ? "booking-workspace-collapsed" : ""}`}
       style={{
-        "--booking-bg": "#FAF7F1",
+        "--booking-bg": "#FAFAFA",
         "--booking-card": "#FFFFFF",
-        "--booking-border": "#E9DCCB",
-        "--booking-text": "#2B1A14",
-        "--booking-muted": "#7A6A5D",
-        "--booking-primary": "#4A2E22",
-        "--booking-primary-dark": "#2B1A14",
-        "--booking-accent": "#C9A46A",
-        "--booking-accent-soft": "#F3E6CF",
-        "--booking-focus-ring": "rgba(201, 164, 106, 0.2)",
-        "--booking-soft-surface": "#F3E6CF",
-        "--booking-payment-surface": "#FAF7F1",
-        "--booking-discount-surface": "#F3E6CF",
+        "--booking-border": "#E5E5E5",
+        "--booking-text": "#111111",
+        "--booking-muted": "#6B7280",
+        "--booking-primary": "#000000",
+        "--booking-primary-dark": "#111111",
+        "--booking-accent": "#000000",
+        "--booking-accent-soft": "#F7F7F7",
+        "--booking-focus-ring": "rgba(17,17,17,0.2)",
+        "--booking-soft-surface": "#F7F7F7",
+        "--booking-payment-surface": "#FAFAFA",
+        "--booking-discount-surface": "#F7F7F7",
         "--booking-success": "#16A34A",
         "--booking-danger": "#DC2626",
-        "--booking-accent-border": "rgba(201, 164, 106, 0.52)",
-        "--booking-primary-shadow": "rgba(74, 46, 34, 0.18)",
-        "--booking-card-shadow": "rgba(43, 26, 20, 0.09)",
-        "--booking-button-on-accent": "#111111",
-        "--send-loading-card-bg": "#FFF7EA",
-        "--send-loading-card-border": "#C9A46A",
-        "--send-loading-text": "#3A241A",
-        "--send-loading-muted": "#7A6A5D",
-        "--send-loading-spinner-main": "#4A2E22",
-        "--send-loading-spinner-soft": "#EAD8B8",
-        "--send-progress-track": "#F0E2CB",
+        "--booking-accent-border": "rgba(17,17,17,0.52)",
+        "--booking-primary-shadow": "rgba(17,17,17,0.18)",
+        "--booking-card-shadow": "rgba(17,17,17,0.09)",
+        "--booking-button-on-accent": "#FFFFFF",
+        "--send-loading-card-bg": "#FFFFFF",
+        "--send-loading-card-border": "#000000",
+        "--send-loading-text": "#111111",
+        "--send-loading-muted": "#6B7280",
+        "--send-loading-spinner-main": "#000000",
+        "--send-loading-spinner-soft": "#E5E5E5",
+        "--send-progress-track": "#E5E5E5",
         "--send-progress-gradient":
-          "linear-gradient(90deg, transparent, #4A2E22, #C9A46A, transparent)",
-        "--send-loading-shadow": "rgba(74, 46, 34, 0.08)",
-        "--customer-send-overlay": "rgba(61, 49, 43, 0.62)",
+          "linear-gradient(90deg, transparent, #000000, #000000, transparent)",
+        "--send-loading-shadow": "rgba(17,17,17,0.08)",
+        "--customer-send-overlay": "rgba(17,17,17,0.62)",
         "--customer-send-card-bg": "#FFFFFF",
-        "--customer-send-primary": "#4A2E22",
-        "--customer-send-deep": "#2B1A14",
-        "--customer-send-accent": "#B88A55",
-        "--customer-send-soft-bg": "#F7F0E6",
-        "--customer-send-muted": "#7A6A5D",
-        "--customer-send-progress-track": "#EFE3D3",
-        "--customer-send-progress-fill": "#8A5A38",
+        "--customer-send-primary": "#000000",
+        "--customer-send-deep": "#111111",
+        "--customer-send-accent": "#262626",
+        "--customer-send-soft-bg": "#F7F7F7",
+        "--customer-send-muted": "#6B7280",
+        "--customer-send-progress-track": "#E5E5E5",
+        "--customer-send-progress-fill": "#000000",
       }}
     >
 
@@ -6083,10 +6083,10 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
             <button
               type="button"
               onClick={() => setIsMoreMenuOpen((current) => !current)}
-              className={`booking-more-toggle rounded-[20px] border bg-white px-5 py-3 text-sm font-extrabold shadow-[0_10px_22px_rgba(43,26,20,0.08)] transition-all duration-200 hover:bg-[#F3E6CF] ${
+              className={`booking-more-toggle rounded-[20px] border bg-white px-5 py-3 text-sm font-extrabold shadow-[0_10px_22px_rgba(17,17,17,0.08)] transition-all duration-200 hover:bg-[#F7F7F7] ${
                 isMoreMenuOpen
                   ? "booking-more-toggle-active"
-                  : "border-[#E9DCCB] text-[#2B1A14]"
+                  : "border-[#E5E5E5] text-[#111111]"
               }`}
             >
               {isMoreMenuOpen ? "ซ่อนเมนูเพิ่มเติม" : "เมนูเพิ่มเติม"}
@@ -7889,7 +7889,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
           border-color: var(--booking-border);
           border-radius: 24px;
           background: var(--booking-card);
-          box-shadow: 0 18px 50px rgba(43, 26, 20, 0.09);
+          box-shadow: 0 18px 50px rgba(17,17,17,0.09);
         }
 
         .booking-form-panel input,
@@ -8052,7 +8052,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
         }
 
         .booking-list-item {
-          box-shadow: 0 8px 18px rgba(43, 26, 20, 0.045);
+          box-shadow: 0 8px 18px rgba(17,17,17,0.045);
         }
 
         .booking-summary-card {
@@ -8154,7 +8154,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
           color: #ffffff;
           border-color: var(--booking-primary);
           background: var(--booking-primary);
-          box-shadow: 0 12px 26px rgba(74, 46, 34, 0.18);
+          box-shadow: 0 12px 26px rgba(17,17,17,0.18);
         }
 
         .booking-preview-panel {
@@ -8177,7 +8177,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
           zoom: var(--booking-preview-scale, 1);
           margin-left: auto;
           margin-right: auto;
-          box-shadow: 0 20px 60px rgba(43, 26, 20, 0.10);
+          box-shadow: 0 20px 60px rgba(17,17,17,0.10);
         }
 
         @supports not (zoom: 1) {

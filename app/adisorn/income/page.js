@@ -302,7 +302,7 @@ export default function IncomePage() {
           <button
             type="button"
             onClick={() => router.push("/adisorn/dashboard")}
-            className="min-h-12 rounded-xl bg-[#4A2E22] px-5 py-3 font-semibold text-white hover:bg-[#5A3828]"
+            className="min-h-12 rounded-xl bg-[#000000] px-5 py-3 font-semibold text-white hover:bg-[#222222]"
           >
             กลับเมนูหลัก
           </button>

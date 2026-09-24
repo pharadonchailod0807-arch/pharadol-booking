@@ -417,7 +417,7 @@ export default function ReportsPage() {
                     );
                     router.push("/adisorn?view=customer", { scroll: false });
                   }}
-                  className="mt-4 min-h-11 w-full rounded-xl bg-[#4A2E22] px-4 py-2 text-sm font-semibold text-white hover:bg-[#5A3828]"
+                  className="mt-4 min-h-11 w-full rounded-xl bg-[#000000] px-4 py-2 text-sm font-semibold text-white hover:bg-[#222222]"
                 >
                   ดูใบจอง
                 </button>
@@ -477,7 +477,7 @@ export default function ReportsPage() {
                       );
                       router.push("/adisorn?view=customer", { scroll: false });
                     }}
-                    className="min-h-10 rounded-xl bg-[#4A2E22] px-4 py-2 font-semibold text-white hover:bg-[#5A3828]"
+                    className="min-h-10 rounded-xl bg-[#000000] px-4 py-2 font-semibold text-white hover:bg-[#222222]"
                   >
                     ดูใบจอง
                   </button>

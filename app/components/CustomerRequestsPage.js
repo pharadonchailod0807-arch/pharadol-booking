@@ -411,14 +411,14 @@ export default function CustomerRequestsPage({ brand }) {
                 key={request.id}
                 className={`group overflow-hidden rounded-[24px] border bg-white shadow-[0_14px_32px_rgba(15,23,42,0.06)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)] ${
                   isAdisorn
-                    ? "border-[#E9DCCB]"
+                    ? "border-[#E5E5E5]"
                     : "border-emerald-100"
                 }`}
               >
                 <div
                   className={`h-1 w-full bg-gradient-to-r ${
                     isAdisorn
-                      ? "from-[#4A2E22] via-[#7A5139] to-[#C9A46A]"
+                      ? "from-[#000000] via-[#262626] to-[#000000]"
                       : "from-emerald-950 via-emerald-600 to-amber-400"
                   }`}
                 />
@@ -429,7 +429,7 @@ export default function CustomerRequestsPage({ brand }) {
                       <div
                         className={`flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[14px] text-base font-black shadow-sm ${
                           isAdisorn
-                            ? "bg-[#F3E6CF] text-[#4A2E22]"
+                            ? "bg-[#F7F7F7] text-[#000000]"
                             : "bg-emerald-100 text-emerald-900"
                         }`}
                       >
@@ -543,7 +543,7 @@ export default function CustomerRequestsPage({ brand }) {
                       disabled={isBusy}
                       className={`min-h-[40px] rounded-[14px] px-3 py-2 text-[13px] font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 sm:text-sm ${
                         isAdisorn
-                          ? "bg-[#4A2E22] hover:bg-[#5A3828]"
+                          ? "bg-[#000000] hover:bg-[#222222]"
                           : "bg-emerald-800 hover:bg-emerald-900"
                       } disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0`}
                     >
@@ -556,7 +556,7 @@ export default function CustomerRequestsPage({ brand }) {
                       disabled={isBusy}
                       className={`min-h-[40px] rounded-[14px] border px-3 py-2 text-[13px] font-extrabold transition hover:-translate-y-0.5 sm:text-sm ${
                         isAdisorn
-                          ? "border-[#D9BE96] bg-[#FFF9EF] text-[#6A432D] hover:bg-[#F3E6CF]"
+                          ? "border-[#D4D4D4] bg-[#FAFAFA] text-[#111111] hover:bg-[#F7F7F7]"
                           : "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
                       } disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0`}
                     >

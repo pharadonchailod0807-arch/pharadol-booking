@@ -602,7 +602,7 @@ export default function BrandMailPage({ brandId }) {
               type="button"
               onClick={openNewMail}
               className={`flex h-11 w-11 items-center justify-center rounded-full text-3xl font-semibold leading-none text-white sm:h-12 sm:w-12 ${
-                isAdisorn ? "bg-[#4A2E22] hover:bg-[#5A3828]" : "bg-blue-600 hover:bg-blue-700"
+                isAdisorn ? "bg-[#000000] hover:bg-[#222222]" : "bg-blue-600 hover:bg-blue-700"
               }`}
               aria-label="สร้างอีเมลใหม่"
             >
@@ -700,7 +700,7 @@ export default function BrandMailPage({ brandId }) {
                     className={`p-3 ${
                       selectedEmailId === item.id && !isComposerOpen
                         ? isAdisorn
-                          ? "bg-[#F3E6CF]/55"
+                          ? "bg-[#F7F7F7]/55"
                           : "bg-blue-50"
                         : "bg-white"
                     }`}
@@ -909,7 +909,7 @@ export default function BrandMailPage({ brandId }) {
                       onClick={() => sendEmail()}
                       disabled={isSending}
                       className={`min-h-12 rounded-xl px-6 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300 ${
-                        isAdisorn ? "bg-[#4A2E22] hover:bg-[#5A3828]" : "bg-blue-600 hover:bg-blue-700"
+                        isAdisorn ? "bg-[#000000] hover:bg-[#222222]" : "bg-blue-600 hover:bg-blue-700"
                       }`}
                     >
                       {isSending ? "กำลังส่ง..." : "ส่งอีเมล"}
@@ -950,7 +950,7 @@ export default function BrandMailPage({ brandId }) {
                       onClick={() => sendEmailAgain(selectedEmail)}
                       disabled={isSending}
                       className={`min-h-10 rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-zinc-300 ${
-                        isAdisorn ? "bg-[#4A2E22] hover:bg-[#5A3828]" : "bg-blue-600 hover:bg-blue-700"
+                        isAdisorn ? "bg-[#000000] hover:bg-[#222222]" : "bg-blue-600 hover:bg-blue-700"
                       }`}
                     >
                       ส่งอีกครั้ง
@@ -974,7 +974,7 @@ export default function BrandMailPage({ brandId }) {
                     rel="noreferrer"
                     className={`mt-5 inline-flex rounded-xl px-4 py-2 text-sm font-bold ${
                       isAdisorn
-                        ? "bg-[#F3E6CF] text-[#4A2E22] hover:bg-[#E9DCCB]"
+                        ? "bg-[#F7F7F7] text-[#000000] hover:bg-[#E5E5E5]"
                         : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                     }`}
                   >
@@ -996,7 +996,7 @@ export default function BrandMailPage({ brandId }) {
                   type="button"
                   onClick={openNewMail}
                   className={`mt-5 rounded-xl px-6 py-3 font-semibold text-white ${
-                    isAdisorn ? "bg-[#4A2E22] hover:bg-[#5A3828]" : "bg-blue-600 hover:bg-blue-700"
+                    isAdisorn ? "bg-[#000000] hover:bg-[#222222]" : "bg-blue-600 hover:bg-blue-700"
                   }`}
                 >
                   สร้างเมลใหม่

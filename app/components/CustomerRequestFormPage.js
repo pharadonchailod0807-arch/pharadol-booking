@@ -245,16 +245,16 @@ const BRAND_CONFIG = {
   adisorn: {
     name: "Adisorn Wedding Studio",
     logo: ADISORN_LOGO_SRC,
-    primary: "#4A2E22",
-    deep: "#2B1A14",
-    accent: "#C9A46A",
-    soft: "#F3E6CF",
-    background: "#FAF7F1",
+    primary: "#000000",
+    deep: "#111111",
+    accent: "#000000",
+    soft: "#F7F7F7",
+    background: "#FAFAFA",
     paymentQr: "/adisorn-payment-qr.png",
     paymentQrFileName: "adisorn-payment-qr.png",
     paymentName: "ADISORN WEDDING STUDIO",
     paymentHeaderBackground:
-      "radial-gradient(circle at 88% 10%, rgba(201,164,106,0.24), transparent 30%), linear-gradient(135deg, #2B1A14 0%, #4A2E22 45%, #5A3828 72%, #24120D 100%)",
+      "radial-gradient(circle at 88% 10%, rgba(17,17,17,0.24), transparent 30%), linear-gradient(135deg, #111111 0%, #000000 45%, #222222 72%, #000000 100%)",
     logoDark: false,
   },
 };

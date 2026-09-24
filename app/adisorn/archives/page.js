@@ -955,7 +955,7 @@ export default function ArchivesPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn/customers")}
-              className="min-h-12 rounded-xl border bg-white px-4 py-2 font-semibold transition hover:bg-[#F3E6CF]"
+              className="min-h-12 rounded-xl border bg-white px-4 py-2 font-semibold transition hover:bg-[#F7F7F7]"
               style={brandChrome.secondaryButton}
             >
               ข้อมูลลูกค้า
@@ -1123,7 +1123,7 @@ export default function ArchivesPage() {
                         <button
                           type="button"
                           onClick={() => openBooking(booking)}
-                          className="min-h-11 rounded-xl bg-[#4A2E22] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5A3828]"
+                          className="min-h-11 rounded-xl bg-[#000000] px-3 py-2 text-sm font-semibold text-white hover:bg-[#222222]"
                         >
                           ดูใบจอง
                         </button>
@@ -1205,7 +1205,7 @@ export default function ArchivesPage() {
                         <button
                           type="button"
                           onClick={() => openBooking(booking)}
-                          className="rounded-xl bg-[#4A2E22] px-3 py-2 font-semibold text-white hover:bg-[#5A3828]"
+                          className="rounded-xl bg-[#000000] px-3 py-2 font-semibold text-white hover:bg-[#222222]"
                         >
                           ดูใบจอง
                         </button>

@@ -711,7 +711,7 @@ export default function CustomersPage() {
             <button
               type="button"
               onClick={() => goTo(ROUTES.booking)}
-              className="min-h-12 rounded-xl border bg-white px-4 py-2 font-semibold transition hover:bg-[#F3E6CF]"
+              className="min-h-12 rounded-xl border bg-white px-4 py-2 font-semibold transition hover:bg-[#F7F7F7]"
               style={brandChrome.secondaryButton}
             >
               กลับหน้าสร้างใบจอง
@@ -805,13 +805,13 @@ export default function CustomersPage() {
 
             {selectedBookingNumbers.length > 0 && (
               <>
-                <span className="rounded-xl bg-[#F3E6CF] px-3 py-2 text-sm font-semibold text-[#4A2E22]">
+                <span className="rounded-xl bg-[#F7F7F7] px-3 py-2 text-sm font-semibold text-[#000000]">
                   เลือกแล้ว {selectedBookingNumbers.length} รายการ
                 </span>
                 <button
                   type="button"
                   onClick={bulkMoveToArchive}
-                  className="min-h-12 rounded-2xl bg-[#C9A46A] px-4 py-3 text-sm font-semibold text-[#111111] hover:bg-[#B88F52]"
+                  className="min-h-12 rounded-2xl bg-[#000000] px-4 py-3 text-sm font-semibold text-white hover:bg-[#222222]"
                 >
                   จัดเก็บ
                 </button>
@@ -841,7 +841,7 @@ export default function CustomersPage() {
                 <article
                   key={customer.bookingNumber || index}
                   className={`rounded-2xl border bg-white p-4 shadow-sm ${
-                    isSelected ? "border-[#C9A46A] ring-2 ring-[#F3E6CF]" : "border-zinc-200"
+                    isSelected ? "border-[#000000] ring-2 ring-[#F7F7F7]" : "border-zinc-200"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -855,7 +855,7 @@ export default function CustomersPage() {
                         aria-label={`เลือกใบจอง ${
                           customer.bookingNumber || "นี้"
                         }`}
-                        className="mt-1 h-5 w-5 cursor-pointer accent-[#4A2E22]"
+                        className="mt-1 h-5 w-5 cursor-pointer accent-[#000000]"
                       />
                       <span className="min-w-0">
                         <span className="block text-sm font-bold text-zinc-900">
@@ -908,7 +908,7 @@ export default function CustomersPage() {
                     <button
                       type="button"
                       onClick={() => openBooking(customer)}
-                      className="min-h-11 rounded-xl bg-[#4A2E22] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5A3828]"
+                      className="min-h-11 rounded-xl bg-[#000000] px-3 py-2 text-sm font-semibold text-white hover:bg-[#222222]"
                     >
                       ดูใบจอง
                     </button>
@@ -916,7 +916,7 @@ export default function CustomersPage() {
                       <button
                         type="button"
                         onClick={() => moveToArchive(customer)}
-                        className="min-h-11 rounded-xl bg-[#C9A46A] px-3 py-2 text-sm font-semibold text-[#111111] hover:bg-[#B88F52]"
+                        className="min-h-11 rounded-xl bg-[#000000] px-3 py-2 text-sm font-semibold text-white hover:bg-[#222222]"
                       >
                         จัดเก็บ
                       </button>
@@ -951,7 +951,7 @@ export default function CustomersPage() {
                   checked={allVisibleSelected}
                   onChange={toggleSelectAll}
                   aria-label="เลือกใบจองทั้งหมดที่แสดง"
-                  className="h-5 w-5 cursor-pointer accent-[#4A2E22]"
+                  className="h-5 w-5 cursor-pointer accent-[#000000]"
                 />
               </div>
               <div>เลขที่การจอง</div>
@@ -972,7 +972,7 @@ export default function CustomersPage() {
                     key={customer.bookingNumber || index}
                     className={`grid grid-cols-[44px_1fr_1fr_0.9fr_0.9fr_0.8fr_300px] items-center gap-3 border-t px-4 py-4 text-sm transition lg:gap-4 lg:px-5 ${
                       selectedBookingNumbers.includes(customer.bookingNumber)
-                        ? "border-[#C9A46A]/60 bg-[#F3E6CF]/45"
+                        ? "border-[#000000]/60 bg-[#F7F7F7]/45"
                         : "border-zinc-200"
                     }`}
                   >
@@ -988,7 +988,7 @@ export default function CustomersPage() {
                         aria-label={`เลือกใบจอง ${
                           customer.bookingNumber || "นี้"
                         }`}
-                        className="h-5 w-5 cursor-pointer accent-[#4A2E22]"
+                        className="h-5 w-5 cursor-pointer accent-[#000000]"
                       />
                     </div>
 
@@ -1038,7 +1038,7 @@ export default function CustomersPage() {
                       <button
                         type="button"
                         onClick={() => openBooking(customer)}
-                        className="min-h-10 rounded-xl bg-[#4A2E22] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5A3828]"
+                        className="min-h-10 rounded-xl bg-[#000000] px-3 py-2 text-sm font-semibold text-white hover:bg-[#222222]"
                       >
                         ดูใบจอง
                       </button>
@@ -1046,7 +1046,7 @@ export default function CustomersPage() {
                       <button
                         type="button"
                         onClick={() => moveToArchive(customer)}
-                        className="min-h-10 rounded-xl bg-[#C9A46A] px-3 py-2 text-sm font-semibold text-[#111111] hover:bg-[#B88F52]"
+                        className="min-h-10 rounded-xl bg-[#000000] px-3 py-2 text-sm font-semibold text-white hover:bg-[#222222]"
                       >
                         จัดเก็บ
                       </button>

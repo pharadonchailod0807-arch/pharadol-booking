@@ -132,7 +132,7 @@ export default function ArchivesPage() {
             <button
               type="button"
               onClick={() => router.push("/adisorn")}
-              className="rounded-xl bg-[#4A2E22] px-5 py-3 font-semibold text-white hover:bg-[#5A3828]"
+              className="rounded-xl bg-[#000000] px-5 py-3 font-semibold text-white hover:bg-[#222222]"
             >
               ระบบสร้างใบจอง
             </button>
@@ -186,7 +186,7 @@ export default function ArchivesPage() {
                         );
                         router.push("/adisorn?view=customer", { scroll: false });
                       }}
-                      className="min-h-10 rounded-xl bg-[#4A2E22] px-4 py-2 font-semibold text-white hover:bg-[#5A3828]"
+                      className="min-h-10 rounded-xl bg-[#000000] px-4 py-2 font-semibold text-white hover:bg-[#222222]"
                     >
                       ดูใบจอง
                     </button>

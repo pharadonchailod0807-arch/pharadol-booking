@@ -905,7 +905,7 @@ export default function TrashPage() {
                     className="min-h-11 rounded-xl px-3 text-sm font-black text-white"
                     style={{
                       backgroundColor:
-                        BRAND_ID === "pharadol" ? "#173d31" : "#76543b",
+                        BRAND_ID === "pharadol" ? "#173d31" : "#111111",
                     }}
                   >
                     กู้คืน

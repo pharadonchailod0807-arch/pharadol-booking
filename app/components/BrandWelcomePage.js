@@ -42,14 +42,14 @@ const welcomeCopy = {
     signedInText: "เข้าสู่ระบบโดย Adisorn Wedding Studio",
     logoClassName: "scale-[2.4] object-cover",
     overlay:
-      "linear-gradient(180deg, rgba(42, 23, 16, 0.74), rgba(26, 14, 10, 0.88))",
+      "linear-gradient(180deg, rgba(17,17,17,0.74), rgba(0,0,0,0.88))",
     titleClassName:
-      "bg-gradient-to-b from-white via-[#F1DFC0] to-[#C9A46A] text-[clamp(2.625rem,5.6vw,5.125rem)]",
-    buttonBg: "#C9A46A",
-    buttonHover: "#B88F52",
-    ringColor: "#C9A46A",
-    ringSoftColor: "rgba(201,164,106,0.45)",
-    logoGlowColor: "rgba(42,23,16,0.35)",
+      "bg-gradient-to-b from-white via-[#D4D4D4] to-[#000000] text-[clamp(2.625rem,5.6vw,5.125rem)]",
+    buttonBg: "#000000",
+    buttonHover: "#222222",
+    ringColor: "#000000",
+    ringSoftColor: "rgba(17,17,17,0.45)",
+    logoGlowColor: "rgba(17,17,17,0.35)",
   },
 };
 
@@ -195,18 +195,18 @@ export default function BrandWelcomePage({ brandId }) {
           className="absolute inset-0 scale-[1.03] bg-cover bg-center opacity-[0.68]"
           style={{ backgroundImage: `url('${copy.backgroundImage}')` }}
         />
-        <div className="absolute inset-0 bg-[#2A1710]/72" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(201,164,106,0.16),transparent_45%)]" />
+        <div className="absolute inset-0 bg-[#111111]/72" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(17,17,17,0.16),transparent_45%)]" />
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/75 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/70 to-transparent" />
 
         <section className="relative z-10 flex w-full max-w-[1120px] flex-col items-center text-center">
           <div className="relative flex h-28 w-28 items-center justify-center rounded-full sm:h-32 sm:w-32">
-            <div className="adisorn-ring-pulse absolute inset-[-10px] rounded-full border border-[#C9A46A]/45" />
+            <div className="adisorn-ring-pulse absolute inset-[-10px] rounded-full border border-[#000000]/45" />
             <div className="adisorn-ring-spin absolute inset-[-21px] rounded-full border border-dashed border-white/22" />
-            <div className="absolute inset-[-30px] rounded-full border border-[#C9A46A]/18" />
-            <div className="adisorn-logo-glow absolute inset-[-26px] rounded-full bg-[#C9A46A]/14 blur-2xl" />
-            <div className="relative h-full w-full overflow-hidden rounded-full border border-[#F3E6CF]/24 bg-[#2A1710]/88 shadow-[0_0_48px_rgba(0,0,0,0.38),inset_0_0_26px_rgba(201,164,106,0.12)]">
+            <div className="absolute inset-[-30px] rounded-full border border-[#000000]/18" />
+            <div className="adisorn-logo-glow absolute inset-[-26px] rounded-full bg-[#000000]/14 blur-2xl" />
+            <div className="relative h-full w-full overflow-hidden rounded-full border border-[#F7F7F7]/24 bg-[#111111]/88 shadow-[0_0_48px_rgba(0,0,0,0.38),inset_0_0_26px_rgba(17,17,17,0.12)]">
               <Image
                 src={copy.logo}
                 alt={theme.name}
@@ -218,7 +218,7 @@ export default function BrandWelcomePage({ brandId }) {
             </div>
           </div>
 
-          <p className="mt-8 max-w-[92vw] text-center text-[clamp(11px,0.9vw,15px)] font-bold uppercase tracking-[0.28em] text-[#F3E6CF]/72 drop-shadow-[0_3px_18px_rgba(0,0,0,0.86)]">
+          <p className="mt-8 max-w-[92vw] text-center text-[clamp(11px,0.9vw,15px)] font-bold uppercase tracking-[0.28em] text-[#F7F7F7]/72 drop-shadow-[0_3px_18px_rgba(0,0,0,0.86)]">
             {copy.eyebrow}
           </p>
           <p className="mt-5 text-[clamp(13px,1vw,18px)] font-extrabold uppercase tracking-[0.3em] text-white/74 drop-shadow-[0_3px_18px_rgba(0,0,0,0.86)]">
@@ -243,7 +243,7 @@ export default function BrandWelcomePage({ brandId }) {
           <button
             type="button"
             onClick={openDashboard}
-            className="mt-9 inline-flex h-[56px] min-w-[220px] items-center justify-center gap-4 rounded-full bg-[#C9A46A] px-[34px] py-[13px] text-[16px] font-extrabold text-[#111111] shadow-[0_18px_42px_rgba(201,164,106,0.22)] transition hover:-translate-y-0.5 hover:bg-[#B88F52] active:translate-y-0 sm:h-[58px] sm:px-[38px] sm:text-[17px]"
+            className="mt-9 inline-flex h-[56px] min-w-[220px] items-center justify-center gap-4 rounded-full bg-[#000000] px-[34px] py-[13px] text-[16px] font-extrabold text-white shadow-[0_18px_42px_rgba(17,17,17,0.22)] transition hover:-translate-y-0.5 hover:bg-[#222222] active:translate-y-0 sm:h-[58px] sm:px-[38px] sm:text-[17px]"
           >
             เริ่มใช้งานระบบ
             <span aria-hidden="true">→</span>
@@ -288,11 +288,11 @@ export default function BrandWelcomePage({ brandId }) {
             0%,
             100% {
               opacity: 0.74;
-              filter: drop-shadow(0 0 14px rgba(201, 164, 106, 0.18));
+              filter: drop-shadow(0 0 14px rgba(17,17,17,0.18));
             }
             50% {
               opacity: 0.96;
-              filter: drop-shadow(0 0 28px rgba(201, 164, 106, 0.32));
+              filter: drop-shadow(0 0 28px rgba(17,17,17,0.32));
             }
           }
 
