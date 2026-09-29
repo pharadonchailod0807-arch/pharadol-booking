@@ -78,6 +78,7 @@ const MAX_STORAGE_BYTES = 2 * 1024 * 1024;
 const TRAVEL_SERVICE_NAME = "ค่าเดินทาง";
 const ACCOMMODATION_SERVICE_NAME = "ค่าที่พัก";
 const PRE_WEDDING_SERVICE_NAME = "แพ็กเกจ Pre Wedding";
+const VIDEO_PRESENTATION_SERVICE_NAME = "Video Presentation";
 const PRE_WEDDING_PACKAGE_CODES = [
   "Special",
   ...Array.from({ length: 26 }, (_, index) => String.fromCharCode(65 + index)),
@@ -417,6 +418,7 @@ const regularServiceOptions = [
   PRE_WEDDING_SERVICE_NAME,
   "QR Code",
   "Video Guestbook",
+  VIDEO_PRESENTATION_SERVICE_NAME,
   "Photo Booth",
   "โดรน",
   TRAVEL_SERVICE_NAME,
@@ -504,7 +506,21 @@ const packageDescriptions = {
       },
     ],
   },
+  [VIDEO_PRESENTATION_SERVICE_NAME]: {
+    packageTitle: "VIDEO PRESENTATION",
+    itemsTitle: "สิ่งที่ลูกค้าจะได้รับ",
+    bulletItems: [
+      "ได้รับวีดีโอพรีเซนเทชั่นไว้เปิดก่อนช่วงเปิดตัว 1 คลิป ระยะเวลา 3-5 นาที",
+      "ได้รับวีดีโอ Reels 1 คลิป ระยะเวลา 120 วินาที",
+    ],
+  },
 };
+
+const addOnDetailServiceNames = [
+  "QR Code",
+  "Video Guestbook",
+  VIDEO_PRESENTATION_SERVICE_NAME,
+];
 
 const formatDescriptionItemText = (item, index) => {
   if (!item) return "";
@@ -545,6 +561,9 @@ const getServiceDescriptionText = (description) => {
         formatDescriptionItemText(item, index)
       )
     );
+  }
+  if (Array.isArray(description.bulletItems)) {
+    lines.push(...description.bulletItems.map((item) => `• ${item}`));
   }
 
   return lines.filter(Boolean).join("\n");
@@ -790,6 +809,18 @@ const renderServiceDescription = (description, options = {}) => {
           <div className="mt-1">
             {renderDescriptionList(description.items)}
           </div>
+        </div>
+      )}
+      {Array.isArray(description.bulletItems) && description.bulletItems.length > 0 && (
+        <div>
+          {description.itemsTitle && (
+            <p className="font-semibold text-zinc-700">{description.itemsTitle}</p>
+          )}
+          <ul className="mt-1 space-y-1">
+            {description.bulletItems.map((item) => (
+              <li key={item}>• {item}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
@@ -1867,12 +1898,15 @@ const formattedEventDate = formatThaiDateInput(eventDate);
   const hasVideoGuestbookPackage = serviceItems.some(
     (item) => getServiceItemName(item) === "Video Guestbook"
   );
+  const hasVideoPresentationPackage = serviceItems.some(
+    (item) => getServiceItemName(item) === VIDEO_PRESENTATION_SERVICE_NAME
+  );
 
   const shouldShowPrimaryPackagePage =
     hasPhotographyPackage || hasVideoPackage;
 
   const shouldShowAddOnPackagePage =
-    hasQrCodePackage || hasVideoGuestbookPackage;
+    hasQrCodePackage || hasVideoGuestbookPackage || hasVideoPresentationPackage;
 
   const shouldShowPackagePage =
     shouldShowPrimaryPackagePage || shouldShowAddOnPackagePage;
@@ -1985,6 +2019,27 @@ const formattedEventDate = formatThaiDateInput(eventDate);
             </p>
           </div>
         </div>
+      </div>
+    </section>
+  );
+
+  const renderVideoPresentationPackageSection = () => (
+    <section className="rounded-2xl border border-zinc-200 overflow-hidden flex flex-col shrink-0 bg-white">
+      <div className="package-section-header bg-zinc-900 text-white px-5 py-3 shrink-0">
+        <h3 className="text-lg font-bold tracking-wide">
+          VIDEO PRESENTATION
+        </h3>
+      </div>
+
+      <div className="p-5 text-[10px] leading-relaxed text-zinc-700">
+        <p className="mb-3 text-sm font-bold text-zinc-900">
+          สิ่งที่ลูกค้าจะได้รับ
+        </p>
+        <ul className="space-y-2">
+          {packageDescriptions[VIDEO_PRESENTATION_SERVICE_NAME].bulletItems.map((item) => (
+            <li key={item}>• {item}</li>
+          ))}
+        </ul>
       </div>
     </section>
   );
@@ -4750,7 +4805,7 @@ const getBookingEmailSubject = () =>
 
 const getBookingEmailServiceDetails = () => {
   const detailItems = serviceItems
-    .filter((item) => ["QR Code", "Video Guestbook"].includes(item.name))
+    .filter((item) => addOnDetailServiceNames.includes(item.name))
     .map((item) => {
       const detail = getServiceDescriptionText(item.description);
 
@@ -7230,6 +7285,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
           <div className="flex flex-col gap-4 flex-1 min-h-0 justify-start">
             {hasQrCodePackage && renderQrCodePackageSection()}
             {hasVideoGuestbookPackage && renderVideoGuestbookPackageSection()}
+            {hasVideoPresentationPackage && renderVideoPresentationPackageSection()}
           </div>
 
           <div className="mt-4 text-[10px] leading-relaxed text-zinc-600 shrink-0">
@@ -7720,7 +7776,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                   {emailPreview.body}
                 </pre>
                 {serviceItems.some((item) =>
-                  ["QR Code", "Video Guestbook"].includes(item.name)
+                  addOnDetailServiceNames.includes(item.name)
                 ) && (
                   <div className="mt-3 rounded-xl border border-zinc-200 bg-white p-4">
                     <p className="text-sm font-semibold text-zinc-700">
@@ -7729,7 +7785,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                     <div className="mt-3 space-y-4">
                       {serviceItems
                         .filter((item) =>
-                          ["QR Code", "Video Guestbook"].includes(item.name)
+                          addOnDetailServiceNames.includes(item.name)
                         )
                         .map((item) => (
                           <div key={item.id} className="rounded-lg bg-zinc-50 p-3">
