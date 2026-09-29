@@ -24,6 +24,14 @@ export const BRAND_DOCUMENTS = {
     headerAlignClassName: "items-start",
     titleClassName: "text-2xl",
     contactClassName: "text-[10px]",
+    payment: {
+      accountName: "นายอดิศร มีศิลป์ (Adisorn Meesin)",
+      accountNumber: "5034684680",
+      bankName: "ธนาคารไทยพาณิชย์",
+      depositProofText:
+        "หลักฐานการโอนเงินมัดจำใช้บริการเพจ Adisorn Wedding Studio",
+      receiverName: "นายอดิศร มีศิลป์",
+    },
   },
 };
 

@@ -38,6 +38,7 @@ const Barcode = dynamic(() => import("react-barcode"), {
 
 const BRAND_ID = "adisorn";
 const ADISORN_DOCUMENT = getBrandDocument(BRAND_ID);
+const ADISORN_PAYMENT = ADISORN_DOCUMENT.payment;
 const BRAND_BASE_PATH = "/adisorn";
 const ROUTES = {
   home: BRAND_BASE_PATH,
@@ -4449,6 +4450,7 @@ const createBookingPdfFingerprint = (filename) =>
     paymentNote,
     paymentTransactions,
     totalPaid: previewTotalPaid,
+    paymentDocument: ADISORN_PAYMENT,
   });
 
 const createBookingPdfAttachment = async ({ onStatus } = {}) => {
@@ -6830,13 +6832,13 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
               <p className="text-sm font-bold text-zinc-900 mt-3 mb-1">
                 ข้อมูลการชำระเงิน
               </p>
-              <p>• ชื่อบัญชี : นายอดิศร มีศิลป์ (Adisorn Meesin)</p>
-              <p>• หมายเลขบัญชี : 415 038 792 4</p>
-              <p>• ธนาคาร : ไทยพาณิชย์</p>
+              <p>• ชื่อบัญชี : {ADISORN_PAYMENT.accountName}</p>
+              <p>• หมายเลขบัญชี : {ADISORN_PAYMENT.accountNumber}</p>
+              <p>• ธนาคาร : {ADISORN_PAYMENT.bankName}</p>
               <p>
-                • หลักฐานการโอนเงินมัดจำใช้บริการเพจ Adisorn Wedding Studio
+                • {ADISORN_PAYMENT.depositProofText}
               </p>
-              <p>• ผู้รับจอง : นายอดิศร มีศิลป์</p>
+              <p>• ผู้รับจอง : {ADISORN_PAYMENT.receiverName}</p>
             </div>
           </div>
 
