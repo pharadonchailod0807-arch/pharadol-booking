@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
+import { getBrandDocument } from "@/app/lib/brandDocuments";
 import { safeGetArray, safeGetObject, safeSetJson } from "@/app/lib/safeStorage";
 
 const BRAND_ID = "adisorn";
+const ADISORN_DOCUMENT = getBrandDocument(BRAND_ID);
 const ARCHIVES_KEY = "adisorn_archives";
 const PAYMENT_RECEIPTS_KEY = "adisorn_paymentReceipts";
 const SELECTED_BOOKING_KEY = "adisorn_selectedBooking";
@@ -800,8 +802,8 @@ export default function ArchivesPage() {
           <header class="header">
             <div>
               <h2>Adisorn Wedding Studio</h2>
-              <p class="muted">adisornweddingstudio@gmail.com</p>
-              <p class="muted">โทร. 082 141 9633</p>
+              <p class="muted">${ADISORN_DOCUMENT.email}</p>
+              <p class="muted">โทร. ${ADISORN_DOCUMENT.phone}</p>
             </div>
             <div style="text-align:right">
               <h3>ใบรับชำระเงินรายงวด</h3>

@@ -2786,8 +2786,8 @@ const formattedEventDate = formatThaiDateInput(eventDate);
                 <img class="brand-logo" src="${ADISORN_DOCUMENT.logo}" alt="Adisorn Wedding Studio" />
                 <div class="brand">
                   <h1>Adisorn Wedding Studio</h1>
-                  <p>adisornweddingstudio@gmail.com</p>
-                  <p>โทร. 082 141 9633</p>
+                  <p>${escapeReceiptText(ADISORN_DOCUMENT.email)}</p>
+                  <p>โทร. ${escapeReceiptText(ADISORN_DOCUMENT.phone)}</p>
                 </div>
               </div>
               <div class="document-number">
@@ -4786,8 +4786,8 @@ const getBookingEmailBody = () =>
     "ขอแสดงความนับถือ",
     "",
     "Adisorn Wedding Studio",
-    "โทร. 082 141 9633",
-    "E-mail: adisornweddingstudio@gmail.com",
+    `โทร. ${ADISORN_DOCUMENT.phone}`,
+    `E-mail: ${ADISORN_DOCUMENT.email}`,
   ].join("\n");
 
 const sendBookingEmail = async () => {
