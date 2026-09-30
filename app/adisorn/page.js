@@ -586,6 +586,7 @@ const [selectedServiceType, setSelectedServiceType] = useState("service");
 const [selectedServicePrice, setSelectedServicePrice] = useState("");
 const [selectedServiceQuantity, setSelectedServiceQuantity] = useState("1");
 const [selectedPreWeddingPackage, setSelectedPreWeddingPackage] = useState("");
+const [selectedPreWeddingDetail, setSelectedPreWeddingDetail] = useState("");
 const [selectedTravelDetail, setSelectedTravelDetail] = useState("");
 const [selectedRoomQuantity, setSelectedRoomQuantity] = useState("1");
 const [selectedCustomRoomQuantity, setSelectedCustomRoomQuantity] = useState("");
@@ -761,7 +762,7 @@ const renderServiceDescription = (description, options = {}) => {
 
   if (typeof description === "string") {
     return (
-      <p className={compact ? "mt-0.5 text-[10px] text-zinc-500" : "mt-1 whitespace-pre-line text-sm text-zinc-500"}>
+      <p className={compact ? "mt-0.5 whitespace-pre-line text-[10px] text-zinc-500" : "mt-1 whitespace-pre-line text-sm text-zinc-500"}>
         {description}
       </p>
     );
@@ -2060,6 +2061,7 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     setSelectedServicePrice("");
     setSelectedServiceQuantity("1");
     setSelectedPreWeddingPackage("");
+    setSelectedPreWeddingDetail("");
     setSelectedTravelDetail("");
     setSelectedRoomQuantity("1");
     setSelectedCustomRoomQuantity("");
@@ -2107,9 +2109,11 @@ const formattedEventDate = formatThaiDateInput(eventDate);
       ? Math.min(Math.max(Number(selectedServiceQuantity) || 1, 1), 10)
       : 1;
     const unitPrice = Number(selectedServicePrice) || 0;
-    const description = isTravelServiceName(selectedServiceName)
-      ? selectedTravelDetail.trim()
-      : packageDescriptions[selectedServiceName] || "";
+    const description = isPreWeddingPackage
+      ? selectedPreWeddingDetail.trim()
+      : isTravelServiceName(selectedServiceName)
+        ? selectedTravelDetail.trim()
+        : packageDescriptions[selectedServiceName] || "";
     const resolvedServiceName = isPreWeddingPackage
       ? getPreWeddingDisplayName(selectedPreWeddingPackage)
       : selectedServiceName;
@@ -2166,6 +2170,11 @@ const formattedEventDate = formatThaiDateInput(eventDate);
     );
     setSelectedServiceName(normalizedServiceName);
     setSelectedPreWeddingPackage(preWeddingPackageCode);
+    setSelectedPreWeddingDetail(
+      isPreWeddingItem && typeof item.description === "string"
+        ? item.description
+        : ""
+    );
     setSelectedServicePrice(String(item.unitPrice ?? item.price ?? ""));
     setSelectedServiceQuantity(itemQuantity);
     setSelectedTravelDetail(
@@ -6640,12 +6649,12 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                             <p className={`${isDenseDocument ? "text-base" : "text-lg"} font-semibold text-zinc-900`}>
                               {item.name}
                             </p>
-                            {inlineDescription && (
-                              <p className="mt-0.5 text-[10px] text-zinc-500">
-                                {inlineDescription}
-                              </p>
-                            )}
                           </div>
+                          {inlineDescription && (
+                            <p className={`${isDenseDocument ? "text-[10px]" : "text-xs"} mt-0.5 whitespace-pre-line leading-snug text-zinc-500`}>
+                              {inlineDescription}
+                            </p>
+                          )}
                           {isUnitPricedItem && (
                             <p className={`${isDenseDocument ? "text-[10px]" : "text-xs"} mt-0.5 text-zinc-500`}>
                               ฿ {Number(item.unitPrice || 0).toLocaleString()} ต่อ{unitLabel}
@@ -7369,6 +7378,7 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                 if (nextServiceName !== PRE_WEDDING_SERVICE_NAME) {
                   setSelectedPreWeddingPackage("");
                 }
+                setSelectedPreWeddingDetail("");
                 setSelectedTravelDetail("");
                 setSelectedRoomQuantity("1");
                 setSelectedCustomRoomQuantity("");
@@ -7428,6 +7438,26 @@ const renderSendActionContent = (channel, idleLabel, idleIcon = null) => {
                     </option>
                   ))}
                 </select>
+
+                <label className="block font-semibold mb-2">
+                  รายละเอียดแพ็กเกจ
+                </label>
+                <textarea
+                  placeholder="กรอกรายละเอียดแพ็กเกจ เช่น สถานที่ ชุด จำนวนภาพ หรือรายละเอียดเพิ่มเติม"
+                  value={selectedPreWeddingDetail}
+                  onChange={(e) =>
+                    updateEditableField(
+                      "selectedPreWeddingDetail",
+                      setSelectedPreWeddingDetail,
+                      e.target.value
+                    )
+                  }
+                  className={editableInputClass(
+                    "selectedPreWeddingDetail",
+                    selectedPreWeddingDetail,
+                    "mb-4 min-h-28 px-4 py-4"
+                  )}
+                />
 
               </>
             )}
