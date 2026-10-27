@@ -633,6 +633,9 @@ const packageServiceOptions = [
   "แพ็กเกจวิดีโอ 1 Plus",
   "แพ็กเกจวิดีโอ 2 Plus",
   "แพ็กเกจวิดีโอ 3 Plus",
+  "Basic",
+  "Standard",
+  "Premium",
 ];
 
 const packageDescriptions = {
