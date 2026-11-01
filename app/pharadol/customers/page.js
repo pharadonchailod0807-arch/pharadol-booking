@@ -1,10 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import listStyles from "@/app/components/CustomerBookingList.module.css";
 import CustomerSourceIndicator from "@/app/components/CustomerSourceIndicator";
 import { getBrandChromeStyles } from "@/app/lib/brandThemes";
+import {
+  bangkokTodayTime, CUSTOMER_SORT_OPTIONS, EVENT_DATE_FILTERS,
+  formatCustomerCreatedAt, formatCustomerEventDate, selectCustomerBookings,
+} from "@/app/lib/customerBookingList";
 import { syncBookingGoogleCalendar } from "@/app/lib/googleCalendarClient";
 import { safeGetArray, safeGetObject, safeSetJson } from "@/app/lib/safeStorage";
 
@@ -31,6 +36,7 @@ const isRecordObject = (value) =>
 export default function CustomersPage() {
   const router = useRouter();
   const brandChrome = getBrandChromeStyles(BRAND_ID);
+  const listChrome = getBrandChromeStyles("pharadol");
 
   const goTo = (route) => {
     router.push(route);
@@ -84,28 +90,18 @@ export default function CustomersPage() {
     [normalizeBookingRow]
   );
 
-  const fetchBookingListPage = useCallback(async (page = 0) => {
+  const fetchCustomerList = useCallback(async (signal) => {
     const params = new URLSearchParams({
-      mode: "list",
-      brand: BRAND_ID,
-      status: "active",
-      page: String(page),
-      pageSize: String(BOOKING_LIST_PAGE_SIZE),
+      mode: "list", view: "customers", brand: BRAND_ID, status: "active",
     });
     const response = await fetch(`/api/bookings?${params.toString()}`, {
-      cache: "no-store",
+      cache: "no-store", signal,
     });
     const result = await response.json().catch(() => ({}));
-
     if (!response.ok || !result.success) {
       throw new Error(result.error || "โหลดข้อมูลลูกค้าไม่สำเร็จ");
     }
-
-    return {
-      bookings: normalizeBookingList(result.bookings),
-      page: Number(result.page || 0),
-      hasMore: Boolean(result.hasMore),
-    };
+    return normalizeBookingList(result.bookings);
   }, [normalizeBookingList]);
 
   const fetchFullBooking = useCallback(async (customer) => {
@@ -142,9 +138,12 @@ export default function CustomersPage() {
   const [sortDirection, setSortDirection] = useState("desc");
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [selectedBookingNumbers, setSelectedBookingNumbers] = useState([]);
-  const [listPage, setListPage] = useState(0);
-  const [hasMoreCustomers, setHasMoreCustomers] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(BOOKING_LIST_PAGE_SIZE);
+  const [dateFilter, setDateFilter] = useState("all");
+  const [today, setToday] = useState(() => bangkokTodayTime());
+  const [isLoading, setIsLoading] = useState(true);
+  const [listError, setListError] = useState("");
+  const listRequest = useRef(null);
 
   const syncCustomers = useCallback((nextCustomers) => {
     safeSetJson(CUSTOMERS_KEY, nextCustomers);
@@ -230,19 +229,20 @@ export default function CustomersPage() {
     if (!isAuthorized) return;
 
     const loadCustomers = async () => {
+      listRequest.current?.abort();
+      const controller = new AbortController();
+      listRequest.current = controller;
+      setIsLoading(true);
+      setListError("");
       try {
-        const result = await fetchBookingListPage(0);
-        syncCustomers(result.bookings);
-        setListPage(result.page);
-        setHasMoreCustomers(result.hasMore);
+        const bookings = await fetchCustomerList(controller.signal);
+        if (!controller.signal.aborted) syncCustomers(bookings);
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error("Cannot load customer data", error);
-        setCustomers(
-          normalizeBookingList(safeGetArray(CUSTOMERS_KEY)).slice(
-            0,
-            BOOKING_LIST_PAGE_SIZE
-          )
-        );
+        setListError(error?.message || "โหลดข้อมูลลูกค้าไม่สำเร็จ กรุณาโหลดหน้าใหม่");
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
       }
     };
 
@@ -274,91 +274,44 @@ export default function CustomersPage() {
     document.addEventListener("visibilitychange", handlePageVisible);
 
     return () => {
+      listRequest.current?.abort();
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener("focus", loadCustomers);
       window.removeEventListener("pageshow", loadCustomers);
       document.removeEventListener("visibilitychange", handlePageVisible);
       supabase.removeChannel(bookingsChannel);
     };
-  }, [fetchBookingListPage, isAuthorized, normalizeBookingList, syncCustomers]);
+  }, [fetchCustomerList, isAuthorized, syncCustomers]);
 
-  const loadMoreCustomers = async () => {
-    if (isLoadingMore || !hasMoreCustomers) return;
+  useEffect(() => {
+    const timer = window.setInterval(() => setToday(bangkokTodayTime()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
-    setIsLoadingMore(true);
-    try {
-      const result = await fetchBookingListPage(listPage + 1);
-      const nextCustomers = [
-        ...customers,
-        ...result.bookings.filter(
-          (booking) =>
-            !customers.some(
-              (customer) => customer.bookingNumber === booking.bookingNumber
-            )
-        ),
-      ];
-      syncCustomers(nextCustomers);
-      setListPage(result.page);
-      setHasMoreCustomers(result.hasMore);
-    } catch (error) {
-      console.error("Cannot load more customers", error);
-      alert(error?.message || "โหลดข้อมูลเพิ่มไม่สำเร็จ");
-    } finally {
-      setIsLoadingMore(false);
+  const matchedCustomers = useMemo(() => selectCustomerBookings(customers, {
+    search, sortBy, sortDirection, dateFilter, today,
+  }), [customers, search, sortBy, sortDirection, dateFilter, today]);
+  const filteredCustomers = matchedCustomers.slice(0, visibleCount);
+  const hasMoreCustomers = filteredCustomers.length < matchedCustomers.length;
+
+  const changeSort = (value) => {
+    setVisibleCount(BOOKING_LIST_PAGE_SIZE);
+    if (sortBy === value) {
+      setSortDirection((current) => current === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(value);
+      setSortDirection("asc");
     }
   };
 
-  const filteredCustomers = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    const matchedCustomers = !keyword
-      ? [...customers]
-      : customers.filter((customer) =>
-          [
-            customer.bookingNumber,
-            customer.customerName,
-            customer.phone,
-            customer.email,
-            customer.service,
-            customer.location,
-            customer.jobStatus,
-            customer.status,
-          ]
-            .filter(Boolean)
-            .some((value) =>
-              String(value).toLowerCase().includes(keyword)
-            )
-        );
-
-    return matchedCustomers.sort((a, b) => {
-      let firstValue = "";
-      let secondValue = "";
-
-      if (sortBy === "customerName") {
-        firstValue = String(a.customerName || "");
-        secondValue = String(b.customerName || "");
-      } else if (sortBy === "jobStatus") {
-        firstValue = String(a.jobStatus || a.status || "รอดำเนินการ");
-        secondValue = String(b.jobStatus || b.status || "รอดำเนินการ");
-      } else if (sortBy === "eventDate") {
-        firstValue = new Date(a.eventDate || 0).getTime();
-        secondValue = new Date(b.eventDate || 0).getTime();
-      } else {
-        firstValue = String(a.bookingNumber || "");
-        secondValue = String(b.bookingNumber || "");
-      }
-
-      if (typeof firstValue === "number" && typeof secondValue === "number") {
-        return sortDirection === "asc"
-          ? firstValue - secondValue
-          : secondValue - firstValue;
-      }
-
-      return sortDirection === "asc"
-        ? firstValue.localeCompare(secondValue, "th")
-        : secondValue.localeCompare(firstValue, "th");
-    });
-  }, [customers, search, sortBy, sortDirection]);
+  const changeDateFilter = (value) => {
+    setDateFilter(value);
+    setVisibleCount(BOOKING_LIST_PAGE_SIZE);
+    if (value !== "all") {
+      setSortBy("eventDate");
+      setSortDirection("asc");
+    }
+  };
 
   const visibleBookingNumbers = filteredCustomers
     .map((customer) => customer?.bookingNumber)
@@ -733,7 +686,7 @@ export default function CustomersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-100 p-4 md:p-6 xl:p-8">
+    <main className={`${listStyles.page} min-h-screen bg-white p-4 md:p-6 xl:p-8`}>
       <div className="mx-auto w-full max-w-[1840px]">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -756,7 +709,7 @@ export default function CustomersPage() {
               type="button"
               onClick={() => goTo(ROUTES.dashboard)}
               className="min-h-12 rounded-xl px-4 py-2 font-semibold text-white transition"
-              style={brandChrome.primaryButton}
+              style={listChrome.primaryButton}
             >
               เมนูหลัก
             </button>
@@ -764,44 +717,59 @@ export default function CustomersPage() {
         </div>
 
         <div className="mb-5 rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex flex-col gap-5 2xl:flex-row 2xl:items-end 2xl:justify-between">
             <div className="min-w-0 flex-1">
-              <label className="mb-2 block text-sm font-semibold text-zinc-700">
+              <label htmlFor="customer-search" className="mb-2 block text-sm font-semibold text-zinc-700">
                 ค้นหาข้อมูล
               </label>
               <input
+                id="customer-search"
                 type="text"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setVisibleCount(BOOKING_LIST_PAGE_SIZE);
+                }}
                 placeholder="ค้นหาเลขที่จอง ชื่อลูกค้า เบอร์โทร ประเภทงาน หรือสถานะงาน"
                 className="w-full rounded-2xl border border-zinc-300 bg-zinc-50 px-5 py-4 text-base outline-none transition focus:border-zinc-900 focus:bg-white"
               />
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <div>
+                <label htmlFor="event-date-filter" className="mb-2 block text-sm font-semibold text-zinc-700">
+                  กรองวันที่งาน
+                </label>
+                <select
+                  id="event-date-filter"
+                  value={dateFilter}
+                  onChange={(event) => changeDateFilter(event.target.value)}
+                  className="min-h-12 w-full rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700"
+                >
+                  {EVENT_DATE_FILTERS.map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <p className="mb-2 text-sm font-semibold text-zinc-700">
                   เรียงตาม
                 </p>
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                  {[
-                    ["bookingNumber", "เลขที่จอง"],
-                    ["customerName", "ชื่อลูกค้า"],
-                    ["jobStatus", "สถานะงาน"],
-                    ["eventDate", "วันที่งาน"],
-                  ].map(([value, label]) => (
+                  {CUSTOMER_SORT_OPTIONS.map(([value, label]) => (
                     <button
                       key={value}
                       type="button"
-                      onClick={() => setSortBy(value)}
+                      onClick={() => changeSort(value)}
+                      aria-pressed={sortBy === value}
                       className={`min-h-12 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                         sortBy === value
                           ? "text-white shadow-sm"
                           : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                       }`}
-                      style={sortBy === value ? brandChrome.activeControl : undefined}
+                      style={sortBy === value ? listChrome.activeControl : undefined}
                     >
-                      {label}
+                      {label} {sortBy === value ? (sortDirection === "asc" ? "↑" : "↓") : ""}
                     </button>
                   ))}
                 </div>
@@ -810,9 +778,7 @@ export default function CustomersPage() {
               <button
                 type="button"
                 onClick={() =>
-                  setSortDirection((current) =>
-                    current === "asc" ? "desc" : "asc"
-                  )
+                  changeSort(sortBy)
                 }
                 className="h-12 whitespace-nowrap rounded-2xl border border-zinc-300 bg-white px-5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
               >
@@ -825,7 +791,7 @@ export default function CustomersPage() {
                     type="button"
                     onClick={() => setSelectedBookingNumbers([])}
                     className="h-12 whitespace-nowrap rounded-2xl px-5 text-sm font-semibold text-white transition"
-                    style={brandChrome.primaryButton}
+                    style={listChrome.primaryButton}
                   >
                     ยกเลิกเลือกทั้งหมด
                   </button>
@@ -855,6 +821,16 @@ export default function CustomersPage() {
           </div>
         </div>
 
+        <p className="mb-4 text-sm text-zinc-600" role="status" aria-live="polite">
+          {isLoading ? "กำลังโหลดรายการใบจอง..." : `แสดง ${filteredCustomers.length} จาก ${matchedCustomers.length} รายการที่พบ`}
+          {dateFilter !== "all" && " · นับรวมวันนี้ตามเวลา Asia/Bangkok"}
+        </p>
+        {listError && (
+          <p role="alert" className="mb-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {listError} — กรุณาโหลดหน้าใหม่เพื่อรับข้อมูลล่าสุด
+          </p>
+        )}
+
         <div className="grid gap-3 md:hidden">
           {filteredCustomers.length > 0 ? (
             filteredCustomers.map((customer, index) => {
@@ -866,7 +842,7 @@ export default function CustomersPage() {
 
               return (
                 <article
-                  key={customer.bookingNumber || index}
+                  key={customer.supabaseId || customer.bookingNumber || index}
                   className={`relative rounded-2xl border bg-white p-4 shadow-sm ${
                     isSelected ? "border-blue-300 ring-2 ring-blue-100" : "border-zinc-200"
                   }`}
@@ -909,10 +885,11 @@ export default function CustomersPage() {
                     </p>
                     <p>
                       <span className="font-semibold text-zinc-500">วันที่:</span>{" "}
-                      {customer.formattedEventDate ||
-                        (customer.eventDate
-                          ? new Date(customer.eventDate).toLocaleDateString("th-TH")
-                          : "-")}
+                      {formatCustomerEventDate(customer.eventDate || customer.formattedEventDate)}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-zinc-500">วันที่สร้างใบจอง:</span>{" "}
+                      {formatCustomerCreatedAt(customer.createdAt)}
                     </p>
                   </div>
 
@@ -969,11 +946,12 @@ export default function CustomersPage() {
           )}
         </div>
 
-        <div className="hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block">
-          <div className="min-w-[980px] lg:min-w-[1250px]">
+        <div className={`${listStyles.tableViewport} hidden overflow-x-auto rounded-2xl bg-white shadow-sm md:block`} role="table" aria-label="รายการใบจองทั้งหมด">
+          <div className={listStyles.tableCanvas}>
             <div
-              className="grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_360px] gap-3 px-4 py-4 text-sm font-semibold text-white lg:grid-cols-[56px_1.1fr_1fr_1fr_1fr_0.9fr_430px] lg:gap-4 lg:px-5"
-              style={brandChrome.tableHeader}
+              className={`${listStyles.gridRow} grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_1fr_360px] gap-3 px-4 py-4 text-sm font-semibold text-white lg:grid-cols-[56px_1.1fr_1fr_1fr_1fr_0.9fr_1fr_430px] lg:gap-4 lg:px-5`}
+              style={listChrome.tableHeader}
+              role="row"
             >
               <div className="flex items-center justify-center">
                 <input
@@ -984,11 +962,18 @@ export default function CustomersPage() {
                   className="h-4 w-4 cursor-pointer accent-black"
                 />
               </div>
-              <div>เลขที่การจอง</div>
-              <div>ชื่อลูกค้า</div>
-              <div>ประเภทงาน</div>
-              <div>วันที่งาน</div>
-              <div>สถานะงาน</div>
+              {CUSTOMER_SORT_OPTIONS.map(([value, label]) => (
+                <div key={value} role="columnheader" aria-sort={sortBy === value ? (sortDirection === "asc" ? "ascending" : "descending") : "none"}>
+                  <button
+                    type="button"
+                    onClick={() => changeSort(value)}
+                    aria-label={`เรียงตาม${label} ${sortBy === value && sortDirection === "asc" ? "มากไปน้อย" : "น้อยไปมาก"}`}
+                    className={`min-h-11 w-full rounded-lg px-2 py-2 text-left transition hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-white ${sortBy === value ? "bg-white/20 ring-1 ring-white/50" : ""}`}
+                  >
+                    {label} <span aria-hidden="true">{sortBy === value ? (sortDirection === "asc" ? "↑" : "↓") : "↕"}</span>
+                  </button>
+                </div>
+              ))}
               <div className="text-center">จัดการ</div>
             </div>
 
@@ -999,8 +984,8 @@ export default function CustomersPage() {
 
                 return (
                   <div
-                    key={customer.bookingNumber || index}
-                    className={`relative grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_360px] items-center gap-3 border-t px-4 py-4 text-sm transition lg:grid-cols-[56px_1.1fr_1fr_1fr_1fr_0.9fr_430px] lg:gap-4 lg:px-5 lg:text-base ${
+                    key={customer.supabaseId || customer.bookingNumber || index}
+                    className={`${listStyles.gridRow} relative grid grid-cols-[48px_1.1fr_1fr_1fr_1fr_0.9fr_1fr_360px] items-center gap-3 border-t px-4 py-4 text-sm transition lg:grid-cols-[56px_1.1fr_1fr_1fr_1fr_0.9fr_1fr_430px] lg:gap-4 lg:px-5 lg:text-base ${
                       selectedBookingNumbers.includes(customer.bookingNumber)
                         ? "border-blue-200 bg-blue-50/70"
                         : "border-zinc-200 bg-white"
@@ -1041,10 +1026,7 @@ export default function CustomersPage() {
                     <div>{customer.service || "-"}</div>
 
                     <div>
-                      {customer.formattedEventDate ||
-                        (customer.eventDate
-                          ? new Date(customer.eventDate).toLocaleDateString("th-TH")
-                          : "-")}
+                      {formatCustomerEventDate(customer.eventDate || customer.formattedEventDate)}
                     </div>
 
                     <div>
@@ -1066,6 +1048,8 @@ export default function CustomersPage() {
                         <option value="ยกเลิกงาน">ยกเลิกงาน</option>
                       </select>
                     </div>
+
+                    <div>{formatCustomerCreatedAt(customer.createdAt)}</div>
 
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       <button
@@ -1106,11 +1090,10 @@ export default function CustomersPage() {
           <div className="mt-5 flex justify-center">
             <button
               type="button"
-              onClick={loadMoreCustomers}
-              disabled={isLoadingMore}
+              onClick={() => setVisibleCount((current) => current + BOOKING_LIST_PAGE_SIZE)}
               className="min-h-11 rounded-xl border border-zinc-200 bg-white px-5 text-sm font-bold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
             >
-              {isLoadingMore ? "กำลังโหลด..." : "โหลดเพิ่ม"}
+              โหลดเพิ่ม
             </button>
           </div>
         )}

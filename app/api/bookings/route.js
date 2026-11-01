@@ -9,6 +9,7 @@ import {
   sanitizeText,
 } from "@/lib/security";
 import { calculateDashboardCounts } from "@/app/lib/dashboardCounts";
+import { readCustomerBookingList } from "@/lib/customer-booking-query";
 import { formatBookingNumber, getBookingSequence } from "@/lib/booking-number";
 
 export const runtime = "nodejs";
@@ -484,6 +485,16 @@ export async function GET(request) {
     }
 
     if (mode === "list") {
+      // Only the customer list opts into the complete metadata set. Search, sort
+      // and date filtering must run before its client-side pagination.
+      if (requestUrl.searchParams.get("view") === "customers") {
+        const bookings = await readCustomerBookingList(supabase, brandId, normalizeBookingSummary);
+        return Response.json(
+          { success: true, bookings, total: bookings.length },
+          { headers: { "Cache-Control": "no-store" } }
+        );
+      }
+
       const page = parseListPage(requestUrl.searchParams.get("page"));
       const pageSize = parseListPageSize(requestUrl.searchParams.get("pageSize"));
       const status = requestUrl.searchParams.get("status") || "active";

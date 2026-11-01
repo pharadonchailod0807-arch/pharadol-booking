@@ -1,0 +1,19 @@
+.page {
+  --brand-background: #ffffff;
+}
+
+/* Keep the extra sortable column readable inside the existing brand layout.
+   These rules are scoped to the customer list, including its desktop overflow. */
+.page.page .tableViewport {
+  overflow-x: auto !important;
+}
+
+.page.page .tableCanvas {
+  min-width: 1360px !important;
+  max-width: none;
+  width: 100%;
+}
+
+.page.page .gridRow {
+  grid-template-columns: 44px minmax(150px, 1.1fr) minmax(160px, 1.1fr) minmax(120px, 0.8fr) minmax(115px, 0.8fr) minmax(130px, 0.9fr) minmax(140px, 1fr) 280px;
+}
