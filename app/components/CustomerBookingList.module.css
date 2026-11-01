@@ -17,3 +17,9 @@
 .page.page .gridRow {
   grid-template-columns: 44px minmax(150px, 1.1fr) minmax(160px, 1.1fr) minmax(120px, 0.8fr) minmax(115px, 0.8fr) minmax(130px, 0.9fr) minmax(140px, 1fr) 280px;
 }
+
+/* The brand's action-button padding must not widen the 5px source indicator. */
+.page.page button[aria-label^="ช่องทางที่ลูกค้ารู้จักเรา:"] {
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
