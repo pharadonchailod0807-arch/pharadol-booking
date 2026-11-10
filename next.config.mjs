@@ -29,7 +29,7 @@ const securityHeaders = [
 
 const nextConfig = {
   outputFileTracingIncludes: {
-    "/api/equipment/export": ["./public/equipment/NotoSansThai.ttf", "./public/chromium-pack.tar"],
+    "/api/equipment/export": ["./public/equipment/NotoSansThai.ttf", "./node_modules/@sparticuz/chromium/bin/**"],
   },
   images: {
     localPatterns: [

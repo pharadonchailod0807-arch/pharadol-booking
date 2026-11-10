@@ -1,9 +1,6 @@
 import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { tmpdir } from "node:os";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { NextRequest } from "next/server";
 import {
   authorizeEquipment,
@@ -22,25 +19,8 @@ import type { Equipment } from "@/lib/equipment/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-let chromiumDirectory: Promise<string> | undefined;
-function extractChromiumPack() {
-  chromiumDirectory ??= (async () => {
-    const directory = path.join(tmpdir(), "pharadol-equipment-chromium");
-    await fs.mkdir(directory, { recursive: true });
-    await promisify(execFile)("tar", [
-      "-xf",
-      path.join(process.cwd(), "public", "chromium-pack.tar"),
-      "-C",
-      directory,
-    ]);
-    return directory;
-  })().catch((error) => {
-    chromiumDirectory = undefined;
-    throw error;
-  });
-  return chromiumDirectory;
-}
 export async function GET(request: NextRequest) {
+  let stage = "authorization";
   try {
     const { actor } = await authorizeEquipment(request);
     const limited = limitEquipment(actor);
@@ -48,6 +28,7 @@ export async function GET(request: NextRequest) {
     const format = request.nextUrl.searchParams.get("format");
     if (!["xlsx", "pdf"].includes(format || ""))
       throw new EquipmentError("รองรับ Excel และ PDF เท่านั้น");
+    stage = "inventory";
     const db = equipmentDb(),
       rows: Equipment[] = [];
     const limit = format === "pdf" ? 2000 : 10000;
@@ -77,15 +58,14 @@ export async function GET(request: NextRequest) {
       XLSX.utils.book_append_sheet(book, sheet, "Equipment");
       bytes = XLSX.write(book, { type: "buffer", bookType: "xlsx" });
     } else {
+      stage = "chromium";
       const puppeteer = (await import("puppeteer-core")).default;
       let browser;
       if (process.env.VERCEL_ENV) {
-        const chromium = (await import("@sparticuz/chromium-min")).default;
+        const chromium = (await import("@sparticuz/chromium")).default;
         browser = await puppeteer.launch({
           args: chromium.args,
-          executablePath: await chromium.executablePath(
-            await extractChromiumPack(),
-          ),
+          executablePath: await chromium.executablePath(),
           headless: "shell",
         });
       } else {
@@ -105,9 +85,11 @@ export async function GET(request: NextRequest) {
         page.on("request", (req) =>
           req.url().startsWith("data:") ? req.continue() : req.abort(),
         );
+        stage = "font";
         const font = await fs.readFile(
           path.join(process.cwd(), "public", "equipment", "NotoSansThai.ttf"),
         );
+        stage = "render";
         await page.setContent(equipmentPdfHtml(rows, font.toString("base64")), {
           waitUntil: "load",
         });
@@ -134,6 +116,16 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (e) {
+    // Runtime diagnostics contain no inventory, session token, or credentials.
+    if (["chromium", "font", "render"].includes(stage)) {
+      const error = e as Error & { code?: string };
+      console.error("Equipment PDF failed", {
+        stage,
+        name: error.name,
+        code: error.code,
+        message: String(error.message || "").replace(/https?:\/\/\S+/g, "[url]").slice(0, 800),
+      });
+    }
     return equipmentFailure(e);
   }
 }

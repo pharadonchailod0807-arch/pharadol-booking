@@ -1,6 +1,6 @@
 # Pharadol Equipment Management
 
-สถานะ: พัฒนาและทดสอบแล้ว ติดตั้ง Migration บน Supabase จริงแล้ววันที่ 10 พฤศจิกายน 2569; บันทึก Secret เฉพาะ Vercel Production แล้ว กำลังเผยแพร่โค้ดผ่าน main
+สถานะ: พัฒนาและทดสอบแล้ว ติดตั้ง Migration บน Supabase จริงแล้ววันที่ 10 พฤศจิกายน 2569; เผยแพร่รุ่นแรกบน Vercel Production แล้ว กำลังตรวจแก้ PDF จาก smoke test
 
 ## ฟังก์ชัน
 
@@ -62,7 +62,7 @@ Migration: `supabase/migrations/202611090001_equipment.sql`
 - `tsconfig.json` แทน `jsconfig.json` โดยคง path alias เดิมและไม่เปิด checkJs สำหรับระบบเดิม
 - `package.json`, `package-lock.json`: server-only, TypeScript/types และ dependencies สำหรับ PostgreSQL ทดสอบ (dev only)
 - `app/components/BrandAppShell.js`: เพิ่มไอคอนและเมนูเฉพาะเมื่อ brandId เป็น pharadol เท่านั้น
-- `next.config.mjs`: เพิ่ม file tracing เฉพาะ Equipment PDF route สำหรับฟอนต์ไทยและ Chromium pack เดิม
+- `next.config.mjs`: เพิ่ม file tracing เฉพาะ Equipment PDF route สำหรับฟอนต์ไทยและ Chromium binaries สำหรับ Function
 
 ไฟล์อื่นที่มีการแก้ไขค้างอยู่ก่อนเริ่มงานนี้ถูกเก็บไว้ ไม่ควร commit ทุกไฟล์ใน working tree รวมกันโดยไม่ได้ตรวจทาน
 
@@ -83,7 +83,7 @@ node scripts/equipment-preflight.mjs
 - Browser/API checks 12 ชุด: สิทธิ์/CSRF, create/search/filter/sort/pagination, checkout/partial return/maintenance/details, XLSX, PDF, private attachments, Desktop, browser form -> API -> PostgreSQL -> table, Mobile 390px, ไม่มีเมนูใน Adisorn
 - Browser test ใช้ Supabase SDK จริงเรียก test-only HTTP adapter ที่ส่งต่อไปยัง PostgreSQL ทดสอบ; adapter จำลอง PostgREST/Storage protocol เท่านั้น ไม่ได้อ้างว่าแทนการทดสอบ Supabase จริงทั้งหมด
 - ภาพตรวจสอบอยู่ `/tmp/pharadol-equipment-qa/`; PDF ผ่านการ render และตรวจข้อความภาษาไทยแล้ว
-- จำเป็นต้องทำ smoke test กับ Supabase staging และ Vercel ก่อนยืนยันความพร้อม Production โดยเฉพาะ PostgREST relationship/schema cache และ Chromium บน Linux
+- Production smoke test ยืนยัน Login redirect, Overview/API จาก Supabase จริง, categories 11 หมวด และประวัติเบิกคืน/ซ่อมบำรุงแล้ว; PDF บน Linux อยู่ระหว่างแก้ตามผลทดสอบจริง
 
 เครื่องมือสำรองเฉพาะการติดตั้งนี้: `node scripts/equipment-backup.mjs` จาก working tree เดิม หลังตั้ง SUPABASE_DB_URL; เก็บ archive ไว้นอก repository พร้อม checksum และตรวจรายการ object โดยไม่แสดง credentials ต้องทดสอบ restore แยกก่อน Migration
 
@@ -109,7 +109,7 @@ node scripts/equipment-preflight.mjs
    - `AUTH_SECRET`: ใช้ค่าปลอดภัยเดิมของระบบ (อย่างน้อย 32 ตัวอักษร) ห้ามหมุนหรือเปลี่ยนค่า Production เพื่อ Equipment โดยไม่จำเป็น เพราะจะกระทบ session เดิม
    - ไม่ต้องเพิ่มชื่อ environment variable ใหม่อื่น
 5. `node scripts/equipment-preflight.mjs` ต้องผ่าน ตรวจ RPC ตาราง และ private bucket แบบ read-only
-6. ใช้ Preview ที่เชื่อม staging เพื่อทดสอบครบวงจร ตรวจไฟล์ภาษาไทย/รูป/สิทธิ์ทั้งสองแบรนด์ และยืนยัน Vercel Function bundle มี font/Chromium pack (มาจาก postinstall เดิม)
+6. ใช้ Preview ที่เชื่อม staging เพื่อทดสอบครบวงจร ตรวจไฟล์ภาษาไทย/รูป/สิทธิ์ทั้งสองแบรนด์ และยืนยัน Vercel Function bundle มี font/Chromium binaries
 7. ตรวจ Git diff และ stage เฉพาะงานนี้อย่างระวัง เนื่องจากมีงานเดิมค้างอยู่หลายไฟล์ แล้วจึง commit/push ตาม workflow เดิม
 8. หลังผ่าน staging และสำรองแล้วจึง apply additive Migration บน Production, ตรวจ preflight และ deploy; ห้ามสร้างอุปกรณ์ทดสอบใน Production
 9. ตรวจ Deployment status เป็น READY และ smoke test แบบอ่านข้อมูลจริง ก่อนอ้างว่า deploy สำเร็จ
@@ -137,11 +137,16 @@ Rollback: ย้อน code deployment ไปก่อนมี Equipment แล
 - ผู้ใช้ยืนยันแล้ว และ Vercel แสดง Added Environment Variable successfully สำหรับ SUPABASE_SERVICE_ROLE_KEY ชนิด Secret เป้าหมาย Production เท่านั้น
 
 
-## สถานะล่าสุดก่อน Deploy
+## สถานะการติดตั้ง Production
 
 - Commit `3dab523` Push แล้วในสาขา `codex/pharadol-equipment`
 - Migration Production สำเร็จ: 9 ตารางเปิด RLS, client roles ไม่มีสิทธิ์อ่านตาราง/เรียก RPC, Storage เป็น private
 - จำนวนอุปกรณ์จริง 0 และหมวดหมู่เริ่มต้น 11 หมวด ไม่มีการ seed อุปกรณ์
 - หลัง Migration จำนวนข้อมูลเดิมตรงก่อนติดตั้ง: bookings 117, customer_requests 37, members 3, admin_users 3, payment_receipts 0
 - สำรองตารางงานและโครงสร้างไว้นอก git ที่ `/Users/bpc872/pharadol-backups/equipment-20261110-2db81f0a77fd` แบบจำกัดสิทธิ์ และตรวจ restore/hash แล้ว
-- บันทึก Production Secret สำเร็จแล้ว กำลัง Push เข้า main เพื่อให้ Git integration ของ Vercel Deploy; ต้องตรวจสถานะ Ready และ smoke test ก่อนยืนยันเปิดใช้งาน
+- main commit `0be0b5e` Deploy เป็น Ready แล้ว: `dpl_2qKeiGZGYJsDKSSD1Hdp58FEenBY`, Production build 1m 55s
+- URL ถาวรที่ไม่มี session ตอบ 307 ไป Login เดิมพร้อม next; API ไม่มี session ตอบ 401
+- ผู้ใช้ Login ใหม่ใน Chrome แล้วเว็บ Redirect กลับ Equipment สำเร็จ; API ตอบ success=true, equipment=[], total=0 และ categories 11 หมวดจาก Supabase จริง
+- หน้าเบิกคืนและซ่อมบำรุงอ่านข้อมูลจริงสำเร็จ; Excel Production ดาวน์โหลดและเปิดอ่านได้ 17 คอลัมน์ ไม่มีแถวอุปกรณ์จำลอง
+- Production PDF รุ่นแรกตอบข้อผิดพลาด จึงเปลี่ยน Equipment export ให้ใช้ Chromium production dependency พร้อม trace binaries โดยตรง แทน shell tar จาก public pack; เพิ่ม diagnostics เฉพาะขั้น PDF โดยไม่บันทึกข้อมูลอุปกรณ์หรือ credentials
+- หลังแก้ PDF: TypeScript, ESLint, Production Build และ Browser/API 12 กลุ่มผ่าน; trace มี compressed binaries 4 ไฟล์ 69,137,964 bytes และฟอนต์ไทย กำลัง Deploy เพื่อตรวจ PDF บน Linux จริงอีกครั้ง
