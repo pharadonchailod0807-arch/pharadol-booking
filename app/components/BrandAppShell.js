@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { equipmentPermissions } from "@/lib/equipment/access";
 import { getBrandTheme } from "@/app/lib/brandThemes";
 import {
   CUSTOMER_REQUESTS_EVENT,
@@ -89,6 +90,12 @@ const Icon = ({ name, className = "h-5 w-5" }) => {
         <circle cx="9" cy="7" r="4" />
         <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
         <path d="M16 3.1a4 4 0 0 1 0 7.8" />
+      </>
+    ),
+    equipment: (
+      <>
+        <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+        <path d="M3 8v9l9 5 9-5V8M12 13v9M7.5 5.5l9 5" />
       </>
     ),
     archive: (
@@ -295,6 +302,12 @@ const buildMenuItems = (brandId, counts) => {
       subtitle: "รายการที่ถูกลบ",
       badgeCount: counts.trashItems,
     },
+    ...(brandId === "pharadol" ? [{
+      href: "/pharadol/equipment",
+      icon: "equipment",
+      title: "คลังอุปกรณ์",
+      subtitle: "Equipment Management",
+    }] : []),
     {
       href: `/${brandId}/settings`,
       icon: "settings",
@@ -625,6 +638,7 @@ export default function BrandAppShell({ brandId, children }) {
       window.location.replace(getRouteDeniedFallback(currentUser, brandId));
     };
 
+    const equipmentEntry = brandId === "pharadol" && pathname === "/pharadol/equipment";
     const checkAccess = (currentUser, activeBrand) => {
       const loggedIn = sessionStorage.getItem("loggedIn") === "true";
       const lastActivity = getStoredLastActivity();
@@ -633,8 +647,9 @@ export default function BrandAppShell({ brandId, children }) {
       const accountIsActive = currentUser?.active !== false;
       const accountIsAdmin = isAdminRole(currentUser?.role);
       const hasBrandAccess = normalizedBrands.includes(brandId);
-      const brandIsCorrect =
-        activeBrand === brandId && (accountIsAdmin || hasBrandAccess);
+      const equipmentAllowed = equipmentEntry && equipmentPermissions(currentUser).read;
+      const brandIsCorrect = equipmentAllowed ||
+        (activeBrand === brandId && (accountIsAdmin || hasBrandAccess));
 
       if (
         !loggedIn ||
@@ -649,6 +664,7 @@ export default function BrandAppShell({ brandId, children }) {
         return { allowed: false, reason: "route-denied" };
       }
 
+      if (equipmentAllowed) sessionStorage.setItem("activeBrand", brandId);
       sessionStorage.setItem("lastActivity", String(Date.now()));
       return { allowed: true };
     };
@@ -705,7 +721,8 @@ export default function BrandAppShell({ brandId, children }) {
       }
 
       const accountIsAdmin = isAdminRole(result.user.role);
-      const nextActiveBrand = accountIsAdmin ? brandId : result.activeBrand;
+      const nextActiveBrand = accountIsAdmin || (equipmentEntry && equipmentPermissions(result.user).read)
+        ? brandId : result.activeBrand;
 
       if (!isCurrentRequest()) return null;
 

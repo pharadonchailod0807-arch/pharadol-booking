@@ -28,6 +28,9 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  outputFileTracingIncludes: {
+    "/api/equipment/export": ["./public/equipment/NotoSansThai.ttf", "./public/chromium-pack.tar"],
+  },
   images: {
     localPatterns: [
       { pathname: "/**", search: "" },
