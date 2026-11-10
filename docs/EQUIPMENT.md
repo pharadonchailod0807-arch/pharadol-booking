@@ -1,6 +1,6 @@
 # Pharadol Equipment Management
 
-สถานะ: พัฒนาและทดสอบแล้ว ติดตั้ง Migration บน Supabase จริงแล้ววันที่ 10 พฤศจิกายน 2569; เผยแพร่รุ่นแรกบน Vercel Production แล้ว กำลังตรวจแก้ PDF จาก smoke test
+สถานะ: พัฒนาและทดสอบแล้ว ติดตั้ง Migration บน Supabase จริงแล้ววันที่ 10 พฤศจิกายน 2569; พร้อมใช้งานบน Vercel Production; ตรวจ URL ถาวร, Login, API/Supabase จริง และ Export สำเร็จวันที่ 10 พฤศจิกายน 2569
 
 ## ฟังก์ชัน
 
@@ -83,7 +83,7 @@ node scripts/equipment-preflight.mjs
 - Browser/API checks 12 ชุด: สิทธิ์/CSRF, create/search/filter/sort/pagination, checkout/partial return/maintenance/details, XLSX, PDF, private attachments, Desktop, browser form -> API -> PostgreSQL -> table, Mobile 390px, ไม่มีเมนูใน Adisorn
 - Browser test ใช้ Supabase SDK จริงเรียก test-only HTTP adapter ที่ส่งต่อไปยัง PostgreSQL ทดสอบ; adapter จำลอง PostgREST/Storage protocol เท่านั้น ไม่ได้อ้างว่าแทนการทดสอบ Supabase จริงทั้งหมด
 - ภาพตรวจสอบอยู่ `/tmp/pharadol-equipment-qa/`; PDF ผ่านการ render และตรวจข้อความภาษาไทยแล้ว
-- Production smoke test ยืนยัน Login redirect, Overview/API จาก Supabase จริง, categories 11 หมวด และประวัติเบิกคืน/ซ่อมบำรุงแล้ว; PDF บน Linux อยู่ระหว่างแก้ตามผลทดสอบจริง
+- Production smoke test ยืนยัน Login redirect, Overview/API จาก Supabase จริง, categories 11 หมวด และประวัติเบิกคืน/ซ่อมบำรุงแล้ว; PDF ภาษาไทยบน Vercel Linux ดาวน์โหลดและ render ตรวจได้แล้ว
 
 เครื่องมือสำรองเฉพาะการติดตั้งนี้: `node scripts/equipment-backup.mjs` จาก working tree เดิม หลังตั้ง SUPABASE_DB_URL; เก็บ archive ไว้นอก repository พร้อม checksum และตรวจรายการ object โดยไม่แสดง credentials ต้องทดสอบ restore แยกก่อน Migration
 
@@ -149,4 +149,17 @@ Rollback: ย้อน code deployment ไปก่อนมี Equipment แล
 - ผู้ใช้ Login ใหม่ใน Chrome แล้วเว็บ Redirect กลับ Equipment สำเร็จ; API ตอบ success=true, equipment=[], total=0 และ categories 11 หมวดจาก Supabase จริง
 - หน้าเบิกคืนและซ่อมบำรุงอ่านข้อมูลจริงสำเร็จ; Excel Production ดาวน์โหลดและเปิดอ่านได้ 17 คอลัมน์ ไม่มีแถวอุปกรณ์จำลอง
 - Production PDF รุ่นแรกตอบข้อผิดพลาด จึงเปลี่ยน Equipment export ให้ใช้ Chromium production dependency พร้อม trace binaries โดยตรง แทน shell tar จาก public pack; เพิ่ม diagnostics เฉพาะขั้น PDF โดยไม่บันทึกข้อมูลอุปกรณ์หรือ credentials
-- หลังแก้ PDF: TypeScript, ESLint, Production Build และ Browser/API 12 กลุ่มผ่าน; trace มี compressed binaries 4 ไฟล์ 69,137,964 bytes และฟอนต์ไทย กำลัง Deploy เพื่อตรวจ PDF บน Linux จริงอีกครั้ง
+- หลังแก้ PDF: TypeScript, ESLint, Production Build และ Browser/API 12 กลุ่มผ่าน; trace มี compressed binaries 4 ไฟล์ 69,137,964 bytes และฟอนต์ไทย Deploy และตรวจ PDF บน Linux จริงสำเร็จแล้ว
+
+
+## ผลตรวจ Production หลังแก้ PDF
+
+- Source commit `92f9168`; Deployment `dpl_68vaRLWPPgkUkoWNRKR4qE2KFEzD` สถานะ Ready, Production build 1m 58s
+- URL ถาวร https://www.pharadolproduction.com/pharadol/equipment ใช้งานได้; ผู้ใช้ Login ในฟอร์มเดิมแล้วกลับ Equipment สำเร็จ และเปิด URL ซ้ำขณะ Login อยู่ได้
+- ตรวจ API ใน session จริง: success=true, equipment=[], total=0 และหมวดหมู่จริง 11 หมวด ณ เวลาทดสอบ ไม่มีอุปกรณ์จำลอง
+- ตรวจหน้าเบิกคืนและซ่อมบำรุงแบบ read-only สำเร็จ ไม่มีการเพิ่มข้อมูลทดสอบ Production
+- Excel Production เปิดอ่านได้ 17 คอลัมน์; PDF Production 71,738 bytes / 1 หน้า ผ่านการ render และตรวจข้อความไทย
+- Vercel Request Logs ยืนยัน GET /api/equipment/export บน www.pharadolproduction.com ตอบ 200; Runtime Logs ของ Deployment ล่าสุดไม่พบ Error/Fatal ในช่วง smoke test
+- ตรวจ Supabase จริงด้วย anon key: ตาราง Equipment และหมวดหมู่ตอบ 401; private bucket ไม่เปิดเผยไฟล์
+- ผู้ใช้สามารถเริ่มเพิ่มอุปกรณ์จริงได้จาก Add Equipment; ไม่ต้องเปลี่ยนหรือพิมพ์ QR Code ใหม่
+- การทดสอบสร้าง/แก้ไข/เบิกคืน/ซ่อมและแยกสิทธิ์ใช้ฐานข้อมูลทดสอบแยก ส่วน smoke test Production อ่านข้อมูลและ export เท่านั้น
