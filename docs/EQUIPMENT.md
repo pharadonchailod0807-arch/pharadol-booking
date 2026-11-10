@@ -1,6 +1,6 @@
 # Pharadol Equipment Management
 
-สถานะ: พัฒนาและทดสอบในเครื่องแล้ว ยังไม่ได้ติดตั้ง Migration บน Supabase จริงหรือ Deploy Production
+สถานะ: พัฒนาและทดสอบแล้ว ติดตั้ง Migration บน Supabase จริงแล้ววันที่ 10 พฤศจิกายน 2569; บันทึก Secret เฉพาะ Vercel Production แล้ว กำลังเผยแพร่โค้ดผ่าน main
 
 ## ฟังก์ชัน
 
@@ -118,16 +118,11 @@ Rollback: ย้อน code deployment ไปก่อนมี Equipment แล
 
 ## สถานะ Environment / Deploy ที่ตรวจพบ
 
-- เครื่องนี้: มี Supabase URL/anon key แต่ยังไม่มี `SUPABASE_SERVICE_ROLE_KEY` และ `AUTH_SECRET`; read-only readiness check จึงไม่ผ่าน
-- Vercel project เดิม `booking-management-studio`: metadata ยืนยันมี AUTH_SECRET และ Supabase URL/anon key สำหรับ Production แล้ว แต่ไม่พบ `SUPABASE_SERVICE_ROLE_KEY`; ไม่อ่านหรือแสดงค่า secret
-- ยืนยันเข้าถึง Supabase Dashboard ผ่านเบราว์เซอร์ได้แล้ว โปรเจกต์ตรงกับเว็บไซต์; ตรวจแบบอ่านอย่างเดียวพบ public tables เดิม 6 ตาราง และยังไม่มี Equipment tables/functions/bucket ชนกับ Migration
-- กำลังรอ SUPABASE_DB_URL สำหรับสำรองฐานข้อมูลก่อนติดตั้ง Migration; ยังไม่แก้ข้อมูล Production
+- Vercel project `booking-management-studio` มี AUTH_SECRET และ Supabase URL/anon key เดิม; บันทึก `SUPABASE_SERVICE_ROLE_KEY` เป็น Secret เฉพาะ Production หลังผู้ใช้ยืนยันแล้ว ไม่เพิ่มใน Preview/Development และไม่เปลี่ยน AUTH_SECRET
 - เตรียมชุด release แยกที่ `/Users/bpc872/pharadol-equipment-release` บนสาขา `codex/pharadol-equipment` จาก Production commit `819e5a6`; ไม่รวมงานอื่นที่แก้ค้างไว้ใน working tree เดิม
-- Equipment session check อยู่ภายในโมดูลของตัวเอง รองรับ optional user_sessions เมื่อมีในอนาคต โดยไม่ import หรือ deploy งาน Authentication ที่ยังไม่เผยแพร่
-- ยังไม่ได้ commit, push, apply Production Migration หรือ deploy เพราะเงื่อนไขฐานข้อมูลและ environment ยังไม่พร้อม
-- เส้นทางในเครื่อง: `http://localhost:3000/pharadol/equipment` เมื่อเริ่ม dev server พร้อม environment ที่ตั้งค่าครบ
-- URL เป้าหมายหลัง deploy: `https://www.pharadolproduction.com/pharadol/equipment` (เส้นทางใหม่นี้ยังไม่ได้เผยแพร่)
-
+- Equipment session check อยู่ภายในโมดูล รองรับ optional user_sessions โดยไม่ import หรือ deploy งาน Authentication ที่ยังไม่เผยแพร่
+- Migration Production ติดตั้งแล้ว; ห้ามรันไฟล์ CREATE นี้ซ้ำ
+- URL ถาวร: `https://www.pharadolproduction.com/pharadol/equipment`
 
 ## การแก้ไข QR Code และตรวจ Production วันที่ 10 พฤศจิกายน 2569
 
@@ -139,4 +134,14 @@ Rollback: ย้อน code deployment ไปก่อนมี Equipment แล
 - สำรองตารางงาน public ครบ 6 ตารางพร้อมโครงสร้าง ฟังก์ชัน ดัชนี constraints grants และนโยบาย Storage ผ่าน SQL Editor แบบอ่านอย่างเดียว เก็บไฟล์นอก repository แบบสิทธิ์ 600
 - ทดสอบกู้คืนทุกตารางใน PostgreSQL แยก: hash เนื้อหาตรงกับสำรองทั้งหมด และลง Equipment Migration บนฐานกู้คืนแล้วข้อมูลเดิมไม่เปลี่ยน ไม่มีอุปกรณ์จำลอง
 - ผ่าน 40 tests ในชุด release รวม Browser/API checks 12 กลุ่ม และ TypeScript, ESLint, Production Build
-- การเพิ่ม SUPABASE_SERVICE_ROLE_KEY ใน Vercel Production รอคำยืนยันตามกฎเครื่องมือเบราว์เซอร์ ก่อนบันทึกค่า Secret
+- ผู้ใช้ยืนยันแล้ว และ Vercel แสดง Added Environment Variable successfully สำหรับ SUPABASE_SERVICE_ROLE_KEY ชนิด Secret เป้าหมาย Production เท่านั้น
+
+
+## สถานะล่าสุดก่อน Deploy
+
+- Commit `3dab523` Push แล้วในสาขา `codex/pharadol-equipment`
+- Migration Production สำเร็จ: 9 ตารางเปิด RLS, client roles ไม่มีสิทธิ์อ่านตาราง/เรียก RPC, Storage เป็น private
+- จำนวนอุปกรณ์จริง 0 และหมวดหมู่เริ่มต้น 11 หมวด ไม่มีการ seed อุปกรณ์
+- หลัง Migration จำนวนข้อมูลเดิมตรงก่อนติดตั้ง: bookings 117, customer_requests 37, members 3, admin_users 3, payment_receipts 0
+- สำรองตารางงานและโครงสร้างไว้นอก git ที่ `/Users/bpc872/pharadol-backups/equipment-20261110-2db81f0a77fd` แบบจำกัดสิทธิ์ และตรวจ restore/hash แล้ว
+- บันทึก Production Secret สำเร็จแล้ว กำลัง Push เข้า main เพื่อให้ Git integration ของ Vercel Deploy; ต้องตรวจสถานะ Ready และ smoke test ก่อนยืนยันเปิดใช้งาน
