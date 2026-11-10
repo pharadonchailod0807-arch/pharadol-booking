@@ -1,4 +1,6 @@
-import type { NextRequest } from "next/server";
+import { after, type NextRequest } from "next/server";
+import { validateImageManifest } from "@/lib/equipment/image-validation";
+import { cleanupEquipmentImageUploads } from "@/lib/equipment/image-server";
 import {
   authorizeEquipment,
   equipmentDb,
@@ -21,6 +23,7 @@ export async function GET(request: NextRequest) {
     const sp = request.nextUrl.searchParams;
     const mode = sp.get("mode") || "inventory";
     if (mode === "inventory") {
+      after(() => cleanupEquipmentImageUploads(db).catch(() => {}));
       const { query, params: p } = inventoryQuery(db, sp);
       const [inventory, categories, summary] = await Promise.all([
         query.range((p.page - 1) * p.pageSize, p.page * p.pageSize - 1),
@@ -36,10 +39,11 @@ export async function GET(request: NextRequest) {
       const ids = (inventory.data || []).map((e) => e.id);
       const images = ids.length
         ? await db
-            .from("equipment_documents")
+            .from("equipment_images")
             .select("id,equipment_id")
             .eq("brand", "pharadol")
-            .eq("kind", "image")
+            .eq("is_cover", true)
+            .is("deleted_at", null)
             .in("equipment_id", ids)
             .order("created_at", { ascending: false })
         : { data: [], error: null };
@@ -106,13 +110,12 @@ export async function GET(request: NextRequest) {
             .range(from, from + 19),
           db.rpc("equipment_maintenance_total", { p_equipment_id: id }),
           db
-            .from("equipment_documents")
-            .select("id,filename,kind,mime_type,size,maintenance_id,created_at")
+            .from("equipment_images")
+            .select("id,equipment_id,filename,is_cover,sort_order,created_at")
             .eq("brand", "pharadol")
             .eq("equipment_id", id)
-            .in("kind", ["image", "additional_image"])
-            .order("created_at", { ascending: false })
-            .limit(20),
+            .is("deleted_at", null)
+            .order("sort_order"),
           db.rpc("equipment_return_history", {
             p_equipment_id: id,
             p_offset: from,
@@ -232,13 +235,23 @@ export async function POST(request: NextRequest) {
       throw new EquipmentError("รายการนี้ต้องใช้สิทธิ์ผู้ดูแล", 403);
     const payload = validateMutation(body.action, body.payload),
       requestId = uuid(body.requestId);
-    const { data, error } = await equipmentDb().rpc("equipment_mutate", {
-      p_action: body.action,
-      p_payload: payload,
-      p_actor: actor,
-      p_request_id: requestId,
-      p_admin: permissions.admin,
-    });
+    const hasImages =
+      ["create", "update"].includes(body.action) &&
+      body.payload?.image_manifest !== undefined;
+    if (hasImages)
+      payload.image_manifest = validateImageManifest(
+        body.payload.image_manifest,
+      );
+    const { data, error } = await equipmentDb().rpc(
+      hasImages ? "equipment_save_images" : "equipment_mutate",
+      {
+        p_action: body.action,
+        p_payload: payload,
+        p_actor: actor,
+        p_request_id: requestId,
+        p_admin: permissions.admin,
+      },
+    );
     if (error) throw error;
     return equipmentJson({ success: true, result: data });
   } catch (e) {

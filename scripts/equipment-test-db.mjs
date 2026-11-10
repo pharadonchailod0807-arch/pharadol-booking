@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import net from "node:net";
 import { randomUUID } from "node:crypto";
-export async function startEquipmentTestDatabase() {
+export async function startEquipmentTestDatabase({ images = true } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "pharadol-equipment-test-"));
   const port = await new Promise((resolve, reject) => {
     const s = net.createServer();
@@ -64,6 +64,16 @@ export async function startEquipmentTestDatabase() {
         "utf8",
       ),
     );
+    if (images)
+      await pool.query(
+        await readFile(
+          new URL(
+            "../supabase/migrations/202611100001_equipment_images.sql",
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      );
     return {
       pool,
       port,

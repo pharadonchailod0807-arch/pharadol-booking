@@ -1,5 +1,5 @@
 "use client";
-import Image from "next/image";
+import { ImageGallery } from "./images";
 import { useState } from "react";
 import type {
   Activity,
@@ -30,6 +30,7 @@ export function ActivityList({ rows }: { rows: Activity[] }) {
                   restore: "กู้คืน",
                   stock_adjust: "เปลี่ยนสถานะ",
                   document_add: "เพิ่มเอกสาร",
+                  images_save: "จัดการรูปภาพอุปกรณ์",
                   category_save: "จัดการหมวดหมู่",
                 } as Record<string, string>
               )[a.action] || a.action}
@@ -266,36 +267,7 @@ export default function Detail({
       {tab === "overview" && (
         <div className="mt-5 grid gap-5 sm:grid-cols-3">
           <div className="space-y-3">
-            {images.length ? (
-              <Image
-                unoptimized
-                width={480}
-                height={480}
-                src={`/api/equipment/files?id=${images[0].id}&inline=1`}
-                alt={e.name}
-                className="aspect-square w-full rounded-2xl border border-[#DDE5DC] object-contain"
-              />
-            ) : (
-              <div className="grid aspect-square place-items-center rounded-2xl bg-[#F6F7F3] text-sm text-[#66756D]">
-                ยังไม่มีรูปอุปกรณ์
-              </div>
-            )}
-            {images.length > 1 && (
-              <div className="grid grid-cols-3 gap-2">
-                {images.slice(1).map((d) => (
-                  <a key={d.id} href={`/api/equipment/files?id=${d.id}`}>
-                    <Image
-                      unoptimized
-                      width={480}
-                      height={480}
-                      src={`/api/equipment/files?id=${d.id}&inline=1`}
-                      alt={d.filename}
-                      className="aspect-square rounded-lg object-cover"
-                    />
-                  </a>
-                ))}
-              </div>
-            )}
+            <ImageGallery images={images} name={e.name} />
             <div className="rounded-xl bg-[#F6F7F3] p-4 text-xs text-[#66756D]">
               ค่าซ่อมสะสม
               <p className="mt-1 text-xl font-semibold text-[#10231C]">

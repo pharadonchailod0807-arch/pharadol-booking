@@ -182,6 +182,7 @@ export function Modal({
       ref={ref}
       aria-labelledby={headingId}
       onCancel={(e) => {
+        if (e.target !== e.currentTarget) return; // Native file-picker cancellation must not close the form.
         e.preventDefault();
         if (!busy) onClose();
       }}

@@ -69,6 +69,11 @@ export async function POST(request: NextRequest) {
       ].includes(kind)
     )
       throw new EquipmentError("ประเภทเอกสารไม่ถูกต้อง");
+    if (["image", "additional_image"].includes(kind))
+      throw new EquipmentError(
+        "กรุณาเพิ่มรูปภาพผ่านฟอร์ม Add Equipment หรือ Edit Equipment เพื่อเลือกรูปหลักและจัดลำดับ",
+        409,
+      );
     const bytes = Buffer.from(await file.arrayBuffer());
     const mime = bytes.subarray(0, 3).equals(Buffer.from([255, 216, 255]))
       ? "image/jpeg"

@@ -1,5 +1,9 @@
 export type EquipmentStatus =
-  "available" | "in_use" | "maintenance" | "damaged" | "retired";
+  | "available"
+  | "in_use"
+  | "maintenance"
+  | "damaged"
+  | "retired";
 export type Category = { id: string; name: string; active: boolean };
 export type Equipment = {
   id: string;
@@ -29,6 +33,14 @@ export type Equipment = {
   image_id?: string;
   created_by: string;
   updated_by: string;
+};
+export type EquipmentImage = {
+  id: string;
+  equipment_id?: string;
+  filename: string;
+  is_cover: boolean;
+  sort_order: number;
+  created_at?: string;
 };
 export type CheckoutItem = {
   id: string;
@@ -122,7 +134,7 @@ export type DetailResponse = {
   historyTotal: number;
   returnsTotal: number;
   documentsTotal: number;
-  images: Document[];
+  images: EquipmentImage[];
   maintenanceTotal: number;
   activityTotal: number;
   maintenanceExpenses: number;

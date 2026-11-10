@@ -1,11 +1,13 @@
 "use client";
 import Image from "next/image";
+import { ImageLightbox, ImagePlaceholder, imageSrc } from "./images";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Category,
   Checkout,
   DetailResponse,
   Equipment,
+  EquipmentImage,
   InventoryResponse,
   Maintenance,
   Permissions,
@@ -78,6 +80,7 @@ export default function EquipmentManager({
     [busy, setBusy] = useState(false),
     [formError, setFormError] = useState(""),
     [exportBusy, setExportBusy] = useState(false);
+  const [imagePreview, setImagePreview] = useState<EquipmentImage | null>(null);
   const [detailId, setDetailId] = useState(""),
     [detail, setDetail] = useState<DetailResponse | null>(null),
     [detailPage, setDetailPage] = useState(1),
@@ -274,6 +277,14 @@ export default function EquipmentManager({
     : "";
   return (
     <div className="mx-auto w-full max-w-[1600px] space-y-6 p-4 text-[#10231C] sm:p-6 lg:p-8">
+      {imagePreview && (
+        <ImageLightbox
+          images={[imagePreview]}
+          index={0}
+          close={() => setImagePreview(null)}
+          change={() => {}}
+        />
+      )}
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-[10px] font-semibold tracking-[.22em] text-[#66756D]">
@@ -504,7 +515,7 @@ export default function EquipmentManager({
                   <table className="w-full table-fixed text-left text-xs">
                     <thead className="bg-[#F6F7F3] text-[#66756D]">
                       <tr>
-                        <th className="w-[7%] p-3">รูป</th>
+                        <th className="w-[7%] p-3">Image</th>
                         <th className="w-[25%] p-3">Equipment / Category</th>
                         <th className="w-[12%] p-3">Brand / Model</th>
                         <th className="w-[7%] p-2 text-center">ทั้งหมด</th>
@@ -521,20 +532,33 @@ export default function EquipmentManager({
                           className="align-middle hover:bg-[#F6F7F3]/60"
                         >
                           <td className="p-3">
-                            {e.image_id ? (
-                              <Image
-                                unoptimized
-                                width={48}
-                                height={48}
-                                src={`/api/equipment/files?id=${e.image_id}&inline=1`}
-                                alt=""
-                                className="aspect-square w-12 rounded-lg object-cover"
-                              />
-                            ) : (
-                              <span className="grid h-10 w-10 place-items-center rounded-lg bg-[#F6F7F3] text-lg text-[#66756D]">
-                                ▣
-                              </span>
-                            )}
+                            <button
+                              type="button"
+                              className="relative block h-12 w-12 overflow-hidden rounded-xl"
+                              disabled={!e.image_id}
+                              aria-label={`ดูรูปภาพ ${e.name}`}
+                              onClick={() =>
+                                setImagePreview({
+                                  id: e.image_id!,
+                                  filename: e.name,
+                                  is_cover: true,
+                                  sort_order: 0,
+                                })
+                              }
+                            >
+                              {e.image_id ? (
+                                <Image
+                                  unoptimized
+                                  fill
+                                  src={imageSrc(e.image_id, true)}
+                                  alt={e.name}
+                                  className="object-cover"
+                                  sizes="48px"
+                                />
+                              ) : (
+                                <ImagePlaceholder />
+                              )}
+                            </button>
                           </td>
                           <td className="break-words p-3">
                             <button
@@ -607,7 +631,34 @@ export default function EquipmentManager({
                   {inventory.equipment.map((e) => (
                     <article key={e.id} className="p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
+                        <button
+                          type="button"
+                          className="relative mt-1 block h-14 w-14 shrink-0 overflow-hidden rounded-xl"
+                          disabled={!e.image_id}
+                          aria-label={`ดูรูปภาพ ${e.name}`}
+                          onClick={() =>
+                            setImagePreview({
+                              id: e.image_id!,
+                              filename: e.name,
+                              is_cover: true,
+                              sort_order: 0,
+                            })
+                          }
+                        >
+                          {e.image_id ? (
+                            <Image
+                              unoptimized
+                              fill
+                              src={imageSrc(e.image_id, true)}
+                              alt={e.name}
+                              className="object-cover"
+                              sizes="56px"
+                            />
+                          ) : (
+                            <ImagePlaceholder />
+                          )}
+                        </button>
+                        <div className="min-w-0 flex-1">
                           <button
                             className="min-h-11 break-words text-left font-semibold"
                             onClick={() => openDetail(e)}

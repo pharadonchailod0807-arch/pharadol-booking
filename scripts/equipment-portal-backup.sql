@@ -14,7 +14,7 @@ SELECT jsonb_build_object(
  'functions',(SELECT coalesce(jsonb_agg(pg_get_functiondef(p.oid)),'[]'::jsonb) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prokind IN ('f','p') AND NOT EXISTS(SELECT 1 FROM pg_depend d WHERE d.classid='pg_proc'::regclass AND d.objid=p.oid AND d.deptype='e')),
  'indexes',(SELECT coalesce(jsonb_agg(pg_get_indexdef(i.indexrelid)),'[]'::jsonb) FROM pg_index i JOIN tables t ON t.oid=i.indrelid WHERE NOT EXISTS(SELECT 1 FROM pg_constraint c WHERE c.conindid=i.indexrelid)),
  'triggers',(SELECT coalesce(jsonb_agg(pg_get_triggerdef(g.oid,true)),'[]'::jsonb) FROM pg_trigger g JOIN tables t ON t.oid=g.tgrelid WHERE NOT g.tgisinternal),
- 'sequences',(SELECT coalesce(jsonb_agg(to_jsonb(s)),'[]'::jsonb) FROM pg_sequences s WHERE schemaname='public'),
+ 'sequences',(SELECT coalesce(jsonb_agg(to_jsonb(s)||jsonb_build_object('start_value',s.start_value::text,'min_value',s.min_value::text,'max_value',s.max_value::text,'increment_by',s.increment_by::text,'cache_size',s.cache_size::text,'last_value',s.last_value::text)),'[]'::jsonb) FROM pg_sequences s WHERE schemaname='public'),
  'policies',(SELECT coalesce(jsonb_agg(to_jsonb(p)),'[]'::jsonb) FROM pg_policies p WHERE schemaname='public'),
  'grants',(SELECT coalesce(jsonb_agg(to_jsonb(g)),'[]'::jsonb) FROM information_schema.table_privileges g WHERE table_schema='public'),
  'storage_policies',(SELECT coalesce(jsonb_agg(to_jsonb(p)),'[]'::jsonb) FROM pg_policies p WHERE schemaname='storage' AND tablename='objects'),

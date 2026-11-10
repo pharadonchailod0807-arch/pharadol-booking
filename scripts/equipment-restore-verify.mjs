@@ -50,6 +50,7 @@ const hash = (rows) =>
     .update(rows.map(canonical).sort().join("\n"))
     .digest("hex");
 let client;
+let phase = "init";
 try {
   await server.initialise();
   await server.start();
@@ -77,11 +78,21 @@ try {
           ident(role) +
           (role === "service_role" ? " BYPASSRLS" : ""),
       );
-  for (const table of dump.tables) {
-    if (table.columns.some((c) => c.identity || c.generated))
-      throw new Error(
-        "Unexpected identity/generated column; expand restore support before proceeding",
+  phase = "sequences";
+  // Identity sequences are created with their owning columns; other sequences must precede defaults.
+  const identitySequences = new Set(
+    dump.tables.flatMap((t) =>
+      t.columns.filter((c) => c.identity).map((c) => `${t.name}_${c.name}_seq`),
+    ),
+  );
+  for (const seq of dump.sequences) {
+    if (!identitySequences.has(seq.sequencename))
+      await client.query(
+        `CREATE SEQUENCE public.${ident(seq.sequencename)} AS ${seq.data_type} START WITH ${BigInt(seq.start_value)} INCREMENT BY ${BigInt(seq.increment_by)} MINVALUE ${BigInt(seq.min_value)} MAXVALUE ${BigInt(seq.max_value)} CACHE ${BigInt(seq.cache_size)} ${seq.cycle ? "CYCLE" : "NO CYCLE"}`,
       );
+  }
+  phase = "tables";
+  for (const table of dump.tables) {
     await client.query(
       "CREATE TABLE public." +
         ident(table.name) +
@@ -92,26 +103,39 @@ try {
               ident(c.name) +
               " " +
               c.type +
-              (c.default ? " DEFAULT " + c.default : "") +
+              (c.generated
+                ? ` GENERATED ALWAYS AS (${c.default}) STORED`
+                : c.identity
+                  ? ` GENERATED ${c.identity === "a" ? "ALWAYS" : "BY DEFAULT"} AS IDENTITY`
+                  : c.default
+                    ? " DEFAULT " + c.default
+                    : "") +
               (c.not_null ? " NOT NULL" : ""),
           )
           .join(",") +
         ")",
     );
   }
-  if (dump.sequences.length)
-    throw new Error(
-      "Unexpected sequences; expand restore support before proceeding",
+  // Restore the Equipment view defined by the original, verified additive migration.
+  if (dump.tables.some((t) => t.name === "equipment")) {
+    await client.query(
+      "CREATE VIEW public.equipment_inventory WITH (security_invoker=true) AS SELECT e.*,c.name AS category_name FROM public.equipment e JOIN public.equipment_categories c ON c.id=e.category_id AND c.brand=e.brand",
     );
+  }
+  phase = "functions";
   for (const fn of dump.functions) await client.query(fn);
+  phase = "data";
   for (const table of dump.tables) {
-    const columns = table.columns.map((c) => ident(c.name)).join(",");
+    const columns = table.columns
+      .filter((c) => !c.generated)
+      .map((c) => ident(c.name))
+      .join(",");
     await client.query(
       "INSERT INTO public." +
         ident(table.name) +
         " (" +
         columns +
-        ") SELECT " +
+        ") OVERRIDING SYSTEM VALUE SELECT " +
         columns +
         " FROM jsonb_populate_recordset(NULL::public." +
         ident(table.name) +
@@ -119,7 +143,21 @@ try {
       [JSON.stringify(dump.data[table.name])],
     );
   }
-  for (const c of dump.constraints)
+  for (const seq of dump.sequences) {
+    if (seq.last_value !== null)
+      await client.query("SELECT setval($1,$2,true)", [
+        "public." + seq.sequencename,
+        seq.last_value,
+      ]);
+  }
+  phase = "constraints";
+  for (const c of dump.constraints
+    .filter((c) => !c.definition.startsWith("TRIGGER"))
+    .sort(
+      (a, b) =>
+        Number(a.definition.startsWith("FOREIGN KEY")) -
+        Number(b.definition.startsWith("FOREIGN KEY")),
+    ))
     await client.query(
       "ALTER TABLE public." +
         ident(c.table) +
@@ -128,7 +166,9 @@ try {
         " " +
         c.definition,
     );
+  phase = "indexes";
   for (const index of dump.indexes) await client.query(index);
+  phase = "triggers";
   for (const trigger of dump.triggers) await client.query(trigger);
   for (const table of dump.tables) {
     if (table.rls)
@@ -157,7 +197,9 @@ try {
     p.roles.map((r) => (r === "public" ? "PUBLIC" : ident(r))).join(",") +
     (p.qual ? " USING (" + p.qual + ")" : "") +
     (p.with_check ? " WITH CHECK (" + p.with_check + ")" : "");
+  phase = "policies";
   for (const policy of dump.policies) await client.query(policySql(policy));
+  phase = "grants";
   for (const g of dump.grants)
     await client.query(
       "GRANT " +
@@ -168,6 +210,7 @@ try {
         (g.grantee === "PUBLIC" ? "PUBLIC" : ident(g.grantee)) +
         (g.is_grantable === "YES" ? " WITH GRANT OPTION" : ""),
     );
+  phase = "verify";
   const report = [];
   for (const table of dump.tables) {
     const rows = (
@@ -183,6 +226,7 @@ try {
     });
     if (!matching) throw new Error("Restored content mismatch");
   }
+  phase = "storage";
   await client.query(`CREATE SCHEMA storage;
  CREATE TABLE storage.buckets(id text PRIMARY KEY,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
  CREATE TABLE storage.objects(id uuid DEFAULT gen_random_uuid(),bucket_id text,name text);
@@ -200,12 +244,17 @@ try {
       ],
     );
   for (const p of dump.storage_policies) await client.query(policySql(p));
+  phase = "migration";
+  const migration =
+    process.argv[3] ||
+    (dump.tables.some((t) => t.name === "equipment")
+      ? "202611100001_equipment_images.sql"
+      : "202611090001_equipment.sql");
+  if (!/^\d{12}_[a-z_]+\.sql$/.test(migration))
+    throw new Error("Unexpected migration filename");
   await client.query(
     await fs.readFile(
-      new URL(
-        "../supabase/migrations/202611090001_equipment.sql",
-        import.meta.url,
-      ),
+      new URL("../supabase/migrations/" + migration, import.meta.url),
       "utf8",
     ),
   );
@@ -246,7 +295,11 @@ try {
   console.error(
     JSON.stringify({
       restored: false,
+      phase,
       errorCode: error.code || "RESTORE_FAILED",
+      ...(error.code === "42601"
+        ? { syntax: error.message, position: error.position }
+        : {}),
       errorType: error.constructor.name,
     }),
   );

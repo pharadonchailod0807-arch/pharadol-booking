@@ -2,10 +2,11 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { createHmac, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import puppeteer from "puppeteer";
 import * as XLSX from "xlsx";
+import sharp from "sharp";
 import { startEquipmentTestDatabase } from "./equipment-test-db.mjs";
 import { startEquipmentTestApi } from "./equipment-test-api.mjs";
 const db = await startEquipmentTestDatabase(),
@@ -345,6 +346,8 @@ try {
     },
   );
   const page = await browser.newPage();
+  // Local storage adapter has a loopback origin; Production uses the existing allowed Supabase domain.
+  await page.setBypassCSP(true);
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.setCookie({
@@ -422,6 +425,7 @@ try {
     },
   );
   async function clickText(text) {
+    await page.waitForFunction(text => [...document.querySelectorAll("button")].some(b => b.textContent.trim() === text && b.offsetParent !== null), { timeout: 10000 }, text);
     const found = await page.evaluate((text) => {
       const buttons = [...document.querySelectorAll("button")].filter(
         (b) => b.textContent.trim() === text && b.offsetParent !== null,
@@ -482,6 +486,484 @@ try {
       await page.keyboard.press("Escape");
     },
   );
+  const imageDir = "/tmp/pharadol-equipment-qa/images";
+  await mkdir(imageDir, { recursive: true });
+  const photo = await sharp({
+    create: { width: 900, height: 600, channels: 3, background: "#57776a" },
+  })
+    .jpeg()
+    .toBuffer();
+  for (let n = 0; n < 6; n++)
+    await writeFile(
+      `${imageDir}/${n}.jpg`,
+      await sharp({
+        create: {
+          width: 900,
+          height: 600,
+          channels: 3,
+          background: [
+            "#57776a",
+            "#d2bb92",
+            "#a9c4cb",
+            "#b68f91",
+            "#d2d5bd",
+            "#5e6380",
+          ][n],
+        },
+      })
+        .jpeg()
+        .toBuffer(),
+    );
+  await writeFile(`${imageDir}/bad.svg`, "<svg/>");
+  await writeFile(`${imageDir}/large.jpg`, Buffer.alloc(10485761));
+  const imagePost = async (payload, user = admin) => {
+    const r = await fetch(origin + "/api/equipment/images", {
+      method: "POST",
+      headers: headers(user),
+      body: JSON.stringify(payload),
+    });
+    return { status: r.status, body: await r.json() };
+  };
+  await check(
+    "image API enforces access, 10 MB direct uploads, authentic decode and staging cleanup",
+    async () => {
+      const draft = randomUUID();
+      const prepare = {
+        action: "prepare",
+        draft_id: draft,
+        filename: "large-valid.jpg",
+        mime_type: "image/jpeg",
+        size: photo.length + 6 * 1024 * 1024,
+      };
+      assert.equal(
+        (
+          await fetch(origin + "/api/equipment/images", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Origin: origin },
+            body: JSON.stringify(prepare),
+          })
+        ).status,
+        401,
+      );
+      for (const user of [
+        { ...admin, brands: ["adisorn"] },
+        { ...admin, role: "VIEWER" },
+      ])
+        assert.equal((await imagePost(prepare, user)).status, 403);
+      const prepared = await imagePost(prepare);
+      assert.equal(prepared.status, 200, JSON.stringify(prepared.body));
+      const raw = Buffer.concat([photo, Buffer.alloc(6 * 1024 * 1024)]);
+      assert.equal(
+        (
+          await fetch(prepared.body.upload_url, {
+            method: "PUT",
+            headers: { "Content-Type": "image/jpeg" },
+            body: raw,
+          })
+        ).status,
+        200,
+      );
+      assert.equal(
+        (await imagePost({ action: "complete", id: prepared.body.id })).status,
+        200,
+      );
+      const staged = await fetch(
+        origin + "/api/equipment/images?id=" + prepared.body.id,
+        { headers: headers(admin) },
+      );
+      assert.equal(staged.status, 200);
+      assert.equal(staged.headers.get("content-type"), "image/webp");
+      const other = { ...admin, id: "other-image-user", username: "Other" };
+      assert.equal(
+        (
+          await fetch(origin + "/api/equipment/images?id=" + prepared.body.id, {
+            headers: headers(other),
+          })
+        ).status,
+        404,
+      );
+      assert.equal(
+        (await imagePost({ action: "complete", id: prepared.body.id }, other))
+          .status,
+        404,
+      );
+      await imagePost({ action: "cancel", id: prepared.body.id });
+      assert.equal(
+        [...backend.objects.keys()].some((k) => k.includes(prepared.body.id)),
+        false,
+      );
+      for (const [filename, mime_type, size] of [
+        ["a.pdf", "application/pdf", 100],
+        ["a.heic", "image/heic", 100],
+        ["a.jpg", "image/jpeg", 10485761],
+      ])
+        assert.equal(
+          (
+            await imagePost({
+              action: "prepare",
+              draft_id: draft,
+              filename,
+              mime_type,
+              size,
+            })
+          ).status,
+          400,
+        );
+      const bad = await imagePost({
+        action: "prepare",
+        draft_id: draft,
+        filename: "spoof.jpg",
+        mime_type: "image/jpeg",
+        size: 7,
+      });
+      await fetch(bad.body.upload_url, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: "not-jpg",
+      });
+      assert.equal(
+        (await imagePost({ action: "complete", id: bad.body.id })).status,
+        400,
+      );
+      assert.equal(
+        [...backend.objects.keys()].some((k) => k.includes(bad.body.id)),
+        false,
+      );
+    },
+  );
+  const editor = 'section[aria-label="Equipment Images · รูปภาพอุปกรณ์"]';
+  const input = () => page.$(`${editor} input[type=file]`);
+  async function waitReady(n) {
+    await page.waitForFunction(
+      (selector, n) => {
+        const el = document.querySelector(selector);
+        return (
+          el &&
+          [...el.querySelectorAll("article")].filter((a) =>
+            a.innerText.includes("พร้อมบันทึก"),
+          ).length === n
+        );
+      },
+      { timeout: 30000 },
+      editor,
+      n,
+    );
+  }
+  async function editorClick(n, text) {
+    await page.evaluate(
+      (selector, n, text) => {
+        const a = document.querySelectorAll(selector + " article")[n];
+        const b = [...a.querySelectorAll("button")].find(
+          (b) => b.textContent.trim() === text,
+        );
+        if (!b) throw Error("image action missing " + text);
+        b.click();
+      },
+      editor,
+      n,
+      text,
+    );
+  }
+  let imageEquipment;
+  await check(
+    "Add form previews one/five images, rejects overflow/type/size, preserves fields and saves selected cover",
+    async () => {
+      await page.setViewport({
+        width: 1440,
+        height: 1000,
+        isMobile: false,
+        hasTouch: false,
+      });
+      await page.goto(origin + "/pharadol/equipment", {
+        waitUntil: "networkidle0",
+      });
+      await clickText("+ Add Equipment");
+      await page.type("dialog[open] input[name=name]", "ภาพอุปกรณ์ UI");
+      await page.select("dialog[open] select[name=category_id]", cat);
+      await (await input()).uploadFile(`${imageDir}/0.jpg`);
+      await page.waitForSelector(`${editor} img[src^="blob:"]`);
+      assert.equal(
+        await page.$eval("dialog[open] input[name=name]", (el) => el.value),
+        "ภาพอุปกรณ์ UI",
+      );
+      await waitReady(1);
+      const dropFiles = await Promise.all(
+        [1, 2, 3, 4].map(async (n) => ({
+          name: `${n}.jpg`,
+          base64: (await readFile(`${imageDir}/${n}.jpg`)).toString("base64"),
+        })),
+      );
+      await page.evaluate(
+        (selector, files) => {
+          const dt = new DataTransfer();
+          for (const f of files)
+            dt.items.add(
+              new File(
+                [Uint8Array.from(atob(f.base64), (c) => c.charCodeAt(0))],
+                f.name,
+                { type: "image/jpeg" },
+              ),
+            );
+          document
+            .querySelector(selector + " > button")
+            .dispatchEvent(
+              new DragEvent("drop", {
+                dataTransfer: dt,
+                bubbles: true,
+                cancelable: true,
+              }),
+            );
+        },
+        editor,
+        dropFiles,
+      );
+      await waitReady(5);
+      assert.ok(
+        (await page.$eval(editor, (el) => el.innerText)).includes(
+          "5 / 5 Images",
+        ),
+      );
+      await (await input()).uploadFile(`${imageDir}/5.jpg`);
+      assert.ok(
+        (await page.$eval(editor, (el) => el.innerText)).includes("สูงสุด 5"),
+      );
+      await editorClick(3, "ตั้งเป็นรูปหลัก");
+      await editorClick(3, "ลบรูป");
+      await waitReady(4);
+      assert.ok(
+        await page.$eval(`${editor} article`, (el) =>
+          el.innerText.includes("รูปหลัก"),
+        ),
+      );
+      await (await input()).uploadFile(`${imageDir}/bad.svg`);
+      assert.ok(
+        (await page.$eval(editor, (el) => el.innerText)).includes(
+          "รองรับรูปภาพ",
+        ),
+      );
+      await (await input()).uploadFile(`${imageDir}/large.jpg`);
+      assert.ok(
+        (await page.$eval(editor, (el) => el.innerText)).includes("10 MB"),
+      );
+      const [cancelPicker] = await Promise.all([
+        page.waitForFileChooser(),
+        editorClick(0, "เปลี่ยนรูป"),
+      ]);
+      await cancelPicker.cancel();
+      assert.equal(
+        await page.$eval("dialog[open] input[name=name]", (el) => el.value),
+        "ภาพอุปกรณ์ UI",
+      );
+      const [replacePicker] = await Promise.all([
+        page.waitForFileChooser(),
+        editorClick(0, "เปลี่ยนรูป"),
+      ]);
+      await replacePicker.accept([`${imageDir}/5.jpg`]);
+      await waitReady(4);
+      await (await input()).uploadFile(`${imageDir}/3.jpg`);
+      await waitReady(5);
+      await editorClick(2, "ตั้งเป็นรูปหลัก");
+      await page.screenshot({
+        path: "/tmp/pharadol-equipment-qa/images-form-desktop.png",
+        fullPage: false,
+      });
+      await page.click("dialog[open] button[type=submit]");
+      await page.waitForFunction(() => !document.querySelector("dialog[open]"));
+      imageEquipment = (
+        await db.pool.query(
+          "SELECT * FROM equipment WHERE name='ภาพอุปกรณ์ UI'",
+        )
+      ).rows[0];
+      assert.ok(imageEquipment);
+      const photos = (
+        await db.pool.query(
+          "SELECT * FROM equipment_images WHERE equipment_id=$1 AND deleted_at IS NULL ORDER BY sort_order",
+          [imageEquipment.id],
+        )
+      ).rows;
+      assert.equal(photos.length, 5);
+      assert.equal(photos.filter((p) => p.is_cover).length, 1);
+      assert.equal(photos[2].is_cover, true);
+      assert.equal(imageEquipment.quantity, 1);
+      assert.equal(imageEquipment.available, 1);
+    },
+  );
+  await check(
+    "inventory image, Details gallery, enlarge/next/previous/close and Mobile render stored images",
+    async () => {
+      await page.setViewport({
+        width: 390,
+        height: 844,
+        isMobile: true,
+        hasTouch: true,
+      });
+      await page.goto(origin + "/pharadol/equipment", {
+        waitUntil: "networkidle0",
+      });
+      await page.type(
+        'input[placeholder="ชื่อ รหัส ยี่ห้อ รุ่น หรือ Serial"]',
+        "ภาพอุปกรณ์ UI",
+      );
+      await page.waitForSelector(
+        `button[aria-label="ดูรูปภาพ ภาพอุปกรณ์ UI"] img`,
+      );
+      await page.waitForFunction(() =>
+        [
+          ...document.querySelectorAll(
+            'button[aria-label="ดูรูปภาพ ภาพอุปกรณ์ UI"] img',
+          ),
+        ].some((i) => i.complete && i.naturalWidth > 0),
+      );
+      await page.evaluate(() => [...document.querySelectorAll('button[aria-label="ดูรูปภาพ ภาพอุปกรณ์ UI"]')].find(el => el.offsetParent !== null).click());
+      await page.waitForSelector('dialog[aria-label="ดูรูปภาพอุปกรณ์"][open]');
+      await page.click('button[aria-label="ปิดรูปภาพ"]');
+      await clickText("ภาพอุปกรณ์ UI");
+      await page.waitForSelector(
+        'dialog[open] button[aria-label="เปิดรูป 2 "]',
+      );
+      await page.click('dialog[open] button[aria-label="เปิดรูป 2 "]');
+      await page.waitForSelector('dialog[aria-label="ดูรูปภาพอุปกรณ์"][open]');
+      await clickText("รูปถัดไป →");
+      await clickText("← รูปก่อนหน้า");
+      await page.keyboard.press("Escape");
+      assert.equal(
+        await page.$('dialog[aria-label="ดูรูปภาพอุปกรณ์"][open]'),
+        null,
+      );
+      assert.ok(await page.$("dialog[open]"));
+      assert.equal(
+        await page.$eval(
+          "dialog[open]",
+          (el) => el.scrollWidth <= el.clientWidth,
+        ),
+        true,
+      );
+      await page.screenshot({
+        path: "/tmp/pharadol-equipment-qa/images-gallery-mobile.png",
+        fullPage: false,
+      });
+      await page.keyboard.press("Escape");
+    },
+  );
+  await check(
+    "Edit image cancel preserves originals; saved deletion/reorder/cover retain stock and history",
+    async () => {
+      const before = (
+        await db.pool.query(
+          "SELECT * FROM equipment_images WHERE equipment_id=$1 AND deleted_at IS NULL ORDER BY sort_order",
+          [imageEquipment.id],
+        )
+      ).rows;
+      async function edit() {
+        await clickText("ภาพอุปกรณ์ UI");
+        await page.waitForSelector("dialog[open]");
+        await clickText("แก้ไขข้อมูล");
+        await page.waitForSelector(editor + " article");
+        await waitReady(5);
+      }
+      await edit();
+      await editorClick(2, "ลบรูป");
+      await page.keyboard.press("Escape");
+      assert.equal(
+        (
+          await db.pool.query(
+            "SELECT count(*) FROM equipment_images WHERE equipment_id=$1 AND deleted_at IS NULL",
+            [imageEquipment.id],
+          )
+        ).rows[0].count,
+        "5",
+      );
+      // Close the underlying Details dialog before opening a fresh editor.
+      await page.keyboard.press("Escape");
+      await edit();
+      await editorClick(2, "ลบรูป");
+      await page.click(`${editor} button[aria-label="เลื่อนรูป 1 ไปถัดไป"]`);
+      await page.click("dialog[open] button[type=submit]");
+      await page.waitForFunction(
+        () => !document.querySelector("dialog[open] input[name=name]"),
+      );
+      const after = (
+        await db.pool.query("SELECT * FROM equipment WHERE id=$1", [
+          imageEquipment.id,
+        ])
+      ).rows[0];
+      for (const col of [
+        "id",
+        "equipment_code",
+        "quantity",
+        "available",
+        "in_use",
+        "maintenance",
+        "damaged",
+        "retired",
+        "status",
+      ])
+        assert.equal(after[col], imageEquipment[col]);
+      const images = (
+        await db.pool.query(
+          "SELECT * FROM equipment_images WHERE equipment_id=$1 AND deleted_at IS NULL ORDER BY sort_order",
+          [imageEquipment.id],
+        )
+      ).rows;
+      assert.equal(images.length, 4);
+      assert.equal(images.filter((p) => p.is_cover).length, 1);
+      assert.equal(images[0].id, before[1].id);
+      assert.ok(
+        backend.objects.has("equipment-images/" + before[2].storage_path),
+        "Old photo remains private after metadata commit",
+      );
+      assert.equal(
+        (
+          await fetch(origin + "/api/equipment/images?id=" + before[2].id, {
+            headers: headers(admin),
+          })
+        ).status,
+        404,
+      );
+      await page.keyboard.press("Escape");
+    },
+  );
+  await check(
+    "cancelled drafts and expired upload tokens clean files without creating permanent equipment",
+    async () => {
+      const before = (await db.pool.query("SELECT count(*) FROM equipment"))
+        .rows[0].count;
+      await clickText("+ Add Equipment");
+      await (await input()).uploadFile(`${imageDir}/0.jpg`);
+      await waitReady(1);
+      const image = (
+        await db.pool.query(
+          "SELECT id FROM equipment_image_uploads WHERE status='ready' ORDER BY created_at DESC LIMIT 1",
+        )
+      ).rows[0];
+      await page.keyboard.press("Escape");
+      for (let i = 0; i < 30; i++) {
+        if (![...backend.objects.keys()].some((k) => k.includes(image.id)))
+          break;
+        await delay(100);
+      }
+      assert.equal(
+        [...backend.objects.keys()].some((k) => k.includes(image.id)),
+        false,
+      );
+      assert.equal(
+        (await db.pool.query("SELECT count(*) FROM equipment")).rows[0].count,
+        before,
+      );
+      await db.pool.query(
+        "UPDATE equipment_image_uploads SET expires_at=now()-interval '11 minutes' WHERE status='cancelled'",
+      );
+      assert.equal((await imagePost({ action: "cleanup" })).status, 200);
+      assert.equal(
+        (
+          await db.pool.query(
+            "SELECT count(*) FROM equipment_image_uploads WHERE status='cancelled'",
+          )
+        ).rows[0].count,
+        "0",
+      );
+    },
+  );
   await check("Adisorn navigation never shows the Equipment menu", async () => {
     await page.goto(origin + "/adisorn/dashboard", {
       waitUntil: "networkidle0",
@@ -503,6 +985,13 @@ try {
   );
 } catch (e) {
   console.error(e);
+  if (browser) {
+    const pages = await browser.pages();
+    await pages
+      .at(-1)
+      ?.screenshot({ path: "/tmp/pharadol-equipment-qa/images-failure.png" })
+      .catch(() => {});
+  }
   await writeFile("/tmp/pharadol-equipment-browser.log", logs);
   process.exitCode = 1;
 } finally {

@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { EquipmentImageEditor } from "./images";
+import type { ImageManifest } from "@/lib/equipment/image-validation";
 import type { FormEvent, ReactNode } from "react";
 import type {
   Category,
@@ -30,14 +32,16 @@ function formValues(e: FormEvent<HTMLFormElement>) {
 }
 function Footer({
   busy,
+  disabled = false,
   children = "บันทึกข้อมูล",
 }: {
   busy: boolean;
+  disabled?: boolean;
   children?: ReactNode;
 }) {
   return (
     <div className="col-span-full mt-3 flex justify-end border-t border-[#DDE5DC] pt-4">
-      <Button type="submit" primary disabled={busy}>
+      <Button type="submit" primary disabled={busy || disabled}>
         {busy ? "กำลังบันทึก…" : children}
       </Button>
     </div>
@@ -57,19 +61,27 @@ export function EquipmentForm({
   busy: boolean;
   submit: Submit;
 }) {
+  const [images, setImages] = useState<ImageManifest | null>(null);
   return (
     <form
       className={grid}
       onSubmit={async (ev) => {
         const p = formValues(ev);
+        if (!images) return;
         await submit(e ? "update" : "create", {
           ...p,
+          image_manifest: images,
           quantity: Number(p.quantity),
           purchase_price: Number(p.purchase_price),
           ...(e ? { id: e.id, version: e.version } : {}),
         });
       }}
     >
+      <EquipmentImageEditor
+        equipmentId={e?.id}
+        disabled={busy}
+        onChange={setImages}
+      />
       <div className="col-span-full rounded-xl bg-[#F6F7F3] p-3 text-sm text-[#66756D]">
         {e ? e.equipment_code : "Equipment ID จะสร้างอัตโนมัติเมื่อบันทึก"} ·
         อุปกรณ์ที่มี Serial Number ให้เพิ่มแยกรายชิ้น
@@ -189,11 +201,11 @@ export function EquipmentForm({
         defaultValue={e?.warranty_expiration || ""}
       />
       <p className="col-span-full text-xs text-[#66756D]">
-        รูปภาพ ใบเสร็จ และเอกสารแนบเพิ่มได้ในแท็บ Documents หลังบันทึก · สถานะ
-        In Use และ Maintenance เปลี่ยนผ่านรายการเบิกหรือส่งซ่อม
+        ใบเสร็จและเอกสารแนบเพิ่มได้ในแท็บ Documents หลังบันทึก · สถานะ In Use
+        และ Maintenance เปลี่ยนผ่านรายการเบิกหรือส่งซ่อม
         เพื่อรักษาประวัติและยอดคงเหลือ
       </p>
-      <Footer busy={busy} />
+      <Footer busy={busy} disabled={!images} />
     </form>
   );
 }
@@ -623,13 +635,11 @@ export function FileForm({
       <Select
         label="ประเภทไฟล์"
         name="kind"
-        defaultValue={maintenanceId ? "maintenance" : "image"}
+        defaultValue={maintenanceId ? "maintenance" : "document"}
       >
         {(maintenanceId
           ? [["maintenance", "เอกสารการซ่อม"]]
           : [
-              ["image", "รูปอุปกรณ์หลัก"],
-              ["additional_image", "รูปภาพเพิ่มเติม"],
               ["receipt", "ใบเสร็จ"],
               ["document", "เอกสารประกอบ"],
             ]
