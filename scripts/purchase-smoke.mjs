@@ -169,8 +169,28 @@ try {
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome"].find((name) => name && existsSync(name));
   browser = await puppeteer.launch({ headless: true, executablePath: chrome, args: ["--no-sandbox"] });
   const page = await browser.newPage();
-  await page.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
+  await page.setViewport({ width: 1440, height: 900 });
   await page.browserContext().setCookie({ name: "booking_session", value: token(admin), url: origin, httpOnly: true });
+  const dashboard = "/pharadol/dashboard";
+  const purchase = "/pharadol/purchase";
+  const sidebarLink = `aside nav a[href="${purchase}"]`;
+  await page.goto(origin + dashboard);
+  await page.waitForSelector(sidebarLink, { visible: true });
+  assert.equal(await page.$eval(sidebarLink, (link) => link.previousElementSibling.getAttribute("href")), "/pharadol");
+  assert.match(await page.$eval(sidebarLink, (link) => link.textContent), /เสนอขออนุมัติจัดซื้อ/);
+  const dashboardCard = await page.waitForFunction(() => {
+    const heading = [...document.querySelectorAll("h2")].find((node) => node.textContent === "เมนูหลัก");
+    const menu = heading?.closest("section");
+    const cards = menu ? [...menu.querySelectorAll("button")] : [];
+    return cards.length === 13 && menu.textContent.includes("13 เครื่องมือ") &&
+      cards.find((button) => button.textContent.includes("สร้างและติดตามคำขอจัดซื้อ"));
+  });
+  await dashboardCard.asElement().click();
+  await page.waitForFunction((path) => location.pathname === path, {}, purchase);
+  await page.waitForSelector(sidebarLink + '[aria-current="page"]', { visible: true });
+  await page.waitForFunction(() => document.body.textContent.includes("พบ 1 เอกสาร"));
+
+  await page.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
   await page.evaluateOnNewDocument((user) => {
     sessionStorage.setItem("activeBrand", "pharadol");
     sessionStorage.setItem("loggedIn", "true");
@@ -179,6 +199,15 @@ try {
     localStorage.setItem("central_admin_users", JSON.stringify([user]));
   }, admin);
   page.on("pageerror", (error) => { output += "Browser error: " + error.message + "\n"; });
+  await page.goto(origin + dashboard);
+  await page.waitForSelector('header button:has(+ a[href="/pharadol/dashboard"])', { visible: true });
+  await page.click('header button:has(+ a[href="/pharadol/dashboard"])');
+  const mobileLink = await page.waitForFunction((selector) =>
+    [...document.querySelectorAll(selector)].find((link) => link.getBoundingClientRect().width > 0), {}, sidebarLink);
+  assert.equal(await mobileLink.evaluate((link) => link.previousElementSibling.getAttribute("href")), "/pharadol");
+  await mobileLink.asElement().click();
+  await page.waitForFunction((path) => location.pathname === path, {}, purchase);
+  await page.waitForFunction(() => document.body.textContent.includes("พบ 1 เอกสาร"));
   await page.goto(origin + "/pharadol/purchase/" + newDoc.id);
   await page.waitForSelector(".pr-document", { timeout: 15000 });
   await page.waitForFunction(() => [...document.querySelectorAll("img")].some((image) =>
@@ -199,6 +228,21 @@ try {
       (await page.evaluate(() => document.body.innerText.slice(0, 250))) + "\n";
     throw error;
   }
+  const deniedAdmin = { ...admin, deniedPermissions: ["purchase.view"] };
+  const denied = await browser.createBrowserContext();
+  await denied.setCookie({ name: "booking_session", value: token(deniedAdmin), url: origin, httpOnly: true });
+  const deniedPage = await denied.newPage();
+  await deniedPage.goto(origin + dashboard);
+  await deniedPage.waitForFunction(() => {
+    const heading = [...document.querySelectorAll("h2")].find((node) => node.textContent === "เมนูหลัก");
+    const menu = heading?.closest("section");
+    return menu?.querySelectorAll("button").length === 12 && menu.textContent.includes("12 เครื่องมือ");
+  });
+  assert.equal(await deniedPage.$(sidebarLink), null);
+  assert.ok(!await deniedPage.evaluate(() => document.body.textContent.includes("สร้างและติดตามคำขอจัดซื้อ")));
+  await http(root, { auth: cookie("booking_session", token(deniedAdmin)), expected: 403 });
+  await denied.close();
+  console.log("PASS admin dashboard count, desktop and mobile menu order, active state, navigation and permission filtering");
   console.log("PASS mobile document, image, new form with multiple lines and legacy booking entry");
 } catch (error) {
   if (output) console.error(output.slice(-2000));

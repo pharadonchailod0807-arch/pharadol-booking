@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { emptyDashboardCounts } from "@/app/lib/dashboardCounts";
 import { getBrandTheme } from "@/app/lib/brandThemes";
+import { purchaseAccess } from "@/lib/purchase/access";
 import {
   CUSTOMER_REQUESTS_EVENT,
   loadCustomerRequests,
@@ -412,6 +413,9 @@ export default function BrandDashboardPage({ brandId }) {
   const actionCards = [
     [dashboardPath, "today", "Dashboard", "ภาพรวมระบบ", 0],
     [bookingPath, "document", "ระบบสร้างใบจอง", "สร้างใบจองใหม่", draftBookingCount],
+    ...(purchaseAccess(currentUser, brandId).view ? [
+      [`/${brandId}/purchase`, "document", "จัดซื้อและตั้งเบิก", "สร้างและติดตามคำขอจัดซื้อ", 0],
+    ] : []),
     [`/${brandId}/customer-requests`, "bell", "คำขอจากลูกค้า", "ข้อมูลที่ลูกค้ากรอกผ่านลิงก์", newCustomerRequestCount],
     [`/${brandId}/customers`, "customers", "ข้อมูลลูกค้า", "รายชื่อลูกค้าทั้งหมด", customerCount],
     [`/${brandId}/archives`, "archive", "คลังข้อมูล", "ข้อมูลที่จัดเก็บแล้ว", archiveCount],

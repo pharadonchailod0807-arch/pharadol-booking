@@ -226,6 +226,12 @@ const buildMenuItems = (brandId, counts, user) => {
       aliases: [`/${brandId}/booking`, `/${brandId}/booking-view`],
       badgeCount: counts.draftBookings,
     },
+    ...(purchaseAccess(user, brandId).view ? [{
+      href: `/${brandId}/purchase`,
+      icon: "document",
+      title: "จัดซื้อและตั้งเบิก",
+      subtitle: "เสนอขออนุมัติจัดซื้อ",
+    }] : []),
     {
       href: `/${brandId}/customer-requests`,
       icon: "bell",
@@ -315,12 +321,6 @@ const buildMenuItems = (brandId, counts, user) => {
       title: "ตั้งค่าระบบ",
       subtitle: "ข้อมูลระบบ",
     },
-    ...(purchaseAccess(user, brandId).view ? [{
-      href: `/${brandId}/purchase`,
-      icon: "document",
-      title: "จัดซื้อและตั้งเบิก",
-      subtitle: "จัดการคำขอจัดซื้อ",
-    }] : []),
   ];
 };
 
@@ -506,6 +506,7 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
               key={item.href}
               href={item.href}
               prefetch={false}
+              aria-current={active ? "page" : undefined}
               onClick={(event) => handleMenuNavigate(event, item)}
               className="relative flex min-h-[54px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[14px] font-bold transition hover:bg-white/10"
               style={{
