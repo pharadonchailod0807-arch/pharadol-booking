@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { purchaseAccess } from "@/lib/purchase/access";
 import { equipmentPermissions } from "@/lib/equipment/access";
 import { getBrandTheme } from "@/app/lib/brandThemes";
 import {
@@ -205,7 +206,7 @@ const Icon = ({ name, className = "h-5 w-5" }) => {
   );
 };
 
-const buildMenuItems = (brandId, counts) => {
+const buildMenuItems = (brandId, counts, user) => {
   const bookingHref = `/${brandId}`;
 
   return [
@@ -314,6 +315,12 @@ const buildMenuItems = (brandId, counts) => {
       title: "ตั้งค่าระบบ",
       subtitle: "ข้อมูลระบบ",
     },
+    ...(purchaseAccess(user, brandId).view ? [{
+      href: `/${brandId}/purchase`,
+      icon: "document",
+      title: "จัดซื้อและตั้งเบิก",
+      subtitle: "จัดการคำขอจัดซื้อ",
+    }] : []),
   ];
 };
 
@@ -433,7 +440,7 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
     };
   }, [brandId]);
 
-  const menuItems = useMemo(() => buildMenuItems(brandId, counts), [brandId, counts]);
+  const menuItems = useMemo(() => buildMenuItems(brandId, counts, currentUser), [brandId, counts, currentUser]);
 
   const logout = async () => {
     try {

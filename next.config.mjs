@@ -29,6 +29,10 @@ const securityHeaders = [
 
 const nextConfig = {
   outputFileTracingIncludes: {
+    "/api/purchase/**": [
+      "./public/purchase/document.css", "./public/equipment/NotoSansThai.ttf",
+      "./public/adisorn-logo.png", "./public/pharadol-logo.jpeg", "./node_modules/@sparticuz/chromium/bin/**",
+    ],
     "/api/equipment/export": ["./public/equipment/NotoSansThai.ttf", "./node_modules/@sparticuz/chromium/bin/**"],
   },
   images: {
