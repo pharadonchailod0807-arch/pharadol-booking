@@ -6,11 +6,12 @@ import {
 } from "@/lib/purchase/server";
 import { emailStatuses, fileLimit, statuses } from "@/lib/purchase/data";
 import {
-  approverInput, date, email, fileInfo, id, invariant, inventoryInput, paymentInput, requisitionInput, string, version,
+  approvalInput, approverInput, date, email, fileInfo, id, invariant, inventoryInput, paymentInput, requisitionInput, string, version,
 } from "@/lib/purchase/validation";
 import { drainEmail, sendQueued } from "@/lib/purchase/email";
 import { invitation, otp, reviewSession, reviewDocument, decide } from "@/lib/purchase/review";
 import { cookieOptions, equal, inviteCookie, reviewCookie } from "@/lib/purchase/tokens";
+import { purchaseAccess } from "@/lib/purchase/access";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -152,15 +153,23 @@ async function publicGet(request, path) {
 async function staffGet(request, path) {
   const [brand, resource, operation, target] = path;
   const query = request.nextUrl.searchParams;
-  const right = resource === "approvers" ? "manage" : operation === "inventory" ? "inventory" : "view";
+  const right = resource === "approvers" ? "manage" : operation === "inventory" ? "inventory" : operation === "approval-route" ? "write" : "view";
   const { user, access } = await authorize(request, brand, right);
   if (path.length === 1) return json({ ...await list(brand, query), access, viewer: { name: user.name || user.username, email: user.email || "" } });
   const db = purchaseDb();
   if (resource === "approvers" && path.length === 2) {
     const rows = result(await db.from("purchase_approvers").select("*").eq("brand", brand).order("level").order("active", { ascending: false }));
-    return json({ approvers: rows });
+    const brands = ["pharadol", "adisorn"].filter((candidate) => purchaseAccess(user, candidate).manage);
+    return json({ approvers: rows, brands });
   }
   const reqId = id(resource);
+  if (operation === "approval-route" && path.length === 3) {
+    const doc = await readDocument(brand, reqId);
+    invariant(["draft", "returned"].includes(doc.status), "เอกสารนี้ส่งขออนุมัติแล้ว กรุณาโหลดใหม่", 409);
+    const candidates = result(await db.from("purchase_approvers").select("id,level,name,position,email,updated_at::text")
+      .eq("brand", brand).eq("active", true).order("level").order("name").order("id"));
+    return json({ candidates, version: doc.version });
+  }
   if (path.length === 2) return json(await documentDetail(brand, reqId, access, user,
     query.has("round") ? version(query.get("round")) : null));
   if (operation === "pdf" && path.length === 3) {
@@ -242,10 +251,11 @@ async function staffPost(request, path) {
     const job = result(await purchaseDb().from("purchase_email_outbox").select("id,status").eq("requisition_id", reqId).eq("id", jobId).maybeSingle());
     invariant(job && job.status in emailStatuses, "ไม่พบงานส่งอีเมล", 404);
     await drainEmail({ requisitionId: reqId, jobId, force: true });
-    return json({ ok: true });
+    return json({ delivery: await deliveryStatus(jobId) });
   }
   invariant(writeActions.has(operation) || financeActions.has(operation), "ไม่พบรายการ", 404);
   const data = { version: version(input.version) };
+  if (operation === "submit") Object.assign(data, approvalInput(input));
   if (operation === "payment") Object.assign(data, paymentInput(input));
   if (operation === "file_remove") {
     data.id = id(input.id);
@@ -256,7 +266,14 @@ async function staffPost(request, path) {
   }
   const updated = await rpc("mutate", { p_brand: brand, p_id: reqId, p_actor: actor, p_action: operation, p_data: data });
   if (updated.round || operation === "renew") await sendQueued(reqId);
+  if (operation === "submit") return json({ ...updated, delivery: await deliveryStatus(updated.invite_job) });
   return json(updated);
+}
+
+async function deliveryStatus(jobId) {
+  if (!jobId) return "unknown";
+  const response = await purchaseDb().from("purchase_email_outbox").select("status").eq("id", jobId).maybeSingle();
+  return response.data?.status || "unknown";
 }
 
 export async function POST(request, { params }) {

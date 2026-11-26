@@ -118,25 +118,40 @@ try {
   await http(path + "/files/" + quotation.file_id, { auth: "", expected: 401 });
   await http(api + "/adisorn/" + newDoc.id, { expected: 404 });
   assert.equal((await get(path)).document.total, "400.00");
+  assert.deepEqual((await get(path + "/approval-route")).candidates, []);
+  const staffOnly = cookie("booking_session", token({ ...admin, role: "STAFF" }));
+  const viewerOnly = cookie("booking_session", token({ ...admin, role: "VIEWER" }));
+  await http(root + "/approvers", { auth: staffOnly, expected: 403 });
+  await http(path + "/approval-route", { auth: viewerOnly, expected: 403 });
 
   const approvers = [
     { level: 1, name: "หัวหน้างานทดสอบ", position: "หัวหน้างาน", email: "first@example.invalid", active: true },
     { level: 2, name: "ผู้บริหารทดสอบ", position: "ผู้บริหาร", email: "executive@example.invalid", active: true },
   ];
   for (const approver of approvers) await post(root + "/approvers", approver);
+  const route = (await get(path + "/approval-route", { auth: staffOnly })).candidates;
+  const choice = route.map(({ id, updated_at }) => ({ id, updated_at }));
+  await post(path + "/submit", { version: quotation.version, approval_route: [choice[0]] }, { expected: 409 });
   stub.failNextEmail();
-  await post(path + "/submit", { version: quotation.version });
+  const submission = await post(path + "/submit", { version: quotation.version, approval_route: choice, sender_message: "โปรดตรวจ <รายละเอียด>" });
+  assert.equal(submission.delivery, "failed");
   const submitted = await get(path);
   assert.equal(submitted.document.status, "pending");
   assert.equal(submitted.mail[0].status, "failed");
   const job = submitted.mail[0].id;
   await Promise.all([post(path + "/retry", { id: job }), post(path + "/retry", { id: job })]);
   assert.equal(stub.mail.size, 1);
+  const invite = foundMail((message) => message.to[0] === approvers[0].email);
+  assert.match(invite.html, /PHARADOL PRODUCTION/);
+  assert.match(invite.html, /โปรดตรวจ &lt;รายละเอียด&gt;/);
+  assert.match(invite.text, /400.00/);
+  assert.equal((await get(path)).mail[0].recipient, approvers[0].email);
 
   const reviewer1 = await reviewer(approvers[0].email);
   const review = await get(api + "/review", { auth: reviewer1 });
   assert.equal(review.data.document.id, documentId);
   assert.equal(review.data.items.length, items.length);
+  assert.equal(review.data.senderMessage, "โปรดตรวจ <รายละเอียด>");
   await http(api + "/review/files/" + quotation.file_id, { auth: reviewer1 });
   await http(api + "/review/files/" + randomUUID(), { auth: reviewer1, expected: 404 });
   await post(api + "/review/decision", { decision: "approved", comment: "ตรวจสอบแล้ว" }, { auth: reviewer1 });
@@ -146,6 +161,8 @@ try {
   await post(api + "/review/decision", { decision: "approved" }, { auth: reviewer2 });
   const approved = await get(path);
   assert.equal(approved.document.status, "approved");
+  assert.equal(approved.steps[0].comment, "ตรวจสอบแล้ว");
+  assert.ok(approved.steps[0].acted_at);
   const buying = await post(path + "/start", { version: approved.document.version });
   const receipt = await attach("receipt", "ใบเสร็จ.png", png, "image/png", buying.version);
   await post(path + "/payment", { version: receipt.version, actual_total: "395", paid_on: "2026-11-24", purchased_on: "2026-11-24",
@@ -250,6 +267,28 @@ try {
   assert.ok(!await deniedPage.evaluate(() => document.body.textContent.includes("เสนอขออนุมัติจัดซื้อ")));
   await http(root, { auth: cookie("booking_session", token(deniedAdmin)), expected: 403 });
   await denied.close();
+
+  const modalDraft = await post(root, { id: randomUUID(), purpose: "ตรวจ Modal", reason: "ทดสอบในเครื่อง", items: [items[0]] }, { expected: 201 });
+  await page.goto(origin + purchase + "/" + modalDraft.id);
+  const openSubmit = await page.waitForFunction(() => [...document.querySelectorAll("button")].find((node) => node.textContent === "ส่งขออนุมัติ"));
+  await openSubmit.asElement().click();
+  await page.waitForFunction(() => {
+    const modal = document.querySelector("dialog[open]");
+    return modal?.textContent.includes("2 ระดับ") && modal.querySelectorAll("select").length === 2 &&
+      modal.textContent.includes("executive@example.invalid") && modal.getBoundingClientRect().width <= innerWidth;
+  });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !document.querySelector("dialog[open]"));
+  assert.equal((await get(root + "/" + modalDraft.id)).document.status, "draft");
+  await page.goto(origin + purchase + "/approvers");
+  await page.waitForFunction(() => {
+    const form = [...document.querySelectorAll("form")].find((node) => node.querySelector("h2")?.textContent === "เพิ่มผู้อนุมัติ");
+    return form?.querySelector('input[type="number"]').value === "1" && form.textContent.includes("แบรนด์ที่รับผิดชอบ");
+  });
+  await page.select(".max-w-sm select", "adisorn");
+  await page.waitForFunction(() => document.querySelectorAll("main form").length === 1 &&
+    document.querySelector("main form input[readonly]")?.value === "Adisorn Wedding Studio");
+  console.log("PASS approval modal confirmation, local settings default, brand switching and sender rights");
   console.log("PASS admin dashboard count, desktop and mobile menu order, active state, navigation and permission filtering");
   console.log("PASS mobile document, image, new form with multiple lines and legacy booking entry");
 } catch (error) {

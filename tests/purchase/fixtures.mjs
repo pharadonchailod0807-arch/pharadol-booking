@@ -1,10 +1,15 @@
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 
-export async function migratePurchase(pool) {
+export async function migratePurchase(pool, { legacy = false } = {}) {
   for (const migration of ["202611240001_purchase.sql", "202611240002_purchase_equipment.sql"]) {
     await pool.query(await readFile(new URL("../../supabase/migrations/" + migration, import.meta.url), "utf8"));
   }
+  if (!legacy) await migrateApprovalSettings(pool);
+}
+
+export async function migrateApprovalSettings(pool) {
+  await pool.query(await readFile(new URL("../../supabase/migrations/202611260001_purchase_approval_settings.sql", import.meta.url), "utf8"));
 }
 
 const tables = new Set([

@@ -7,7 +7,7 @@ import { purchaseAccess } from "../../lib/purchase/access.js";
 import { fileInfo, requisitionInput } from "../../lib/purchase/validation.js";
 import { documentHtml } from "../../lib/purchase/document.js";
 
-import { migratePurchase } from "./fixtures.mjs";
+import { migrateApprovalSettings, migratePurchase } from "./fixtures.mjs";
 
 const actor = "isolated-user";
 const date = "2026-11-24";
@@ -51,7 +51,7 @@ test("Purchase workflow on isolated PostgreSQL with real concurrent transactions
   const fixture = await startEquipmentTestDatabase();
   const { pool } = fixture;
   try {
-    await migratePurchase(pool);
+    await migratePurchase(pool, { legacy: true });
     const sql = (statement, args) => pool.query(statement, args);
     async function call(name, ...values) {
       const connection = await pool.connect();
@@ -127,6 +127,12 @@ test("Purchase workflow on isolated PostgreSQL with real concurrent transactions
       const executiveId = await approver("pharadol", 2, "executive@example.invalid");
       await mutate(doc, "submit");
       [first, second] = await Promise.all([step(doc, 1), step(doc, 2)]);
+      const before = await read(doc.id);
+      await migrateApprovalSettings(pool);
+      assert.deepEqual(await read(doc.id), before);
+      assert.deepEqual(await step(doc, 1), first);
+      assert.deepEqual(await step(doc, 2), second);
+      assert.equal((await sql("SELECT has_function_privilege('anon','purchase_open_round(uuid,text,uuid,jsonb)','EXECUTE') AS can_execute")).rows[0].can_execute, false);
       assert.equal(first.status, "pending");
       assert.equal(second.status, "queued");
       assert.equal((await call("list", "pharadol", "", null, null, null, "created_at", false, 1)).pending, 1);
@@ -231,6 +237,41 @@ test("Purchase workflow on isolated PostgreSQL with real concurrent transactions
       const next = draft("pharadol");
       await save(next);
       assert.notEqual((await read(next.id)).number, number);
+    });
+
+    await t.test("selects approved candidates for every configured level and closes a single-level route after OTP", async () => {
+      const single = draft("adisorn");
+      await save(single);
+      await assert.rejects(mutate(single, "submit"), /ยังไม่ได้ตั้งค่าผู้อนุมัติ/);
+      const executive = await approver("adisorn", undefined, "only-executive@example.invalid");
+      await approver("adisorn", 1, "alternate@example.invalid");
+      const candidate = async (id) => (await sql("SELECT id,updated_at::text FROM purchase_approvers WHERE id=$1", [id])).rows[0];
+      assert.equal((await sql("SELECT level FROM purchase_approvers WHERE id=$1", [executive])).rows[0].level, 1);
+      await assert.rejects(mutate(single, "submit"), /รายชื่อผู้อนุมัติเปลี่ยนแปลง/);
+      await assert.rejects(mutate(single, "submit", { approval_route: [{ ...(await candidate(executive)), updated_at: "2020-01-01T00:00:00Z" }] }), { code: "23514" });
+      await mutate(single, "submit", { approval_route: [await candidate(executive)], sender_message: "ข้อความประกอบ" });
+      assert.equal((await sql("SELECT sender_message FROM purchase_approval_rounds WHERE requisition_id=$1", [single.id])).rows[0].sender_message, "ข้อความประกอบ");
+      assert.equal((await step(single, 1)).email, "only-executive@example.invalid");
+      await call("review", await makeSession(await step(single, 1)), "approved", "อนุมัติระดับเดียว");
+      assert.equal((await read(single.id)).status, "approved");
+      assert.equal(await step(single, 2), undefined);
+
+      const multiple = draft("adisorn");
+      await save(multiple);
+      const third = await approver("adisorn", 3, "third@example.invalid");
+      await assert.rejects(mutate(multiple, "submit", { approval_route: [await candidate(executive), await candidate(third)] }), /ต่อเนื่อง/);
+      const second = await approver("adisorn", 2, "second@example.invalid");
+      const selection = [await candidate(executive), await candidate(second), await candidate(third)];
+      await assert.rejects(mutate(multiple, "submit", { approval_route: [selection[0], selection[2]] }), /ครบทุกระดับ/);
+      await assert.rejects(mutate(multiple, "submit", { approval_route: [selection[1], selection[0], selection[2]] }), /รายชื่อผู้อนุมัติเปลี่ยนแปลง/);
+      await mutate(multiple, "submit", { approval_route: selection });
+      for (let level = 1; level <= 3; level++) {
+        const current = await step(multiple, level);
+        assert.equal(current.status, "pending");
+        if (level < 3) assert.equal(await otp(await step(multiple, level + 1), "request", "early"), "invalid");
+        await call("review", await makeSession(current), "approved", "ผ่าน");
+        assert.equal((await read(multiple.id)).status, level === 3 ? "approved" : "pending");
+      }
     });
   } finally {
     await fixture.close();

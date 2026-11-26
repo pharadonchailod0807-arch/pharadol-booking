@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import "../../../public/purchase/document.css";
 import { documentHtml } from "@/lib/purchase/document";
 import { fileLimit, fileTypes, statuses } from "@/lib/purchase/data";
@@ -11,6 +12,16 @@ export const primary = button + " !border-zinc-900 !bg-zinc-900 !text-white hove
 export const approve = button + " !border-emerald-700 !bg-emerald-700 !text-white hover:!bg-emerald-800";
 export const danger = button + " !border-red-200 !bg-red-50 !text-red-800 hover:!bg-red-100";
 export const input = "w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 disabled:bg-zinc-100";
+
+export function ApproverSettingsLink({ href }) {
+  return <Link className={button + " gap-2"} href={href}>
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+      <path d="m9 3-.8 2.5-2.4 1-2.4-.7L2 9l1.9 1.8v2.4L2 15l1.4 3.2 2.4-.7 2.4 1L9 21h6l.8-2.5 2.4-1 2.4.7L22 15l-1.9-1.8v-2.4L22 9l-1.4-3.2-2.4.7-2.4-1L15 3z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+    ตั้งค่าผู้อนุมัติ
+  </Link>;
+}
 
 export function Status({ value }) {
   const tone = ["pending", "overage_pending", "queued", "purchasing"].includes(value) ? "bg-amber-50 text-amber-900 ring-amber-200"
@@ -59,6 +70,7 @@ export const post = (url, data) => request(url, {
 export function usePurchaseData(url) {
   const [state, setState] = useState({ url: null, data: null, error: "" });
   const [generation, setGeneration] = useState(0);
+  const refresh = useCallback(() => setGeneration((value) => value + 1), []);
   useEffect(() => {
     if (!url) return;
     const controller = new AbortController();
@@ -68,7 +80,7 @@ export function usePurchaseData(url) {
     );
     return () => controller.abort();
   }, [url, generation]);
-  return { ...(state.url === url ? state : { data: null, error: "" }), refresh: () => setGeneration((value) => value + 1) };
+  return { ...(state.url === url ? state : { data: null, error: "" }), refresh };
 }
 
 export async function uploadFile(api, requisitionId, file, kind, version, item) {

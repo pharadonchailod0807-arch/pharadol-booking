@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { getBrandTheme } from "@/app/lib/brandThemes";
 import { money, statuses, thaiDate } from "@/lib/purchase/data";
-import { button, DateField, ErrorBox, Field, Heading, input, panel, primary, Status, usePurchaseData } from "./ui";
+import { ApproverSettingsLink, button, DateField, ErrorBox, Field, Heading, input, panel, primary, Status, usePurchaseData } from "./ui";
 
 const defaults = { q: "", status: "", from: "", to: "", sort: "created_at", order: "desc" };
 const listStatuses = Object.keys(statuses).filter((status) => !["queued", "accepted"].includes(status));
@@ -22,7 +22,7 @@ export default function PurchaseList({ brand }) {
 
   return <div className="space-y-5">
     <Heading title="จัดซื้อและตั้งเบิก" subtitle={theme.name}>
-      {data?.access.manage && <Link className={button} href={root + "/approvers"}>ตั้งค่าผู้อนุมัติ</Link>}
+      {data?.access.manage && <ApproverSettingsLink href={root + "/approvers"} />}
       {data?.access.write && <Link className={primary} href={root + "/new"}>+ สร้างใบตั้งเบิก</Link>}
     </Heading>
     <form className={panel + " space-y-4"} onSubmit={(event) => { event.preventDefault(); setPage(1); setActive(filters); }}>

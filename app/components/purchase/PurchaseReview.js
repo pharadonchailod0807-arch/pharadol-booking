@@ -65,6 +65,10 @@ export default function PurchaseReview() {
             ขออนุมัติยอดเพิ่มเติม ฿{money(doc.payment.difference)} จากยอดที่อนุมัติเดิม ฿{money(doc.payment.previous_approved_total)}
           </p>}
           <DocumentView data={doc} fileUrl={fileHref} />
+          {doc.senderMessage && <section className={panel}>
+            <h2 className="font-semibold">ข้อความเพิ่มเติมถึงผู้บริหาร</h2>
+            <p className="mt-2 whitespace-pre-wrap break-words text-sm">{doc.senderMessage}</p>
+          </section>}
           {(doc.files.length > 0 || doc.receipt) && <section className={panel}>
             <h2 className="text-lg font-semibold">ไฟล์แนบ</h2>
             <FileList files={[...doc.files, ...(doc.receipt ? [doc.receipt] : [])]} href={fileHref} />

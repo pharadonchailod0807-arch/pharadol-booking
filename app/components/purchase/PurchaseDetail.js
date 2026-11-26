@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { selectDocument } from "@/lib/purchase/document";
 import { emailStatuses, statuses, thaiDate } from "@/lib/purchase/data";
-import { approve, button, danger, DocumentView, ErrorBox, FileList, Heading, panel, post, primary, Status, usePurchaseData } from "./ui";
+import { ApproverSettingsLink, approve, button, danger, DocumentView, ErrorBox, FileList, Heading, panel, post, primary, Status, usePurchaseData } from "./ui";
 import PurchaseInventory from "./PurchaseInventory";
 import PurchasePayment from "./PurchasePayment";
+import PurchaseSubmitDialog from "./PurchaseSubmitDialog";
 
 const actions = {
   created: "สร้างเอกสาร", edited: "แก้ไขเอกสาร", submit: "ส่งขออนุมัติ", revise: "เปิดฉบับแก้ไข",
@@ -17,7 +18,6 @@ const actions = {
 };
 
 const confirmations = {
-  submit: "ยืนยันส่งเอกสารตามลำดับผู้อนุมัติของแบรนด์นี้หรือไม่?",
   revise: "เปิดฉบับแก้ไขและเริ่มการอนุมัติใหม่เมื่อส่งอีกครั้งหรือไม่?",
   cancel: "ยืนยันยกเลิกเอกสาร? เลขเอกสารและประวัติจะถูกเก็บไว้",
   renew: "ยืนยันสร้างลิงก์ใหม่สำหรับผู้อนุมัติปัจจุบันหรือไม่?",
@@ -27,17 +27,20 @@ const confirmations = {
 function EmailLog({ data, busy, retry }) {
   if (!data.mail.length) return null;
   return <section className={panel + " space-y-3"}>
-    <h2 className="text-lg font-semibold">การส่งอีเมล</h2>
+    <h2 className="text-lg font-semibold">ประวัติการส่งอีเมลและการอนุมัติ</h2>
     <ul className="divide-y divide-zinc-100">
       {data.mail.map((job) => {
         const step = data.steps.find((entry) => entry.id === job.step_id);
         return <li key={job.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
-          <div>
+          <div className="min-w-0 space-y-1">
             <p>{job.kind === "invite" ? "คำขออนุมัติ" : "แจ้งผลผู้เสนอ"} · รอบ {step?.round} ระดับ {step?.level}</p>
+            <p className="break-all font-medium">{job.kind === "invite" ? step?.name : data.document.proposer} · {job.recipient}</p>
             <p className={job.status === "failed" ? "text-red-800" : "text-zinc-600"}>
               {emailStatuses[job.status]}{job.failure === "configuration" ? " · ตรวจสอบการตั้งค่าอีเมล" : ""}
-              {job.sent_at ? ` · ${thaiDate(job.sent_at, true)}` : ""}
+              {job.sent_at ? ` · ส่งเมื่อ ${thaiDate(job.sent_at, true)}` : job.first_attempt_at ? ` · เริ่มส่ง ${thaiDate(job.first_attempt_at, true)}` : ""}
             </p>
+            {step && <p className="text-zinc-600">สถานะอนุมัติ <Status value={step.status} />{step.acted_at ? ` · ${thaiDate(step.acted_at, true)}` : ""}</p>}
+            {step?.comment && <p className="whitespace-pre-wrap break-words">ความคิดเห็นผู้อนุมัติ {step.comment}</p>}
           </div>
           {data.access.write && ["failed", "pending", "sending"].includes(job.status) &&
             <button className={button} disabled={busy} onClick={() => retry(job.id)}>ลองส่งอีกครั้ง</button>}
@@ -76,11 +79,23 @@ export default function PurchaseDetail({ brand, requisitionId, round }) {
   const { data, error, refresh } = usePurchaseData(url + (round ? "?round=" + round : ""));
   const [busy, setBusy] = useState(false);
   const [issues, setIssues] = useState("");
+  const [notice, setNotice] = useState("");
+  const [submitOpen, setSubmitOpen] = useState(false);
   const [inventory, showInventory] = useState(false);
+  const tracking = !round && (["pending", "overage_pending"].includes(data?.document.status) ||
+    data?.mail.some((job) => ["pending", "sending"].includes(job.status)));
+  useEffect(() => {
+    if (!tracking) return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 15000);
+    return () => window.clearInterval(timer);
+  }, [refresh, tracking]);
   if (error) return <><Link className={button} href={root}>กลับหน้ารายการ</Link><ErrorBox message={error} /></>;
   if (!data) return <p role="status">กำลังโหลดเอกสาร…</p>;
 
   const { document: doc, access } = data;
+  const settings = access.manage ? root + "/approvers" : null;
   const view = selectDocument(data, Boolean(round));
   const editable = ["draft", "returned"].includes(doc.status);
   const step = data.steps.find((entry) => entry.round === doc.round && entry.status === "pending");
@@ -93,8 +108,14 @@ export default function PurchaseDetail({ brand, requisitionId, round }) {
     if (confirmations[action] && !window.confirm(confirmations[action])) return;
     setBusy(true);
     setIssues("");
+    setNotice("");
     try {
-      await post(`${url}/${action}`, { version: doc.version, ...values });
+      const response = await post(`${url}/${action}`, { version: doc.version, ...values });
+      if (action === "submit") {
+        setSubmitOpen(false);
+        setNotice("บันทึกรอบอนุมัติแล้ว · " + (emailStatuses[response.delivery] || "ตรวจสถานะอีเมลจากประวัติการส่ง"));
+      }
+      if (action === "retry") setNotice(emailStatuses[response.delivery] || "ตรวจสถานะอีเมลจากประวัติการส่ง");
       if (action === "revise") router.push(href + "/edit");
       else refresh();
     } catch (error) {
@@ -107,11 +128,15 @@ export default function PurchaseDetail({ brand, requisitionId, round }) {
   return <div className="mx-auto max-w-5xl space-y-5">
     <Heading title={round ? `รอบอนุมัติ ${round}` : doc.number} subtitle={brand.toUpperCase()}>
       <Link className={button} href={round ? href : root}>{round ? "กลับเอกสารปัจจุบัน" : "กลับหน้ารายการ"}</Link>
+      {!round && settings && <ApproverSettingsLink href={settings} />}
       {!round && access.write && editable && <Link className={button} href={href + "/edit"}>แก้ไข</Link>}
-      {!round && access.write && editable && <button className={primary} disabled={busy} onClick={() => act("submit")}>ส่งขออนุมัติ</button>}
+      {!round && access.write && editable && <button className={primary} disabled={busy} onClick={() => { setIssues(""); setSubmitOpen(true); }}>ส่งขออนุมัติ</button>}
       <a className={button} href={url + "/pdf" + (round ? "?round=" + round : "")}>ดาวน์โหลด PDF</a>
     </Heading>
-    <ErrorBox message={issues} />
+    {!submitOpen && <ErrorBox message={issues} />}
+    {notice && <p role="status" className="rounded-xl bg-zinc-50 p-3 text-sm">{notice}</p>}
+    {submitOpen && <PurchaseSubmitDialog url={url} settings={settings} doc={doc} busy={busy} issue={issues}
+      onClose={() => { setIssues(""); setSubmitOpen(false); }} onSubmit={(values) => act("submit", values)} />}
     <div className="flex flex-wrap items-center gap-2">
       <Status value={view.document.status} />
       {!round && doc.current_approver && <span className="text-sm text-zinc-600">ระดับ {doc.current_level} · {doc.current_approver}</span>}
