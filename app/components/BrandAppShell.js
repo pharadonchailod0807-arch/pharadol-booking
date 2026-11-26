@@ -99,6 +99,13 @@ const Icon = ({ name, className = "h-5 w-5" }) => {
         <path d="M3 8v9l9 5 9-5V8M12 13v9M7.5 5.5l9 5" />
       </>
     ),
+    shoppingCart: (
+      <>
+        <path d="M2 3h2l3 12h12l3-8H5" />
+        <circle cx="8" cy="20" r="1" />
+        <circle cx="18" cy="20" r="1" />
+      </>
+    ),
     archive: (
       <>
         <path d="M4 7h16" />
@@ -228,9 +235,10 @@ const buildMenuItems = (brandId, counts, user) => {
     },
     ...(purchaseAccess(user, brandId).view ? [{
       href: `/${brandId}/purchase`,
-      icon: "document",
+      icon: "shoppingCart",
       title: "จัดซื้อและตั้งเบิก",
       subtitle: "เสนอขออนุมัติจัดซื้อ",
+      isNew: true,
     }] : []),
     {
       href: `/${brandId}/customer-requests`,
@@ -560,6 +568,14 @@ const BrandSidebar = ({ brandId, onNavigate }) => {
                   {item.subtitle}
                 </span>
               </span>
+              {item.isNew && (
+                <span
+                  className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-black leading-none"
+                  style={{ color: sidebarText }}
+                >
+                  NEW
+                </span>
+              )}
               <Badge count={item.badgeCount} theme={theme} color={item.badgeColor} />
             </Link>
           );

@@ -176,14 +176,22 @@ try {
   const sidebarLink = `aside nav a[href="${purchase}"]`;
   await page.goto(origin + dashboard);
   await page.waitForSelector(sidebarLink, { visible: true });
-  assert.equal(await page.$eval(sidebarLink, (link) => link.previousElementSibling.getAttribute("href")), "/pharadol");
+  const sidebarOrder = await page.$eval(sidebarLink, (link) =>
+    [...link.parentElement.querySelectorAll("a")].map((item) => item.getAttribute("href")));
+  assert.deepEqual(sidebarOrder.slice(0, 14), [
+    dashboard, "/pharadol", purchase, "/pharadol/customer-requests", "/pharadol/customers", "/pharadol/members",
+    "/pharadol/archives", "/pharadol/calendar", "/pharadol/income", "/pharadol/reports", "/pharadol/notifications",
+    "/pharadol/mail", "/google-upload?brand=pharadol", "/pharadol/trash",
+  ]);
   assert.match(await page.$eval(sidebarLink, (link) => link.textContent), /เสนอขออนุมัติจัดซื้อ/);
+  assert.match(await page.$eval(sidebarLink, (link) => link.textContent), /NEW/);
+  assert.equal(await page.$eval(sidebarLink, (link) => link.querySelectorAll("svg circle").length), 2);
   const dashboardCard = await page.waitForFunction(() => {
     const heading = [...document.querySelectorAll("h2")].find((node) => node.textContent === "เมนูหลัก");
     const menu = heading?.closest("section");
     const cards = menu ? [...menu.querySelectorAll("button")] : [];
     return cards.length === 13 && menu.textContent.includes("13 เครื่องมือ") &&
-      cards.find((button) => button.textContent.includes("สร้างและติดตามคำขอจัดซื้อ"));
+      cards.find((button) => button.textContent.includes("เสนอขออนุมัติจัดซื้อ"));
   });
   await dashboardCard.asElement().click();
   await page.waitForFunction((path) => location.pathname === path, {}, purchase);
@@ -239,7 +247,7 @@ try {
     return menu?.querySelectorAll("button").length === 12 && menu.textContent.includes("12 เครื่องมือ");
   });
   assert.equal(await deniedPage.$(sidebarLink), null);
-  assert.ok(!await deniedPage.evaluate(() => document.body.textContent.includes("สร้างและติดตามคำขอจัดซื้อ")));
+  assert.ok(!await deniedPage.evaluate(() => document.body.textContent.includes("เสนอขออนุมัติจัดซื้อ")));
   await http(root, { auth: cookie("booking_session", token(deniedAdmin)), expected: 403 });
   await denied.close();
   console.log("PASS admin dashboard count, desktop and mobile menu order, active state, navigation and permission filtering");

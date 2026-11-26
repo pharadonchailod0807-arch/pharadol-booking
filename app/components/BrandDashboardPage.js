@@ -103,6 +103,13 @@ const Icon = ({ name, className = "h-5 w-5" }) => {
         <path d="M10 17h6" />
       </>
     ),
+    shoppingCart: (
+      <>
+        <path d="M2 3h2l3 12h12l3-8H5" />
+        <circle cx="8" cy="20" r="1" />
+        <circle cx="18" cy="20" r="1" />
+      </>
+    ),
     calendar: (
       <>
         <path d="M7 3v4" />
@@ -414,7 +421,7 @@ export default function BrandDashboardPage({ brandId }) {
     [dashboardPath, "today", "Dashboard", "ภาพรวมระบบ", 0],
     [bookingPath, "document", "ระบบสร้างใบจอง", "สร้างใบจองใหม่", draftBookingCount],
     ...(purchaseAccess(currentUser, brandId).view ? [
-      [`/${brandId}/purchase`, "document", "จัดซื้อและตั้งเบิก", "สร้างและติดตามคำขอจัดซื้อ", 0],
+      [`/${brandId}/purchase`, "shoppingCart", "จัดซื้อและตั้งเบิก", "เสนอขออนุมัติจัดซื้อ", 0],
     ] : []),
     [`/${brandId}/customer-requests`, "bell", "คำขอจากลูกค้า", "ข้อมูลที่ลูกค้ากรอกผ่านลิงก์", newCustomerRequestCount],
     [`/${brandId}/customers`, "customers", "ข้อมูลลูกค้า", "รายชื่อลูกค้าทั้งหมด", customerCount],

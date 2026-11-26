@@ -13,18 +13,7 @@ try {
     "@sparticuz/chromium"
   );
 
-  const chromiumPath = fileURLToPath(
-    chromiumResolvedPath
-  );
-
-  const chromiumDirectory = dirname(
-    dirname(dirname(chromiumPath))
-  );
-
-  const binaryDirectory = join(
-    chromiumDirectory,
-    "bin"
-  );
+  const binaryDirectory = fileURLToPath(new URL("../bin/", chromiumResolvedPath));
 
   if (!existsSync(binaryDirectory)) {
     console.log(

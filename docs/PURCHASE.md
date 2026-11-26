@@ -33,7 +33,7 @@
 | `PURCHASE_SECRET` | Secret ฝั่งเซิร์ฟเวอร์อย่างน้อย 32 ตัวอักษร ใช้ลงลายเซ็นลิงก์และ Hash OTP แยกแต่ละสภาพแวดล้อม |
 | `PURCHASE_SUPABASE_URL`, `PURCHASE_SUPABASE_SERVICE_ROLE_KEY` | ต้องตั้งสำหรับ Preview ให้ชี้ฐานข้อมูล staging ใน Production ใช้การตั้งค่า Supabase เดิมได้ |
 | `PURCHASE_RESEND_API_KEY`, `PURCHASE_TEST_EMAIL` | Preview ต้องใช้คีย์ทดสอบและกล่องจดหมายของผู้ทดสอบ ระบบส่งอีเมลจัดซื้อใน Preview ไปที่กล่องจดหมายนี้ |
-| `PHARADOL_EMAIL_FROM`, `ADISORN_EMAIL_FROM` | ผู้ส่งที่ Resend ยืนยันแล้วในแต่ละแบรนด์ ใช้ `RESEND_API_KEY` เดิมได้ใน Production |
+| `PURCHASE_PHARADOL_EMAIL_FROM`, `PURCHASE_ADISORN_EMAIL_FROM` | ผู้ส่งจากโดเมนที่ Resend ยืนยันสำหรับอีเมลจัดซื้อของแต่ละแบรนด์ ค่าเริ่มต้นใช้ `PHARADOL_EMAIL_FROM` และ `ADISORN_EMAIL_FROM` ตามแบรนด์ ใช้ `RESEND_API_KEY` เดิมได้ใน Production |
 | `PHARADOL_EMAIL_REPLY_TO`, `ADISORN_EMAIL_REPLY_TO` | ตั้งได้ตามต้องการ ค่าเริ่มต้นใช้อีเมลติดต่อของแบรนด์ |
 | `PURCHASE_CRON_SECRET` | หากตั้งเวลาส่งซ้ำอัตโนมัติ ให้ส่ง GET ไปยัง `/api/purchase/worker` พร้อม `Authorization: Bearer <secret>` ใช้ Secret อย่างน้อย 32 ตัวอักษร |
 
