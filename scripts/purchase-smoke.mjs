@@ -3,20 +3,26 @@ import { createHmac, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { existsSync } from "node:fs";
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import puppeteer from "puppeteer";
 import { startEquipmentTestDatabase } from "./equipment-test-db.mjs";
 import { migratePurchase, startPurchaseStub } from "../tests/purchase/fixtures.mjs";
+import { accountCredentialTag, hashAccountPassword } from "../lib/account-password.js";
 
 const secret = randomUUID() + randomUUID();
 const approvalSecret = randomUUID() + randomUUID();
+const fixturePassword = randomUUID();
+const storedPassword = hashAccountPassword(fixturePassword);
 const admin = {
   id: "local-purchase-tester", username: "tester", name: "ผู้ขอจัดซื้อทดสอบ", email: "proposer@example.invalid",
   role: "BRAND_ADMIN", brands: ["pharadol", "adisorn"], active: true,
+  credentialTag: accountCredentialTag("local-purchase-tester", storedPassword, secret),
 };
+const centralAdmin = { ...admin, id: "local-central-admin", username: "central-tester", role: "ADMIN",
+  credentialTag: accountCredentialTag("local-central-admin", storedPassword, secret) };
 function token(user) {
   const body = Buffer.from(JSON.stringify({ type: "session", user, exp: Math.floor(Date.now() / 1000) + 1800 })).toString("base64url");
   return body + "." + createHmac("sha256", secret).update(body).digest("base64url");
@@ -80,6 +86,14 @@ async function reviewer(mailbox) {
 
 try {
   await migratePurchase(fixture.pool);
+  for (const file of ["supabase-admin-users.sql", "supabase-auth-provider-accounts.sql",
+    "supabase/migrations/202611270002_protect_account_authority.sql"]) {
+    await fixture.pool.query(await readFile(file, "utf8"));
+  }
+  for (const account of [admin, centralAdmin]) {
+    await fixture.pool.query("INSERT INTO admin_users(id,name,username,role,brands,password) VALUES($1,$2,$3,$4,$5,$6)",
+      [account.id, account.name, account.username, account.role, JSON.stringify(account.brands), storedPassword]);
+  }
   stub = await startPurchaseStub(fixture.pool);
   app = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--port", String(port)], {
     env: {
@@ -102,6 +116,15 @@ try {
   }
 
   await http(root, { auth: "", expected: 401 });
+  const signedLogin = await post("/api/auth/login", { identifier: centralAdmin.username, password: fixturePassword }, { auth: "" });
+  assert.equal(signedLogin.user.role, "ADMIN");
+  assert.equal(signedLogin.user.credentialTag, centralAdmin.credentialTag);
+  const centralCookie = cookie("booking_session", token(centralAdmin));
+  const accounts = await get("/api/admin/accounts", { auth: centralCookie });
+  assert.equal(accounts.users.length, 2);
+  assert.ok(accounts.users.every((user) => !Object.hasOwn(user, "password")));
+  await http("/api/admin/accounts", { auth: "", expected: 403 });
+  await http(root + "/approvers", { auth: cookie("booking_session", token({ ...admin, credentialTag: "stale" })), expected: 403 });
   const pharadolOnly = cookie("booking_session", token({ ...admin, brands: ["pharadol"] }));
   await http(api + "/adisorn", { auth: pharadolOnly, expected: 403 });
   await http(root, { method: "POST", body: {}, expected: 403, headers: { Origin: "https://unrelated.invalid" } });

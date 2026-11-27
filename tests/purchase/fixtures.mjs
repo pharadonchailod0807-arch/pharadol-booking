@@ -15,7 +15,7 @@ export async function migrateApprovalSettings(pool) {
 const tables = new Set([
   "purchase_requisitions", "purchase_approvers", "purchase_approval_steps", "purchase_approval_rounds",
   "purchase_approval_sessions", "purchase_attachments", "purchase_payments", "purchase_email_outbox",
-  "purchase_audit_logs", "user_sessions",
+  "purchase_audit_logs", "user_sessions", "admin_users",
 ]);
 const functions = new Set([
   "purchase_list", "purchase_save", "purchase_mutate", "purchase_approver_save", "purchase_snapshot",

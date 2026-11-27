@@ -3,14 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ADISORN_LOGO_SRC } from "@/app/lib/brandDocuments";
-import { supabase } from "@/lib/supabase";
 
 const ADMIN_USERS_KEY = "central_admin_users";
 const ADMIN_USER_OVERRIDES_KEY = "central_admin_user_overrides";
-const ADMIN_USERS_TABLE = "admin_users";
 const ADMIN_SETTINGS_KEY = "central_admin_settings";
 const ADMIN_LOG_KEY = "central_admin_activityLog";
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const AUTH_SESSION_STORAGE_KEYS = [
   "loggedIn",
   "currentUser",
@@ -20,148 +17,21 @@ const AUTH_SESSION_STORAGE_KEYS = [
 
 const defaultUsers = [];
 
-const userToRow = (user) => ({
-  id: user.id,
-  name: user.name,
-  username: user.username,
-  password: user.password,
-  role: user.role,
-  brands: Array.isArray(user.brands) ? user.brands : [],
-  active: user.active !== false,
-  updated_at: new Date().toISOString(),
-});
-
-const rowToUser = (row) => ({
-  id: row.id,
-  name: row.name,
-  username: row.username,
-  password: row.password,
-  role: row.role,
-  brands: Array.isArray(row.brands) ? row.brands : [],
-  active: row.active !== false,
-});
-
 const clearStoredClientSession = () => {
   AUTH_SESSION_STORAGE_KEYS.forEach((key) => sessionStorage.removeItem(key));
 };
 
-const syncUsersToSupabase = async (nextUsers) => {
-  const { error } = await supabase
-    .from(ADMIN_USERS_TABLE)
-    .upsert(nextUsers.map(userToRow), { onConflict: "id" });
-
-  if (error) {
-    console.error("Cannot sync admin users to Supabase", error);
-  }
-};
-
-const readUserOverrides = () => {
-  try {
-    const overrides = JSON.parse(
-      localStorage.getItem(ADMIN_USER_OVERRIDES_KEY) || "{}"
-    );
-
-    return overrides && typeof overrides === "object" ? overrides : {};
-  } catch (error) {
-    console.error("Cannot read admin user overrides", error);
-    return {};
-  }
-};
-
-const saveUserOverride = (id, updates) => {
-  const overrides = readUserOverrides();
-  const nextOverrides = {
-    ...overrides,
-    [id]: {
-      ...(overrides[id] || {}),
-      ...updates,
-    },
-  };
-
-  localStorage.setItem(
-    ADMIN_USER_OVERRIDES_KEY,
-    JSON.stringify(nextOverrides)
-  );
-
-  return nextOverrides;
-};
-
-const removeUserOverride = (id) => {
-  const overrides = readUserOverrides();
-  const { [id]: removedUser, ...nextOverrides } = overrides;
-
-  localStorage.setItem(
-    ADMIN_USER_OVERRIDES_KEY,
-    JSON.stringify(nextOverrides)
-  );
-
-  return removedUser;
-};
-
-const deleteUserFromSupabase = async (id) => {
-  const { error } = await supabase.from(ADMIN_USERS_TABLE).delete().eq("id", id);
-
-  if (error) {
-    console.error("Cannot delete admin user from Supabase", error);
-  }
-};
-
-const clearUserOverrides = () => {
-  localStorage.removeItem(ADMIN_USER_OVERRIDES_KEY);
-};
-
-const normalizeUsers = (value, { applyOverrides = true } = {}) => {
-  const source = Array.isArray(value) && value.length ? value : defaultUsers;
-  const overrides = applyOverrides ? readUserOverrides() : {};
-  const hasAdmin = source.some(
-    (user) =>
-      user.id === "admin-1" ||
-      String(user.username || "").trim().toLowerCase() === "super admin" ||
-      String(user.username || "").trim().toLowerCase() === "admin"
-  );
-  const users = hasAdmin ? source : [...source, ...defaultUsers];
-
-  return users.map((user) => {
-    const override = overrides[user.id] || {};
-    const userWithOverride = {
-      ...user,
-      ...override,
-    };
-    const role =
-      userWithOverride.role === "super_admin" ? "ADMIN" : userWithOverride.role;
-    const isAdmin =
-      userWithOverride.id === "admin-1" ||
-      role === "ADMIN" ||
-      String(userWithOverride.username || "").trim().toLowerCase() ===
-        "super admin" ||
-      String(userWithOverride.username || "").trim().toLowerCase() === "admin";
-
-    return {
-      ...userWithOverride,
-      username:
-        isAdmin &&
-        String(userWithOverride.username || "").trim().toLowerCase() ===
-          "super admin"
-          ? "Admin"
-          : userWithOverride.username,
-      role,
-      active:
-        typeof userWithOverride.active === "boolean"
-          ? userWithOverride.active
-          : typeof userWithOverride.isActive === "boolean"
-            ? userWithOverride.isActive
-            : true,
-      brands:
-        isAdmin
-          ? ["adisorn", "pharadol"]
-          : Array.isArray(userWithOverride.brands)
-            ? userWithOverride.brands
-            : userWithOverride.brandId
-              ? [userWithOverride.brandId]
-              : [],
-    };
+async function adminAccounts(method = "GET", data) {
+  const response = await fetch("/api/admin/accounts", {
+    method, cache: "no-store",
+    ...(data && { headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }),
   });
-};
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "ไม่สามารถจัดการบัญชีได้");
+  return result;
+}
+
+const normalizeUser = (user) => ({ ...user, role: user.role === "super_admin" ? "ADMIN" : user.role });
 
 const defaultSettings = {
   systemName: "Pharadol Booking Central",
@@ -194,6 +64,7 @@ const normalizeSettings = (value) => {
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [users, setUsers] = useState(defaultUsers);
+  const [accountsError, setAccountsError] = useState("");
   const [settings, setSettings] = useState(defaultSettings);
   const [activityLog, setActivityLog] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
@@ -208,67 +79,24 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    const loadUsersFromSupabase = async () => {
-      try {
-        const { data, error } = await supabase
-          .from(ADMIN_USERS_TABLE)
-          .select("*")
-          .order("username", { ascending: true });
-
-        if (error) throw error;
-
-        const remoteUsers = Array.isArray(data) ? data.map(rowToUser) : [];
-
-        if (remoteUsers.length === 0) {
-          const savedUsers = normalizeUsers(
-            JSON.parse(localStorage.getItem(ADMIN_USERS_KEY) || "null")
-          );
-          localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(savedUsers));
-          await syncUsersToSupabase(savedUsers);
-          return savedUsers;
-        }
-
-        const normalizedRemoteUsers = normalizeUsers(remoteUsers, {
-          applyOverrides: false,
-        });
-        clearUserOverrides();
-        localStorage.setItem(
-          ADMIN_USERS_KEY,
-          JSON.stringify(normalizedRemoteUsers)
-        );
-        setUsers(normalizedRemoteUsers);
-        syncUsersToSupabase(normalizedRemoteUsers);
-        return normalizedRemoteUsers;
-      } catch (error) {
-        console.error("Cannot load admin users from Supabase", error);
-        return null;
-      }
-    };
-
-    const loadAdminData = () => {
-      const savedUsers = JSON.parse(
-        localStorage.getItem(ADMIN_USERS_KEY) || "null"
-      );
-      const savedSettings = JSON.parse(
-        localStorage.getItem(ADMIN_SETTINGS_KEY) || "null"
-      );
-      const savedLog = JSON.parse(
-        localStorage.getItem(ADMIN_LOG_KEY) || "[]"
-      );
-
-      const normalizedUsers = normalizeUsers(savedUsers);
-      localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(normalizedUsers));
-      setUsers(normalizedUsers);
+    const loadAdminData = async () => {
+      localStorage.removeItem(ADMIN_USER_OVERRIDES_KEY);
+      const savedSettings = JSON.parse(localStorage.getItem(ADMIN_SETTINGS_KEY) || "null");
+      const savedLog = JSON.parse(localStorage.getItem(ADMIN_LOG_KEY) || "[]");
       const normalizedSettings = normalizeSettings(savedSettings);
-      localStorage.setItem(
-        ADMIN_SETTINGS_KEY,
-        JSON.stringify(normalizedSettings)
-      );
+      localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(normalizedSettings));
       setSettings(normalizedSettings);
       setActivityLog(Array.isArray(savedLog) ? savedLog : []);
-      loadUsersFromSupabase();
+      try {
+        const { users: remoteUsers } = await adminAccounts();
+        const publicUsers = remoteUsers.map(normalizeUser);
+        setUsers(publicUsers);
+        localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(publicUsers));
+        setAccountsError("");
+      } catch (error) {
+        setAccountsError(error.message);
+      }
     };
-
     const denyAccess = () => {
       clearStoredClientSession();
       window.location.replace("/login?next=%2Fadmin");
@@ -310,47 +138,8 @@ export default function AdminPage() {
 
     const verifyAccess = async () => {
       try {
-        const loggedIn = sessionStorage.getItem("loggedIn") === "true";
-        const savedCurrentUser = JSON.parse(
-          sessionStorage.getItem("currentUser") || "null"
-        );
-        const rawUsers = JSON.parse(
-          localStorage.getItem(ADMIN_USERS_KEY) || "null"
-        );
-        const savedUsers = normalizeUsers(rawUsers);
-        localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(savedUsers));
-        const latestAccount = savedUsers.find(
-          (user) =>
-            user.id === savedCurrentUser?.id ||
-            String(user.username || "").trim().toLowerCase() ===
-              String(savedCurrentUser?.username || "").trim().toLowerCase()
-        );
-        const lastActivity = Number(
-          sessionStorage.getItem("lastActivity") || Date.now()
-        );
-        const sessionExpired = Date.now() - lastActivity > SESSION_TIMEOUT_MS;
-        const accountIsActive = latestAccount?.active === true;
-        const accountIsAdmin = latestAccount?.role === "ADMIN";
-
-        if (
-          !loggedIn ||
-          !savedCurrentUser ||
-          !accountIsActive ||
-          !accountIsAdmin ||
-          sessionExpired
-        ) {
-          const restoredUser = await restoreServerSession();
-          return authorizeAdminUser(restoredUser);
-        }
-
-        const nextCurrentUser = {
-          ...savedCurrentUser,
-          ...latestAccount,
-        };
-
-        return authorizeAdminUser(nextCurrentUser);
-      } catch (error) {
-        console.error("Cannot load central admin data", error);
+        return authorizeAdminUser(await restoreServerSession());
+      } catch {
         return denyAccess();
       }
     };
@@ -368,7 +157,6 @@ export default function AdminPage() {
 
     const handleStorage = (event) => {
       if (
-        event.key === ADMIN_USERS_KEY ||
         event.key === ADMIN_SETTINGS_KEY ||
         event.key === ADMIN_LOG_KEY
       ) {
@@ -402,13 +190,17 @@ export default function AdminPage() {
     };
   }, []);
 
-  const saveUsers = (nextUsers) => {
-    const normalizedUsers = normalizeUsers(nextUsers);
-
-    setUsers(normalizedUsers);
-    localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(normalizedUsers));
-    syncUsersToSupabase(normalizedUsers);
-    return normalizedUsers;
+  const updateAccount = async (method, payload) => {
+    try {
+      const { user: saved } = await adminAccounts(method, payload);
+      const user = normalizeUser(saved);
+      setUsers((previous) => method === "DELETE" ? previous.filter((row) => row.id !== user.id) :
+        method === "POST" ? [...previous, user] : previous.map((row) => row.id === user.id ? user : row));
+      return user;
+    } catch (error) {
+      window.alert(error.message);
+      return null;
+    }
   };
 
   const saveSettings = (nextSettings) => {
@@ -454,7 +246,7 @@ export default function AdminPage() {
     [settings]
   );
 
-  const addUser = () => {
+  const addUser = async () => {
     if (!newUser.name.trim() || !newUser.username.trim() || !newUser.password) {
       window.alert("กรุณากรอกชื่อผู้ใช้ ชื่อเข้าสู่ระบบ และรหัสผ่านให้ครบ");
       return;
@@ -476,9 +268,7 @@ export default function AdminPage() {
       return;
     }
 
-    const createdAt = new Date().toISOString();
     const nextUser = {
-      id: `user-${newUser.username.trim().toLowerCase()}-${users.length}-${createdAt}`,
       name: newUser.name.trim(),
       username: newUser.username.trim(),
       password: newUser.password,
@@ -490,7 +280,7 @@ export default function AdminPage() {
       active: true,
     };
 
-    saveUsers([...users, nextUser]);
+    if (!await updateAccount("POST", nextUser)) return;
     addActivity(`เพิ่มผู้ใช้ ${nextUser.name}`);
     setNewUser({
       name: "",
@@ -501,7 +291,7 @@ export default function AdminPage() {
     });
   };
 
-  const toggleUser = (id) => {
+  const toggleUser = async (id) => {
     const target = users.find((user) => user.id === id);
     if (!target) return;
 
@@ -509,15 +299,11 @@ export default function AdminPage() {
       window.alert("ไม่สามารถระงับบัญชีที่กำลังใช้งานอยู่ได้");
       return;
     }
-    const nextUsers = users.map((user) =>
-      user.id === id ? { ...user, active: !user.active } : user
-    );
-    saveUserOverride(id, { active: !target.active });
-    saveUsers(nextUsers);
+    if (!await updateAccount("PATCH", { id, active: !target.active })) return;
     addActivity(`${target?.active ? "ระงับ" : "เปิดใช้งาน"}ผู้ใช้ ${target?.name}`);
   };
 
-  const editUsername = (id) => {
+  const editUsername = async (id) => {
     const target = users.find((user) => user.id === id);
     if (!target) return;
 
@@ -545,17 +331,8 @@ export default function AdminPage() {
       return;
     }
 
-    const nextUsers = users.map((user) =>
-      user.id === id
-        ? {
-            ...user,
-            username: normalizedUsername,
-          }
-        : user
-    );
-    saveUserOverride(id, { username: normalizedUsername });
-    const savedUsers = saveUsers(nextUsers);
-    const savedUser = savedUsers.find((user) => user.id === id);
+    const savedUser = await updateAccount("PATCH", { id, username: normalizedUsername });
+    if (!savedUser) return;
 
     addActivity(`แก้ไข Username ของ ${target.name}`);
 
@@ -572,7 +349,7 @@ export default function AdminPage() {
     window.alert("แก้ไข Username เรียบร้อยแล้ว");
   };
 
-  const editPassword = (id) => {
+  const editPassword = async (id) => {
     const target = users.find((user) => user.id === id);
     if (!target) return;
 
@@ -597,33 +374,19 @@ export default function AdminPage() {
       return;
     }
 
-    const nextUsers = users.map((user) =>
-      user.id === id
-        ? {
-            ...user,
-            password: normalizedPassword,
-          }
-        : user
-    );
-    saveUserOverride(id, { password: normalizedPassword });
-    const savedUsers = saveUsers(nextUsers);
-    const savedUser = savedUsers.find((user) => user.id === id);
-
+    if (!await updateAccount("PATCH", { id, password: normalizedPassword })) return;
     addActivity(`เปลี่ยน Password ของ ${target.name}`);
-
-    if (currentUser?.id === id && savedUser) {
-      const nextCurrentUser = {
-        ...currentUser,
-        ...savedUser,
-      };
-      setCurrentUser(nextCurrentUser);
-      sessionStorage.setItem("currentUser", JSON.stringify(nextCurrentUser));
+    if (currentUser?.id === id) {
+      window.alert("เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบใหม่");
+      await fetch("/api/auth/logout", { method: "POST", cache: "no-store" }).catch(() => {});
+      clearStoredClientSession();
+      window.location.replace("/login?next=%2Fadmin");
+      return;
     }
-
     window.alert("เปลี่ยน Password เรียบร้อยแล้ว");
   };
 
-  const deleteUser = (id) => {
+  const deleteUser = async (id) => {
     const target = users.find((user) => user.id === id);
     if (!target) return;
 
@@ -637,9 +400,7 @@ export default function AdminPage() {
     }
 
     if (!window.confirm(`ต้องการลบผู้ใช้ ${target?.name} ใช่หรือไม่?`)) return;
-    removeUserOverride(id);
-    saveUsers(users.filter((user) => user.id !== id));
-    deleteUserFromSupabase(id);
+    if (!await updateAccount("DELETE", { id })) return;
     addActivity(`ลบผู้ใช้ ${target?.name}`);
   };
 
@@ -697,9 +458,6 @@ export default function AdminPage() {
       );
       if (!confirmed) return;
 
-      if (Array.isArray(backup.users)) {
-        localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(backup.users));
-      }
       if (backup.settings && typeof backup.settings === "object") {
         localStorage.setItem(
           ADMIN_SETTINGS_KEY,
@@ -922,7 +680,8 @@ export default function AdminPage() {
           </section>
         )}
 
-        {activeTab === "users" && (
+        {accountsError && activeTab === "users" && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-900">{accountsError}</p>}
+      {activeTab === "users" && (
           <section className="mt-6 grid gap-6 xl:grid-cols-[380px_1fr]">
             <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
               <h2 className="text-xl font-black">เพิ่มผู้ใช้งาน</h2>
