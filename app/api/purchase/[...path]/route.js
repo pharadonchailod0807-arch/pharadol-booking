@@ -158,7 +158,8 @@ async function staffGet(request, path) {
   if (path.length === 1) return json({ ...await list(brand, query), access, viewer: { name: user.name || user.username, email: user.email || "" } });
   const db = purchaseDb();
   if (resource === "approvers" && path.length === 2) {
-    const rows = result(await db.from("purchase_approvers").select("*").eq("brand", brand).order("level").order("active", { ascending: false }));
+    const rows = result(await db.from("purchase_approvers").select("*").eq("brand", brand).eq("one_time", false)
+      .order("level").order("active", { ascending: false }));
     const brands = ["pharadol", "adisorn"].filter((candidate) => purchaseAccess(user, candidate).manage);
     return json({ approvers: rows, brands });
   }
@@ -251,11 +252,14 @@ async function staffPost(request, path) {
     const job = result(await purchaseDb().from("purchase_email_outbox").select("id,status").eq("requisition_id", reqId).eq("id", jobId).maybeSingle());
     invariant(job && job.status in emailStatuses, "ไม่พบงานส่งอีเมล", 404);
     await drainEmail({ requisitionId: reqId, jobId, force: true });
-    return json({ delivery: await deliveryStatus(jobId) });
+    return json(await deliveryStatus(jobId));
   }
   invariant(writeActions.has(operation) || financeActions.has(operation), "ไม่พบรายการ", 404);
   const data = { version: version(input.version) };
-  if (operation === "submit") Object.assign(data, approvalInput(input));
+  if (operation === "submit") {
+    if (Object.hasOwn(input, "inline_approver")) await authorize(request, brand, "manage");
+    Object.assign(data, approvalInput(input));
+  }
   if (operation === "payment") Object.assign(data, paymentInput(input));
   if (operation === "file_remove") {
     data.id = id(input.id);
@@ -266,14 +270,14 @@ async function staffPost(request, path) {
   }
   const updated = await rpc("mutate", { p_brand: brand, p_id: reqId, p_actor: actor, p_action: operation, p_data: data });
   if (updated.round || operation === "renew") await sendQueued(reqId);
-  if (operation === "submit") return json({ ...updated, delivery: await deliveryStatus(updated.invite_job) });
+  if (operation === "submit") return json({ ...updated, ...await deliveryStatus(updated.invite_job) });
   return json(updated);
 }
 
 async function deliveryStatus(jobId) {
-  if (!jobId) return "unknown";
-  const response = await purchaseDb().from("purchase_email_outbox").select("status").eq("id", jobId).maybeSingle();
-  return response.data?.status || "unknown";
+  if (!jobId) return { delivery: "unknown" };
+  const response = await purchaseDb().from("purchase_email_outbox").select("status,failure").eq("id", jobId).maybeSingle();
+  return { delivery: response.data?.status || "unknown", failure: response.data?.failure || null };
 }
 
 export async function POST(request, { params }) {

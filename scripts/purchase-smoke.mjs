@@ -158,6 +158,7 @@ try {
   stub.failNextEmail();
   const submission = await post(path + "/submit", { version: quotation.version, approval_route: choice, sender_message: "โปรดตรวจ <รายละเอียด>" });
   assert.equal(submission.delivery, "failed");
+  assert.equal(submission.failure, "resend_503");
   const submitted = await get(path);
   assert.equal(submitted.document.status, "pending");
   assert.equal(submitted.mail[0].status, "failed");
@@ -311,6 +312,28 @@ try {
   await page.select(".max-w-sm select", "adisorn");
   await page.waitForFunction(() => document.querySelectorAll("main form").length === 1 &&
     document.querySelector("main form input[readonly]")?.value === "Adisorn Wedding Studio");
+
+  const adisorn = api + "/adisorn";
+  const inlineDraft = await post(adisorn, { id: randomUUID(), purpose: "Inline approval", reason: "Local fixture", items: [items[0]] }, { expected: 201 });
+  const inlinePath = adisorn + "/" + inlineDraft.id;
+  const inlineApprover = { level: 1, name: "ผู้บริหารทดสอบ", position: "ผู้บริหาร", email: "inline@example.invalid", remember: false };
+  const inlineRequest = { version: inlineDraft.version, approval_route: [null], inline_approver: inlineApprover, sender_message: "ข้อความทดสอบ" };
+  await post(inlinePath + "/submit", inlineRequest, { auth: staffOnly, expected: 403 });
+  await post(inlinePath + "/submit", inlineRequest, { auth: cookie("booking_session", token({ ...admin, credentialTag: "stale" })), expected: 403 });
+  await post(inlinePath + "/submit", { ...inlineRequest, inline_approver: { ...inlineApprover, email: "not-an-email" } }, { expected: 400 });
+  assert.deepEqual((await get(inlinePath + "/approval-route")).candidates, []);
+  const inlineSession = await post(inlinePath + "/submit", inlineRequest);
+  assert.equal(inlineSession.delivery, "sent");
+  assert.deepEqual((await get(adisorn + "/approvers")).approvers, []);
+  const inlineReviewer = await reviewer(inlineApprover.email);
+  await post(api + "/review/decision", { decision: "approved" }, { auth: inlineReviewer });
+  assert.equal((await get(inlinePath)).document.status, "approved");
+  const savedDraft = await post(adisorn, { id: randomUUID(), purpose: "Save approval", reason: "Local fixture", items: [items[0]] }, { expected: 201 });
+  await post(adisorn + "/" + savedDraft.id + "/submit", { ...inlineRequest, version: savedDraft.version,
+    inline_approver: { ...inlineApprover, remember: true } });
+  assert.equal((await get(adisorn + "/approvers")).approvers[0].email, inlineApprover.email);
+  assert.ok(!(await get(root + "/approvers")).approvers.some((entry) => entry.email === inlineApprover.email));
+  console.log("PASS one-time and saved recipients, brand isolation, invalid email, server access and one-level approval");
   console.log("PASS approval modal confirmation, local settings default, brand switching and sender rights");
   console.log("PASS admin dashboard count, desktop and mobile menu order, active state, navigation and permission filtering");
   console.log("PASS mobile document, image, new form with multiple lines and legacy booking entry");

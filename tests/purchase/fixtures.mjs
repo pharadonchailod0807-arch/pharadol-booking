@@ -9,7 +9,9 @@ export async function migratePurchase(pool, { legacy = false } = {}) {
 }
 
 export async function migrateApprovalSettings(pool) {
-  await pool.query(await readFile(new URL("../../supabase/migrations/202611260001_purchase_approval_settings.sql", import.meta.url), "utf8"));
+  for (const migration of ["202611260001_purchase_approval_settings.sql", "202611270001_purchase_inline_approver.sql"]) {
+    await pool.query(await readFile(new URL("../../supabase/migrations/" + migration, import.meta.url), "utf8"));
+  }
 }
 
 const tables = new Set([

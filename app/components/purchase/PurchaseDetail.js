@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { selectDocument } from "@/lib/purchase/document";
-import { emailStatuses, statuses, thaiDate } from "@/lib/purchase/data";
+import { emailFailureLabel, emailStatuses, statuses, thaiDate } from "@/lib/purchase/data";
 import { ApproverSettingsLink, approve, button, danger, DocumentView, ErrorBox, FileList, Heading, panel, post, primary, Status, usePurchaseData } from "./ui";
 import PurchaseInventory from "./PurchaseInventory";
 import PurchasePayment from "./PurchasePayment";
@@ -24,6 +24,11 @@ const confirmations = {
   file_remove: "ยืนยันนำไฟล์แนบออกหรือไม่?",
 };
 
+function deliveryLabel(status, failure) {
+  return [emailStatuses[status] || "ตรวจสถานะอีเมลจากประวัติการส่ง",
+    status === "failed" && emailFailureLabel(failure)].filter(Boolean).join(" · ");
+}
+
 function EmailLog({ data, busy, retry }) {
   if (!data.mail.length) return null;
   return <section className={panel + " space-y-3"}>
@@ -36,7 +41,7 @@ function EmailLog({ data, busy, retry }) {
             <p>{job.kind === "invite" ? "คำขออนุมัติ" : "แจ้งผลผู้เสนอ"} · รอบ {step?.round} ระดับ {step?.level}</p>
             <p className="break-all font-medium">{job.kind === "invite" ? step?.name : data.document.proposer} · {job.recipient}</p>
             <p className={job.status === "failed" ? "text-red-800" : "text-zinc-600"}>
-              {emailStatuses[job.status]}{job.failure === "configuration" ? " · ตรวจสอบการตั้งค่าอีเมล" : ""}
+              {deliveryLabel(job.status, job.failure)}
               {job.sent_at ? ` · ส่งเมื่อ ${thaiDate(job.sent_at, true)}` : job.first_attempt_at ? ` · เริ่มส่ง ${thaiDate(job.first_attempt_at, true)}` : ""}
             </p>
             {step && <p className="text-zinc-600">สถานะอนุมัติ <Status value={step.status} />{step.acted_at ? ` · ${thaiDate(step.acted_at, true)}` : ""}</p>}
@@ -113,9 +118,9 @@ export default function PurchaseDetail({ brand, requisitionId, round }) {
       const response = await post(`${url}/${action}`, { version: doc.version, ...values });
       if (action === "submit") {
         setSubmitOpen(false);
-        setNotice("บันทึกรอบอนุมัติแล้ว · " + (emailStatuses[response.delivery] || "ตรวจสถานะอีเมลจากประวัติการส่ง"));
+        setNotice("บันทึกรอบอนุมัติแล้ว · " + deliveryLabel(response.delivery, response.failure));
       }
-      if (action === "retry") setNotice(emailStatuses[response.delivery] || "ตรวจสถานะอีเมลจากประวัติการส่ง");
+      if (action === "retry") setNotice(deliveryLabel(response.delivery, response.failure));
       if (action === "revise") router.push(href + "/edit");
       else refresh();
     } catch (error) {

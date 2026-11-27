@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { startEquipmentTestDatabase } from "../../scripts/equipment-test-db.mjs";
 import { lineMinor, minor, purchaseDate } from "../../lib/purchase/data.js";
 import { purchaseAccess } from "../../lib/purchase/access.js";
-import { fileInfo, requisitionInput } from "../../lib/purchase/validation.js";
+import { approvalInput, fileInfo, requisitionInput } from "../../lib/purchase/validation.js";
 import { documentHtml } from "../../lib/purchase/document.js";
 
 import { migrateApprovalSettings, migratePurchase } from "./fixtures.mjs";
@@ -41,6 +41,13 @@ test("Buddhist and Gregorian dates, decimal rounding, file signatures, HTML esca
   assert.equal(purchaseAccess({ ...manager, deniedPermissions: ["equipment.view"] }, "pharadol").inventory, false);
   assert.equal(purchaseAccess({ ...manager, deniedPermissions: ["purchase.write"] }, "pharadol").write, false);
   assert.equal(purchaseAccess({ ...manager, role: "VIEWER" }, "pharadol").write, false);
+  assert.equal(purchaseAccess({ ...manager, role: "Admin" }, "pharadol").manage, true);
+  assert.equal(purchaseAccess({ ...manager, role: "STAFF" }, "pharadol").manage, false);
+  assert.equal(purchaseAccess({ ...manager, role: "STAFF", permissions: ["purchase.manage"] }, "pharadol").manage, true);
+  assert.equal(purchaseAccess({ ...manager, role: "Admin", deniedPermissions: ["purchase.manage"] }, "pharadol").manage, false);
+  assert.throws(() => approvalInput({ approval_route: [null], inline_approver: {
+    level: 1, name: "Fixture", position: "Fixture", email: "bad,local@example.invalid", remember: false,
+  } }), /อีเมล/);
   const html = documentHtml({ document: { brand: "pharadol", number: "PR-20261124-0001", purpose: "<script>alert(1)</script>" },
     files: [], items: [], steps: [] }, { image: () => "" });
   assert.ok(html.includes("&lt;script&gt;"));
@@ -272,6 +279,36 @@ test("Purchase workflow on isolated PostgreSQL with real concurrent transactions
         await call("review", await makeSession(current), "approved", "ผ่าน");
         assert.equal((await read(multiple.id)).status, level === 3 ? "approved" : "pending");
       }
+    });
+
+    await t.test("saves an inline recipient atomically and keeps a one-time recipient out of settings", async () => {
+      await sql("UPDATE purchase_approvers SET active=false WHERE brand='adisorn'");
+      const firstDocument = draft("adisorn");
+      await save(firstDocument);
+      const candidate = { level: 1, name: "ผู้อนุมัติชั่วคราว", position: "ผู้บริหาร", email: "single-use@example.invalid", remember: false };
+      await mutate(firstDocument, "submit", { approval_route: [null], inline_approver: candidate });
+      const row = (await sql("SELECT id,active,one_time FROM purchase_approvers WHERE email=$1 AND brand='adisorn'", [candidate.email])).rows[0];
+      assert.equal(row.active, false);
+      assert.equal(row.one_time, true);
+      await assert.rejects(approver("adisorn", 1, candidate.email, row.id), { code: "P0002" });
+      const standalone = await step(firstDocument, 1);
+      assert.equal(standalone.email, candidate.email);
+      await call("review", await makeSession(standalone), "approved", "อนุมัติระดับเดียว");
+      assert.equal((await read(firstDocument.id)).status, "approved");
+
+      const secondDocument = draft("adisorn");
+      await save(secondDocument);
+      await mutate(secondDocument, "submit", { approval_route: [null],
+        inline_approver: { ...candidate, email: "saved@example.invalid", remember: true } });
+      const saved = (await sql("SELECT active,one_time,level FROM purchase_approvers WHERE email='saved@example.invalid' AND brand='adisorn'")).rows[0];
+      assert.deepEqual(saved, { active: true, one_time: false, level: 1 });
+
+      const thirdDocument = draft("pharadol");
+      await save(thirdDocument);
+      await assert.rejects(mutate(thirdDocument, "submit", { approval_route: [null],
+        inline_approver: { ...candidate, email: "must-rollback@example.invalid", remember: true } }), /ครบทุกระดับ/);
+      assert.equal((await sql("SELECT count(*)::int AS n FROM purchase_approvers WHERE email='must-rollback@example.invalid'")).rows[0].n, 0);
+      assert.equal((await read(thirdDocument.id)).status, "draft");
     });
   } finally {
     await fixture.close();
